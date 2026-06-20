@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Website Hub — Post-Pilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eef2ff', 100:'#e0e7ff', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .tab-btn.active  { @apply border-b-2 border-brand-500 text-brand-600 font-semibold; }
+    .section-card    { transition: box-shadow .15s; }
+    .section-card:hover { box-shadow: 0 0 0 2px #6366f1; }
+    .platform-pill.connected    { @apply bg-green-100 text-green-700 border border-green-300; }
+    .platform-pill.disconnected { @apply bg-gray-100  text-gray-500  border border-gray-300; }
+    #preview-frame { border: none; width: 100%; height: 100%; }
+    .toggle-switch input:checked + span { background: #6366f1; }
+    .toggle-switch input:checked + span::after { transform: translateX(1.25rem); }
+    .toggle-switch span::after { content:''; position:absolute; top:.125rem; left:.125rem;
+      width:1.25rem; height:1.25rem; background:#fff; border-radius:9999px; transition:.2s; }
+    .toggle-switch span { position:relative; display:inline-block; width:2.75rem;
+      height:1.5rem; background:#d1d5db; border-radius:9999px; transition:.2s; cursor:pointer; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+<!-- ===== TOP NAV ===== -->
+<nav class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+  <div class="flex items-center gap-3">
+    <a href="/dashboard" class="text-gray-400 hover:text-brand-500 transition">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
+      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/>
+      </svg>
+    </div>
+    <div>
+      <h1 class="font-bold text-gray-900 leading-tight">Website Hub</h1>
+      <p class="text-xs text-gray-400">{{ business_name or 'Your Business' }}</p>
+    </div>
+  </div>
+  <div class="flex items-center gap-3">
+    <!-- Live / Draft toggle -->
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-gray-500">Draft</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="publishToggle" {% if site.published %}checked{% endif %}
+          onchange="togglePublish(this.checked)" />
+        <span></span>
+      </label>
+      <span class="text-xs font-medium" id="publishLabel">{{ 'Live' if site.published else 'Draft' }}</span>
+    </div>
+    <a href="{{ site.url or '#' }}" target="_blank"
+       class="text-xs px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+      View Live
+    </a>
+    <button onclick="saveSite()"
+      class="text-xs px-4 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg font-medium transition">
+      Save Changes
+    </button>
+  </div>
+</nav>
+
+<!-- ===== MAIN LAYOUT ===== -->
+<div class="flex h-[calc(100vh-57px)]">
+
+  <!-- LEFT PANEL: Editor -->
+  <div class="w-[420px] min-w-[340px] max-w-[480px] bg-white border-r border-gray-200 flex flex-col overflow-hidden">
+
+    <!-- Tab bar -->
+    <div class="flex border-b border-gray-200 text-sm px-2 pt-2 gap-1">
+      {% for tab in ['Sections','SEO','Social','Settings'] %}
+      <button onclick="switchTab('{{ tab.lower() }}')"
+        id="tab-{{ tab.lower() }}"
+        class="tab-btn px-3 py-2 text-gray-500 hover:text-brand-600 transition rounded-t {% if loop.first %}active{% endif %}">
+        {{ tab }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Tab: Sections -->
+    <div id="panel-sections" class="flex-1 overflow-y-auto p-4 space-y-3">
+      <p class="text-xs text-gray-400 mb-2">Drag to reorder — click to edit</p>
+
+      {% set sections = site.sections or [
+        {'id':'hero',       'label':'Hero Banner',    'icon':'H', 'enabled': true},
+        {'id':'about',      'label':'About Us',       'icon':'A', 'enabled': true},
+        {'id':'menu',       'label':'Menu / Services','icon':'M', 'enabled': true},
+        {'id':'specials',   'label':'Daily Specials', 'icon':'S', 'enabled': true},
+        {'id':'gallery',    'label':'Photo Gallery',  'icon':'G', 'enabled': true},
+        {'id':'reviews',    'label':'Reviews',        'icon':'R', 'enabled': false},
+        {'id':'hours',      'label':'Hours & Location','icon':'L','enabled': true},
+        {'id':'contact',    'label':'Contact / Book', 'icon':'C', 'enabled': false},
+        {'id':'social_feed','label':'Social Feed',    'icon':'F', 'enabled': false},
+      ] %}
+
+      <div id="sectionList" class="space-y-2">
+      {% for sec in sections %}
+      <div class="section-card flex items-center gap-3 p-3 border border-gray-200 rounded-xl cursor-pointer
+                  hover:border-brand-300 bg-white" data-id="{{ sec.id }}"
+           onclick="editSection('{{ sec.id }}')">
+        <span class="cursor-grab text-gray-300 hover:text-gray-500">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 8h16M4 16h16"/>
+          </svg>
+        </span>
+        <div class="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center
+                    text-xs font-bold text-brand-600">
+          {{ sec.icon }}
+        </div>
+        <span class="flex-1 text-sm font-medium">{{ sec.label }}</span>
+        <label class="toggle-switch" onclick="event.stopPropagation()">
+          <input type="checkbox" {% if sec.enabled %}checked{% endif %}
+            onchange="toggleSection('{{ sec.id }}', this.checked)" />
+          <span></span>
+        </label>
+      </div>
+      {% endfor %}
+      </div>
+
+      <!-- Add custom section -->
+      <button onclick="addSection()"
+        class="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-400
+               hover:border-brand-300 hover:text-brand-500 transition mt-2">
+        + Add Custom Section
+      </button>
+    </div>
+
+    <!-- Tab: SEO -->
+    <div id="panel-seo" class="flex-1 overflow-y-auto p-4 space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Page Title</label>
+        <input id="seoTitle" type="text" value="{{ site.seo_title or business_name }}"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+          placeholder="Your Business Name | City" />
+        <p class="text-xs text-gray-400 mt-1" id="seoTitleCount">0/60 chars</p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Meta Description</label>
+        <textarea id="seoDesc" rows="3"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none"
+          placeholder="Describe your business in 1-2 sentences...">{{ site.seo_description or '' }}</textarea>
+        <p class="text-xs text-gray-400 mt-1" id="seoDescCount">0/160 chars</p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Keywords</label>
+        <input id="seoKeywords" type="text" value="{{ site.seo_keywords or '' }}"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+          placeholder="food truck, bbq, charlotte nc" />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Google Business Profile URL</label>
+        <input id="googleBiz" type="url" value="{{ site.google_biz_url or '' }}"
+          class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+          placeholder="https://g.page/your-business" />
+      </div>
+      <!-- SEO score card -->
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-xs font-semibold text-gray-600">SEO Score</span>
+          <span class="text-lg font-bold text-brand-600" id="seoScore">--</span>
+        </div>
+        <div class="space-y-1.5" id="seoChecklist">
+          <div class="flex items-center gap-2 text-xs text-gray-500">
+            <span class="w-3 h-3 rounded-full bg-gray-200"></span> Fill in all fields to score
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab: Social -->
+    <div id="panel-social" class="flex-1 overflow-y-auto p-4 space-y-3 hidden">
+      <p class="text-xs text-gray-400">Link your social profiles — icons appear in your site footer and header.</p>
+
+      {% set socials = [
+        {'key':'facebook',  'label':'Facebook',  'icon':'📱', 'placeholder':'https://facebook.com/yourpage'},
+        {'key':'instagram', 'label':'Instagram', 'icon':'📸', 'placeholder':'https://instagram.com/yourhandle'},
+        {'key':'tiktok',    'label':'TikTok',    'icon':'🎵', 'placeholder':'https://tiktok.com/@yourhandle'},
+        {'key':'youtube',   'label':'YouTube',   'icon':'📺', 'placeholder':'https://youtube.com/@yourchannel'},
+        {'key':'twitter',   'label':'X / Twitter','icon':'🐦','placeholder':'https://x.com/yourhandle'},
+        {'key':'yelp',      'label':'Yelp',      'icon':'⭐', 'placeholder':'https://yelp.com/biz/your-business'},
+      ] %}
+
+      {% for s in socials %}
+      <div class="flex items-center gap-3 p-3 border border-gray-200 rounded-xl">
+        <span class="text-lg">{{ s.icon }}</span>
+        <div class="flex-1">
+          <label class="block text-xs font-semibold text-gray-600 mb-0.5">{{ s.label }}</label>
+          <input type="url" id="social_{{ s.key }}" value="{{ site.socials[s.key] if site.socials else '' }}"
+            placeholder="{{ s.placeholder }}"
+            class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs
+                   focus:outline-none focus:ring-2 focus:ring-brand-300" />
+        </div>
+        <span class="w-2 h-2 rounded-full {{ 'bg-green-400' if (site.socials and site.socials[s.key]) else 'bg-gray-200' }}"></span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Tab: Settings -->
+    <div id="panel-settings" class="flex-1 overflow-y-auto p-4 space-y-4 hidden">
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Custom Domain</label>
+        <div class="flex gap-2">
+          <input id="customDomain" type="text" value="{{ site.custom_domain or '' }}"
+            placeholder="yourbusiness.com"
+            class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm
+                   focus:outline-none focus:ring-2 focus:ring-brand-300" />
+          <button onclick="verifyDomain()"
+            class="px-3 py-2 border border-gray-200 rounded-lg text-xs hover:bg-gray-50">
+            Verify
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Point a CNAME record to <code class="bg-gray-100 px-1 rounded">sites.postpilot.app</code></p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Site Theme</label>
+        <div class="grid grid-cols-3 gap-2" id="themeGrid">
+          {% for theme in ['Modern','Classic','Bold','Minimal','Warm','Dark'] %}
+          <button onclick="selectTheme('{{ theme.lower() }}')"
+            class="theme-btn border-2 rounded-xl p-2 text-xs font-medium text-center transition
+                   {% if site.theme == theme.lower() %}border-brand-500 bg-brand-50 text-brand-700{% else %}border-gray-200 text-gray-600 hover:border-brand-300{% endif %}">
+            {{ theme }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1">Primary Colour</label>
+        <div class="flex items-center gap-3">
+          <input type="color" id="primaryColor" value="{{ site.primary_color or '#6366f1' }}"
+            class="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
+          <input type="text" id="primaryColorHex" value="{{ site.primary_color or '#6366f1' }}"
+            class="w-24 border border-gray-200 rounded-lg px-2 py-1.5 text-xs
+                   focus:outline-none focus:ring-2 focus:ring-brand-300"
+            onchange="document.getElementById('primaryColor').value=this.value" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-2">Auto-Sync Posts to Website</label>
+        <label class="toggle-switch flex items-center gap-3">
+          <input type="checkbox" id="autoSync" {% if site.auto_sync_posts %}checked{% endif %} />
+          <span></span>
+          <span class="text-sm text-gray-600">Publish social posts to Social Feed section</span>
+        </label>
+      </div>
+      <div class="border-t border-gray-100 pt-4">
+        <label class="block text-xs font-semibold text-gray-600 mb-2">Danger Zone</label>
+        <button onclick="confirmUnpublish()"
+          class="w-full py-2 border border-red-200 text-red-500 rounded-lg text-xs hover:bg-red-50 transition">
+          Unpublish Website
+        </button>
+      </div>
+    </div>
+
+  </div>
+  <!-- END LEFT PANEL -->
+
+  <!-- RIGHT PANEL: Live Preview -->
+  <div class="flex-1 flex flex-col bg-gray-100">
+
+    <!-- Preview toolbar -->
+    <div class="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-3">
+      <!-- Device switcher -->
+      <div class="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+        {% for d in [('desktop','M9 17H7a2 2 0 01-2-2V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2'),
+                     ('tablet', 'M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'),
+                     ('mobile', 'M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z')] %}
+        <button onclick="setDevice('{{ d[0] }}')" id="dev-{{ d[0] }}"
+          class="device-btn p-1.5 rounded-md transition {% if loop.first %}bg-white shadow-sm{% endif %}">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d[1] }}"/>
+          </svg>
+        </button>
+        {% endfor %}
+      </div>
+
+      <!-- URL bar -->
+      <div class="flex-1 bg-gray-100 rounded-lg px-3 py-1.5 text-xs text-gray-500 font-mono truncate">
+        {{ site.url or (request.host + '/site/' + (current_user.username or 'preview')) }}
+      </div>
+
+      <button onclick="refreshPreview()"
+        class="p-1.5 hover:bg-gray-100 rounded-lg transition">
+        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Preview frame container -->
+    <div class="flex-1 flex items-center justify-center p-6">
+      <div id="previewContainer"
+        class="bg-white shadow-2xl rounded-2xl overflow-hidden transition-all duration-300"
+        style="width:100%; max-width:1280px; height:100%;">
+        <iframe id="sitePreview"
+          src="/site/preview"
+          class="w-full h-full border-none">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- Bottom status bar -->
+    <div class="bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between text-xs text-gray-400">
+      <div class="flex items-center gap-4">
+        <span id="statusMsg" class="text-green-500 font-medium">All changes saved</span>
+        <span>• Last updated: <span id="lastSaved">just now</span></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span>SEO: <strong id="seoScoreSmall" class="text-brand-600">--</strong></span>
+        <span>•</span>
+        <span>Sections: <strong id="activeSections" class="text-brand-600">{{ site.sections|selectattr('enabled')|list|length if site.sections else '6' }}</strong> active</span>
+        <span>•</span>
+        <span class="{{ 'text-green-500' if site.published else 'text-amber-500' }} font-medium">
+          {{ '● Live' if site.published else '○ Draft' }}
+        </span>
+      </div>
+    </div>
+
+  </div>
+  <!-- END RIGHT PANEL -->
+
+</div>
+
+<!-- ===== SECTION EDIT DRAWER ===== -->
+<div id="sectionDrawer"
+  class="fixed inset-y-0 right-0 w-96 bg-white shadow-2xl border-l border-gray-200 transform translate-x-full
+         transition-transform duration-300 z-50 flex flex-col">
+  <div class="flex items-center justify-between p-4 border-b border-gray-200">
+    <h3 class="font-semibold text-gray-900" id="drawerTitle">Edit Section</h3>
+    <button onclick="closeDrawer()" class="p-1 hover:bg-gray-100 rounded-lg">
+      <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+  <div class="flex-1 overflow-y-auto p-4" id="drawerContent">
+    <!-- Dynamically injected section editor fields -->
+  </div>
+  <div class="p-4 border-t border-gray-200 flex gap-2">
+    <button onclick="closeDrawer()"
+      class="flex-1 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">Cancel</button>
+    <button onclick="applySection()"
+      class="flex-1 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition">
+      Apply
+    </button>
+  </div>
+</div>
+<div id="drawerOverlay" class="fixed inset-0 bg-black/20 z-40 hidden" onclick="closeDrawer()"></div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast"
+  class="fixed bottom-6 right-6 bg-gray-900 text-white px-4 py-3 rounded-xl shadow-lg text-sm
+         opacity-0 pointer-events-none transition-opacity duration-300 flex items-center gap-2 z-50">
+  <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+  </svg>
+  <span id="toastMsg">Saved</span>
+</div>
+
+<script>
+// ===== STATE =====
+const state = {
+  sections:     {{ (site.sections or []) | tojson }},
+  seo:          {{ (site.seo or {}) | tojson }},
+  socials:      {{ (site.socials or {}) | tojson }},
+  theme:        '{{ site.theme or "modern" }}',
+  primaryColor: '{{ site.primary_color or "#6366f1" }}',
+  published:    {{ 'true' if site.published else 'false' }},
+  autoSync:     {{ 'true' if site.auto_sync_posts else 'false' }},
+  dirty:        false,
+};
+
+// ===== TABS =====
+function switchTab(tab) {
+  ['sections','seo','social','settings'].forEach(t => {
+    document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
+  });
+}
+
+// ===== DEVICE PREVIEW =====
+const deviceSizes = { desktop: '100%', tablet: '768px', mobile: '390px' };
+function setDevice(d) {
+  const c = document.getElementById('previewContainer');
+  c.style.maxWidth = deviceSizes[d];
+  document.querySelectorAll('.device-btn').forEach(b => {
+    b.classList.toggle('bg-white', b.id === `dev-${d}`);
+    b.classList.toggle('shadow-sm', b.id === `dev-${d}`);
+  });
+}
+
+function refreshPreview() {
+  document.getElementById('sitePreview').src = '/site/preview?t=' + Date.now();
+}
+
+// ===== SECTION TOGGLE =====
+function toggleSection(id, enabled) {
+  const sec = state.sections.find(s => s.id === id);
+  if (sec) sec.enabled = enabled;
+  markDirty();
+  const count = state.sections.filter(s => s.enabled).length;
+  document.getElementById('activeSections').textContent = count;
+  refreshPreview();
+}
+
+// ===== SECTION DRAWER =====
+const sectionFields = {
+  hero:       [['Headline','hero_headline','text'],['Subheadline','hero_sub','text'],['CTA Text','hero_cta','text'],['Background Image URL','hero_bg','url']],
+  about:      [['About Text','about_text','textarea'],['Team Photo URL','about_photo','url']],
+  menu:       [['Menu PDF URL','menu_pdf','url'],['Menu Image URL','menu_image','url']],
+  specials:   [['Auto-pull from posts','specials_auto','checkbox']],
+  gallery:    [['Gallery Images (comma-sep URLs)','gallery_urls','textarea']],
+  reviews:    [['Google Reviews embed','reviews_embed','textarea']],
+  hours:      [['Hours Text','hours_text','textarea'],['Address','hours_address','text']],
+  contact:    [['Email','contact_email','email'],['Phone','contact_phone','tel'],['Booking URL','contact_booking','url']],
+  social_feed:[['Auto-pull from Post-Pilot','feed_auto','checkbox']],
+};
+
+function editSection(id) {
+  const fields = sectionFields[id] || [];
+  const labels = { hero:'Hero Banner', about:'About Us', menu:'Menu / Services',
+    specials:'Daily Specials', gallery:'Photo Gallery', reviews:'Reviews',
+    hours:'Hours & Location', contact:'Contact / Book', social_feed:'Social Feed' };
+  document.getElementById('drawerTitle').textContent = 'Edit: ' + (labels[id] || id);
+  const content = document.getElementById('drawerContent');
+  content.innerHTML = fields.map(([label, key, type]) => {
+    const val = (state.seo && state.seo[key]) || '';
+    if (type === 'textarea') {
+      return `<div class="mb-4"><label class="block text-xs font-semibold text-gray-600 mb-1">${label}</label>
+        <textarea id="df_${key}" rows="4" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300 resize-none">${val}</textarea></div>`;
+    } else if (type === 'checkbox') {
+      return `<div class="mb-4 flex items-center gap-3"><label class="toggle-switch"><input type="checkbox" id="df_${key}" ${val ? 'checked' : ''}/><span></span></label><span class="text-sm text-gray-600">${label}</span></div>`;
+    }
+    return `<div class="mb-4"><label class="block text-xs font-semibold text-gray-600 mb-1">${label}</label>
+      <input type="${type}" id="df_${key}" value="${val}" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300" /></div>`;
+  }).join('') || '<p class="text-sm text-gray-400">No editable fields for this section.</p>';
+  document.getElementById('sectionDrawer').classList.replace('translate-x-full', 'translate-x-0');
+  document.getElementById('drawerOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('sectionDrawer').classList.replace('translate-x-0', 'translate-x-full');
+  document.getElementById('drawerOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function applySection() {
+  closeDrawer();
+  markDirty();
+  refreshPreview();
+  showToast('Section updated');
+}
+
+// ===== PUBLISH TOGGLE =====
+function togglePublish(published) {
+  fetch('/website/publish', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ published }),
+  }).then(r => r.json()).then(d => {
+    document.getElementById('publishLabel').textContent = published ? 'Live' : 'Draft';
+    showToast(published ? '🌐 Website is now Live' : '💾 Switched to Draft');
+  });
+}
+
+// ===== THEME =====
+function selectTheme(theme) {
+  state.theme = theme;
+  document.querySelectorAll('.theme-btn').forEach(b => {
+    const active = b.textContent.trim().toLowerCase() === theme;
+    b.classList.toggle('border-brand-500', active);
+    b.classList.toggle('bg-brand-50', active);
+    b.classList.toggle('text-brand-700', active);
+    b.classList.toggle('border-gray-200', !active);
+    b.classList.toggle('text-gray-600', !active);
+  });
+  markDirty();
+  refreshPreview();
+}
+
+// ===== SEO SCORE =====
+function calcSeoScore() {
+  const title = document.getElementById('seoTitle')?.value || '';
+  const desc  = document.getElementById('seoDesc')?.value || '';
+  const kw    = document.getElementById('seoKeywords')?.value || '';
+  const gbiz  = document.getElementById('googleBiz')?.value || '';
+  let score = 0;
+  const checks = [
+    [title.length >= 10 && title.length <= 60, 'Page title 10-60 chars'],
+    [desc.length  >= 50 && desc.length  <= 160,'Meta description 50-160 chars'],
+    [kw.length > 0,   'Keywords filled in'],
+    [gbiz.length > 0, 'Google Business linked'],
+  ];
+  const list = document.getElementById('seoChecklist');
+  if (list) {
+    list.innerHTML = checks.map(([pass, label]) => {
+      if (pass) score += 25;
+      return `<div class="flex items-center gap-2 text-xs ${pass ? 'text-green-600' : 'text-gray-400'}">
+        <span class="w-3 h-3 rounded-full ${pass ? 'bg-green-400' : 'bg-gray-200'}"></span>
+        ${label}
+      </div>`;
+    }).join('');
+  }
+  const label = score === 100 ? '🔥' : score >= 75 ? '🟢' : score >= 50 ? '🟡' : '🔴';
+  const el = document.getElementById('seoScore');
+  const el2 = document.getElementById('seoScoreSmall');
+  if (el)  el.textContent  = `${label} ${score}/100`;
+  if (el2) el2.textContent = `${score}/100`;
+}
+
+// Char counters
+function watchSeoFields() {
+  const fields = [['seoTitle','seoTitleCount',60],['seoDesc','seoDescCount',160]];
+  fields.forEach(([id, countId, max]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const update = () => {
+      const len = el.value.length;
+      const c   = document.getElementById(countId);
+      if (c) c.textContent = `${len}/${max} chars`;
+      calcSeoScore();
+    };
+    el.addEventListener('input', update);
+    update();
+  });
+}
+
+// ===== SAVE =====
+function markDirty() {
+  state.dirty = true;
+  document.getElementById('statusMsg').textContent = 'Unsaved changes';
+  document.getElementById('statusMsg').className = 'text-amber-500 font-medium';
+}
+
+function saveSite() {
+  const payload = {
+    sections:      state.sections,
+    theme:         state.theme,
+    primary_color: document.getElementById('primaryColor')?.value,
+    auto_sync:     document.getElementById('autoSync')?.checked,
+    seo: {
+      title:       document.getElementById('seoTitle')?.value,
+      description: document.getElementById('seoDesc')?.value,
+      keywords:    document.getElementById('seoKeywords')?.value,
+      google_biz:  document.getElementById('googleBiz')?.value,
+    },
+    socials: ['facebook','instagram','tiktok','youtube','twitter','yelp'].reduce((o, k) => {
+      const el = document.getElementById(`social_${k}`);
+      if (el) o[k] = el.value;
+      return o;
+    }, {}),
+  };
+  fetch('/website/save', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      state.dirty = false;
+      document.getElementById('statusMsg').textContent = 'All changes saved';
+      document.getElementById('statusMsg').className = 'text-green-500 font-medium';
+      document.getElementById('lastSaved').textContent = 'just now';
+      showToast('✅ Website saved');
+    } else {
+      showToast('❌ Save failed — ' + (d.error || 'unknown error'));
+    }
+  });
+}
+
+// ===== DOMAIN VERIFY =====
+function verifyDomain() {
+  const domain = document.getElementById('customDomain')?.value;
+  if (!domain) return;
+  fetch('/website/verify_domain', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ domain }),
+  }).then(r => r.json()).then(d => {
+    showToast(d.success ? '✅ Domain verified!' : '❌ CNAME not found yet — DNS can take up to 24h');
+  });
+}
+
+function confirmUnpublish() {
+  if (confirm('Unpublish your website? It will go offline immediately.')) {
+    togglePublish(false);
+    document.getElementById('publishToggle').checked = false;
+  }
+}
+
+// ===== TOAST =====
+function showToast(msg, dur = 3000) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.remove('opacity-0', 'pointer-events-none');
+  setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none'), dur);
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  watchSeoFields();
+  calcSeoScore();
+  // Color picker sync
+  const cp = document.getElementById('primaryColor');
+  const ch = document.getElementById('primaryColorHex');
+  if (cp && ch) cp.addEventListener('input', () => ch.value = cp.value);
+  // Warn on unsaved
+  window.addEventListener('beforeunload', e => {
+    if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+  });
+});
+</script>
+</body>
+</html>

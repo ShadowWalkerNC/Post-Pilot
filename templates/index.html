@@ -1,27 +1,437 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostPilot Pro — Automated Social Media Posts</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post-Pilot — Automated Social Media for Food Trucks & Restaurants</title>
+  <meta name="description" content="Post-Pilot generates and publishes social media posts automatically for food trucks, restaurants, cafes, and hotels. 7 platforms. AI-powered. No design skills needed." />
+  <meta name="keywords" content="social media automation, food truck marketing, restaurant social media, auto post facebook instagram tiktok" />
+  <meta property="og:title" content="Post-Pilot — Automated Social Media" />
+  <meta property="og:description" content="Generate & publish 7 days of posts in one click. Built for food trucks, restaurants, cafes & hotels." />
+  <meta property="og:type" content="website" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  '#eef2ff', 100: '#e0e7ff',
+              500: '#6366f1', 600: '#4f46e5', 700: '#4338ca'
+            }
+          },
+          animation: {
+            'fade-up': 'fadeUp .6s ease both',
+            'fade-in': 'fadeIn .4s ease both',
+          },
+          keyframes: {
+            fadeUp:  { '0%': { opacity: 0, transform: 'translateY(24px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            fadeIn:  { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    .gradient-hero { background: linear-gradient(135deg, #0f0f1a 0%, #1e1b4b 50%, #0f0f1a 100%); }
+    .gradient-text { background: linear-gradient(90deg, #818cf8, #c084fc, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .card-hover { transition: transform .2s, box-shadow .2s; }
+    .card-hover:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(99,102,241,.15); }
+    .platform-logo { filter: grayscale(1) opacity(.5); transition: filter .2s; }
+    .platform-logo:hover { filter: grayscale(0) opacity(1); }
+    .tier-popular { box-shadow: 0 0 0 2px #6366f1, 0 20px 40px rgba(99,102,241,.2); }
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+    .faq-open .faq-answer { max-height: 500px; }
+    .faq-open .faq-chevron { transform: rotate(180deg); }
+    .faq-chevron { transition: transform .3s; }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-track { animation: marquee 30s linear infinite; }
+  </style>
 </head>
-<body>
-    <div class="hero">
-        <div class="logo">🚀</div>
-        <h1>PostPilot Pro</h1>
-        <p>Automate your Facebook &amp; Instagram posts for food trucks, restaurants, hotels, and cafes</p>
-        <a href="/setup" class="btn btn-large">Get Started →</a>
+<body class="bg-gray-950 text-white antialiased">
+
+<!-- ===== STICKY NAV ===== -->
+<nav id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300" style="background:transparent">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-bold text-lg">
+      <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-sm">🚀</div>
+      <span>Post-Pilot</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
+      <a href="#how" class="hover:text-white transition">How It Works</a>
+      <a href="#platforms" class="hover:text-white transition">Platforms</a>
+      <a href="#pricing" class="hover:text-white transition">Pricing</a>
+      <a href="#faq" class="hover:text-white transition">FAQ</a>
     </div>
-    <div class="container">
-        <div class="features">
-            <div class="feature"><div class="icon">📝</div><h3>Auto-Generate Posts</h3><p>7 days of posts in 1 click</p></div>
-            <div class="feature"><div class="icon">📘</div><h3>Publish to Facebook</h3><p>Direct via Facebook Pages API</p></div>
-            <div class="feature"><div class="icon">📸</div><h3>Publish to Instagram</h3><p>Direct via Instagram Graph API</p></div>
-            <div class="feature"><div class="icon">📅</div><h3>Post Scheduler</h3><p>Schedule your whole week on Sunday</p></div>
-            <div class="feature"><div class="icon">📊</div><h3>Analytics Dashboard</h3><p>Track likes, comments and reach</p></div>
-            <div class="feature"><div class="icon">🏢</div><h3>5 Business Types</h3><p>Food truck, restaurant, hotel, cafe, food company</p></div>
+    <div class="flex items-center gap-3">
+      <a href="/login" class="text-sm text-gray-400 hover:text-white transition px-3 py-1.5">Sign In</a>
+      <a href="/register" class="text-sm bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg font-medium transition">
+        Start Free
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="gradient-hero min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 relative overflow-hidden">
+  <!-- Background glow -->
+  <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="relative z-10 max-w-4xl mx-auto">
+    <!-- Badge -->
+    <div class="inline-flex items-center gap-2 bg-brand-500/10 border border-brand-500/30 rounded-full px-4 py-1.5 text-sm text-brand-300 mb-6 animate-fade-in">
+      <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+      AI-powered • 7 platforms • No design skills needed
+    </div>
+
+    <h1 class="text-5xl md:text-7xl font-black leading-tight mb-6 animate-fade-up">
+      Your social media,
+      <span class="gradient-text"> on autopilot.</span>
+    </h1>
+
+    <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 animate-fade-up" style="animation-delay:.1s">
+      Post-Pilot generates and publishes social media posts automatically for
+      food trucks, restaurants, cafes, and hotels.
+      Set it up once — post every day.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style="animation-delay:.2s">
+      <a href="/register"
+        class="px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white rounded-xl font-bold text-lg transition shadow-lg shadow-brand-500/30">
+        Start for Free →
+      </a>
+      <a href="#how"
+        class="px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-medium text-lg transition">
+        See How It Works
+      </a>
+    </div>
+
+    <p class="text-sm text-gray-500 mt-5">No credit card required • Free plan available • Cancel anytime</p>
+
+    <!-- Hero mockup -->
+    <div class="mt-16 bg-gray-900/80 backdrop-blur border border-white/10 rounded-2xl p-6 text-left shadow-2xl animate-fade-up" style="animation-delay:.3s">
+      <div class="flex items-center gap-2 mb-4">
+        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+        <span class="ml-3 text-xs text-gray-500">Post-Pilot Dashboard</span>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {% for item in [
+          ('🔥', 'Brisket Tacos are BACK!', 'Posted • Facebook + Instagram', 'text-green-400'),
+          ('📅', '7 posts scheduled', 'This week • Auto-generated', 'text-brand-400'),
+          ('📊', '2,847 reach this week', '+34% vs last week', 'text-purple-400'),
+        ] %}
+        <div class="bg-gray-800/60 rounded-xl p-4">
+          <div class="text-2xl mb-2">{{ item[0] }}</div>
+          <div class="font-semibold text-sm text-white">{{ item[1] }}</div>
+          <div class="text-xs {{ item[3] }} mt-1">{{ item[2] }}</div>
         </div>
+        {% endfor %}
+      </div>
     </div>
+  </div>
+</section>
+
+<!-- ===== PLATFORM LOGOS (marquee) ===== -->
+<section id="platforms" class="bg-gray-900 py-12 overflow-hidden border-y border-white/5">
+  <p class="text-center text-sm text-gray-500 mb-8">Publishes directly to</p>
+  <div class="flex overflow-hidden">
+    <div class="marquee-track flex gap-16 items-center whitespace-nowrap">
+      {% for p in [
+        ('📱','Facebook'),('📸','Instagram'),('🎵','TikTok'),
+        ('📺','YouTube'),('🔍','Google Business'),('🌐','Your Website'),
+        ('📱','Facebook'),('📸','Instagram'),('🎵','TikTok'),
+        ('📺','YouTube'),('🔍','Google Business'),('🌐','Your Website'),
+      ] %}
+      <div class="flex items-center gap-2 text-gray-400 text-sm font-medium">
+        <span class="text-2xl">{{ p[0] }}</span><span>{{ p[1] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== SOCIAL PROOF ===== -->
+<section class="bg-gray-950 py-16 px-6">
+  <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+    {% for stat in [('500+','Businesses'),('7','Platforms'),('50K+','Posts Published'),('4.9★','Avg Rating')] %}
+    <div>
+      <div class="text-4xl font-black gradient-text">{{ stat[0] }}</div>
+      <div class="text-sm text-gray-500 mt-1">{{ stat[1] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section id="how" class="bg-gray-900 py-24 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black mb-4">Up and running in <span class="gradient-text">3 steps</span></h2>
+      <p class="text-gray-400">No agency. No designer. No stress.</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-8">
+      {% for step in [
+        ('1', '🏪', 'Tell us about your business',
+         'Your business type, name, location, platforms. Takes 2 minutes.'),
+        ('2', '🤖', 'AI generates your posts',
+         '7 days of platform-specific captions, hashtags, and scheduling — instantly.'),
+        ('3', '🚀', 'Posts go live automatically',
+         'Facebook, Instagram, TikTok, YouTube, Google Business, and your website — all at once.'),
+      ] %}
+      <div class="card-hover bg-gray-800/50 border border-white/5 rounded-2xl p-8 text-center">
+        <div class="w-12 h-12 bg-brand-500/20 rounded-xl flex items-center justify-center text-brand-400 font-black text-lg mx-auto mb-4">{{ step[0] }}</div>
+        <div class="text-4xl mb-4">{{ step[1] }}</div>
+        <h3 class="text-lg font-bold mb-2">{{ step[2] }}</h3>
+        <p class="text-gray-400 text-sm">{{ step[3] }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== FEATURES GRID ===== -->
+<section class="bg-gray-950 py-24 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black mb-4">Everything you need to <span class="gradient-text">stay consistent</span></h2>
+      <p class="text-gray-400">One tool. Every platform. Zero effort.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {% for feat in [
+        ('🤖', 'AI Caption Generator',    'Platform-specific captions with hashtags, emojis, and your brand voice.'),
+        ('📅', 'Post Scheduler',           '7-day calendar. Schedule your whole week in one click.'),
+        ('📊', 'Analytics Dashboard',     'Reach, engagement, and growth tracking across all platforms.'),
+        ('🌐', 'Free Business Website',  'Auto-generated website that syncs with your social posts.'),
+        ('📸', '6 Platforms at Once',      'Facebook, Instagram, TikTok, YouTube, Google Business, Website.'),
+        ('🔔', 'Smart Notifications',     'Get alerts when posts go live, when engagement spikes, or when a platform disconnects.'),
+        ('🏢', '5 Business Types',        'Food truck, restaurant, cafe, hotel, food company — all fully supported.'),
+        ('🔒', 'White-Label Ready',       'Agency plan lets you manage multiple client accounts from one dashboard.'),
+        ('🔗', 'SRN API Access',          'Connect Post-Pilot to your other tools via the ShadowRealm Network API.'),
+      ] %}
+      <div class="card-hover bg-gray-900/60 border border-white/5 rounded-2xl p-6">
+        <div class="text-3xl mb-3">{{ feat[0] }}</div>
+        <h3 class="font-bold mb-1">{{ feat[1] }}</h3>
+        <p class="text-sm text-gray-400">{{ feat[2] }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== TESTIMONIALS ===== -->
+<section class="bg-gray-900 py-24 px-6">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black mb-4">Built for <span class="gradient-text">real businesses</span></h2>
+      <p class="text-gray-400">From one truck to a full restaurant group.</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      {% for t in [
+        ('Maria T.', 'Food Truck Owner', '4.9★',
+         '"I used to spend Sunday nights writing posts. Now Post-Pilot does it while I sleep. My reach went up 3x in the first month."'),
+        ('James K.', 'Restaurant Manager', '5.0★',
+         '"We run 4 locations. Post-Pilot manages all of them from one screen. The scheduler alone is worth the price."'),
+        ('Sofia R.', 'Cafe Owner', '4.8★',
+         '"The AI knows my vibe. Every caption sounds like me, not a robot. My Instagram engagement doubled."'),
+      ] %}
+      <div class="card-hover bg-gray-800/50 border border-white/5 rounded-2xl p-6">
+        <div class="text-yellow-400 text-sm mb-3">{{ t[2] }}</div>
+        <p class="text-gray-300 text-sm italic mb-5">{{ t[3] }}</p>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-brand-500/20 rounded-full flex items-center justify-center text-brand-400 font-bold">
+            {{ t[0][0] }}
+          </div>
+          <div>
+            <div class="font-semibold text-sm">{{ t[0] }}</div>
+            <div class="text-xs text-gray-500">{{ t[1] }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRICING ===== -->
+<section id="pricing" class="bg-gray-950 py-24 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-6">
+      <h2 class="text-4xl font-black mb-4">Simple, <span class="gradient-text">honest pricing</span></h2>
+      <p class="text-gray-400">Start free. Scale when you’re ready.</p>
+    </div>
+
+    <!-- Annual/Monthly toggle -->
+    <div class="flex justify-center items-center gap-4 mb-12">
+      <span id="lblMonthly" class="text-sm font-medium text-white">Monthly</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="billingToggle" class="sr-only" onchange="toggleBilling(this.checked)" />
+        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-brand-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-5"></div>
+      </label>
+      <span id="lblAnnual" class="text-sm font-medium text-gray-400">Annual <span class="text-green-400 font-bold text-xs ml-1">SAVE 2 MONTHS</span></span>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {% for tier in [
+        ('Free',    '$0',   '$0',    ['1 platform','10 AI posts/mo','Post scheduler','Basic analytics'], False, 'free'),
+        ('Starter', '$29',  '$24',   ['3 platforms','100 AI posts/mo','Post scheduler','Analytics dashboard','Website hub'], False, 'starter'),
+        ('Growth',  '$59',  '$49',   ['6 platforms','Unlimited posts','Priority AI','Advanced analytics','Website hub','API access'], True,  'growth'),
+        ('Agency',  '$149', '$124',  ['All 6 platforms','Unlimited posts','10 client accounts','White-label','Custom domain','Full API'], False, 'agency'),
+      ] %}
+      <div class="card-hover rounded-2xl p-6 border flex flex-col
+                  {{ 'tier-popular bg-brand-600/10 border-brand-500' if tier[4] else 'bg-gray-900/60 border-white/5' }}">
+        {% if tier[4] %}
+        <div class="text-xs font-bold bg-brand-500 text-white px-3 py-1 rounded-full self-start mb-3">MOST POPULAR</div>
+        {% endif %}
+        <div class="font-black text-xl mb-1">{{ tier[0] }}</div>
+        <div class="mb-4">
+          <span class="text-4xl font-black monthly-price">{{ tier[1] }}</span>
+          <span class="text-4xl font-black annual-price hidden">{{ tier[2] }}</span>
+          <span class="text-gray-400 text-sm">/mo</span>
+        </div>
+        <ul class="space-y-2 flex-1 mb-6">
+          {% for f in tier[3] %}
+          <li class="flex items-center gap-2 text-sm text-gray-300">
+            <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ f }}
+          </li>
+          {% endfor %}
+        </ul>
+        <a href="/register?plan={{ tier[5] }}"
+          class="block text-center py-3 rounded-xl font-semibold text-sm transition
+                 {{ 'bg-brand-500 hover:bg-brand-600 text-white' if tier[4] else 'bg-white/5 hover:bg-white/10 text-white border border-white/10' }}">
+          {{ 'Get Started' if tier[1] == '$0' else 'Start Free Trial' }}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-center text-sm text-gray-500 mt-8">All paid plans include a 14-day free trial • No credit card required • Cancel anytime</p>
+  </div>
+</section>
+
+<!-- ===== FAQ ===== -->
+<section id="faq" class="bg-gray-900 py-24 px-6">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-black mb-4">Common <span class="gradient-text">questions</span></h2>
+    </div>
+    <div class="space-y-3" id="faqList">
+      {% for qa in [
+        ('Do I need any design or marketing skills?',
+         'None at all. Post-Pilot handles writing, formatting, hashtags, and scheduling. You just tell it about your business and it takes care of the rest.'),
+        ('Which platforms does Post-Pilot support?',
+         'Facebook, Instagram, TikTok, YouTube, Google Business Profile, and your own Post-Pilot website. More platforms are coming.'),
+        ('Can I edit the AI-generated posts before they go live?',
+         'Absolutely. Every post can be previewed, edited, or deleted before publishing. You can also toggle auto-publishing on or off per platform.'),
+        ('What business types are supported?',
+         'Food trucks, restaurants, cafes, hotels, and food companies. Each type gets tailored caption styles, hashtag sets, and posting schedules.'),
+        ('Is there an API for developers or other apps?',
+         'Yes — Growth and Agency plans include full API access via the ShadowRealm Network (SRN) protocol. You can call Post-Pilot from Discord bots, automation tools, or any app.'),
+        ('Can I manage multiple locations or clients?',
+         'The Agency plan supports up to 10 client accounts with white-label branding and a unified dashboard. Each client gets their own login and settings.'),
+        ('What happens to my posts if I cancel?',
+         'Your data is never deleted. You move to the Free plan automatically. Scheduled posts in the queue will still publish if they fall within your remaining billing period.'),
+      ] %}
+      <div class="faq-item bg-gray-800/50 border border-white/5 rounded-2xl overflow-hidden">
+        <button class="w-full flex items-center justify-between p-5 text-left font-semibold text-sm"
+          onclick="toggleFaq(this)">
+          {{ qa[0] }}
+          <svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-5 pb-5 text-sm text-gray-400">{{ qa[1] }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===== FINAL CTA ===== -->
+<section class="gradient-hero py-24 px-6 text-center relative overflow-hidden">
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-brand-600/20 rounded-full blur-3xl pointer-events-none"></div>
+  <div class="relative z-10 max-w-2xl mx-auto">
+    <h2 class="text-5xl font-black mb-6">Stop writing posts.<br/><span class="gradient-text">Start growing.</span></h2>
+    <p class="text-gray-400 mb-10 text-lg">Join 500+ businesses that post every day without lifting a finger.</p>
+    <a href="/register"
+      class="inline-block px-10 py-5 bg-brand-500 hover:bg-brand-600 text-white rounded-2xl font-black text-xl transition shadow-2xl shadow-brand-500/40">
+      Start for Free →
+    </a>
+    <p class="text-sm text-gray-500 mt-5">No credit card • Free plan forever • Takes 2 minutes</p>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="bg-gray-950 border-t border-white/5 py-16 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-4 gap-10 mb-12">
+      <div>
+        <div class="flex items-center gap-2 font-bold text-lg mb-3">
+          <div class="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center text-sm">🚀</div>
+          Post-Pilot
+        </div>
+        <p class="text-sm text-gray-500">Automated social media for food trucks, restaurants, cafes & hotels.</p>
+      </div>
+      {% for col in [
+        ('Product', [('Dashboard','/dashboard'),('Pricing','#pricing'),('API Docs','/v1/manifest'),('Changelog','#')]),
+        ('Company', [('About','#'),('Blog','#'),('Privacy','#'),('Terms','#')]),
+        ('Connect',  [('Facebook','#'),('Instagram','#'),('TikTok','#'),('Discord','#')]),
+      ] %}
+      <div>
+        <h4 class="font-semibold text-sm mb-4">{{ col[0] }}</h4>
+        <ul class="space-y-2">
+          {% for link in col[1] %}
+          <li><a href="{{ link[1] }}" class="text-sm text-gray-500 hover:text-white transition">{{ link[0] }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <p class="text-xs text-gray-600">&copy; 2026 Post-Pilot. All rights reserved.</p>
+      <p class="text-xs text-gray-600">Part of the <span class="text-brand-400">ShadowRealm Network</span></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ===== NAV scroll effect =====
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('navbar');
+  if (window.scrollY > 40) {
+    nav.style.background = 'rgba(9,9,26,.95)';
+    nav.style.backdropFilter = 'blur(12px)';
+    nav.style.borderBottom = '1px solid rgba(255,255,255,.06)';
+  } else {
+    nav.style.background = 'transparent';
+    nav.style.backdropFilter = '';
+    nav.style.borderBottom = '';
+  }
+});
+
+// ===== Billing toggle =====
+function toggleBilling(annual) {
+  document.querySelectorAll('.monthly-price').forEach(el => el.classList.toggle('hidden', annual));
+  document.querySelectorAll('.annual-price').forEach(el => el.classList.toggle('hidden', !annual));
+  document.getElementById('lblMonthly').className = annual
+    ? 'text-sm font-medium text-gray-400' : 'text-sm font-medium text-white';
+  document.getElementById('lblAnnual').className = annual
+    ? 'text-sm font-medium text-white' : 'text-sm font-medium text-gray-400';
+}
+
+// ===== FAQ accordion =====
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('faq-open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('faq-open'));
+  if (!isOpen) item.classList.add('faq-open');
+}
+</script>
 </body>
 </html>

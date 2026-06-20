@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PostPilot Pro — Get Started</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* ─── Onboarding Layout ─────────────────────────────────────── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0d0d0d;
+            color: #f0f0f0;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ob-header {
+            width: 100%;
+            max-width: 720px;
+            padding: 32px 24px 0;
+            text-align: center;
+        }
+
+        .ob-logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .ob-subtitle {
+            color: #888;
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+        }
+
+        /* ─── Progress Bar ─────────────────────────────────────────── */
+        .progress-track {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 10px;
+        }
+
+        .prog-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .prog-dot {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #222;
+            border: 2px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+
+        .prog-dot.active {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(79,70,229,0.25);
+        }
+
+        .prog-dot.done {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: #fff;
+        }
+
+        .prog-label {
+            font-size: 0.68rem;
+            color: #555;
+            margin-top: 5px;
+            white-space: nowrap;
+        }
+
+        .prog-label.active { color: #a5b4fc; }
+        .prog-label.done   { color: #4ade80; }
+
+        .prog-line {
+            flex: 1;
+            height: 2px;
+            background: #222;
+            min-width: 32px;
+            max-width: 64px;
+            margin-bottom: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .prog-line.done { background: #16a34a; }
+
+        /* ─── Card ─────────────────────────────────────────────────── */
+        .ob-card {
+            width: 100%;
+            max-width: 720px;
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 16px;
+            padding: 36px 40px;
+            margin: 12px 24px 40px;
+        }
+
+        .step-panel { display: none; }
+        .step-panel.active { display: block; }
+
+        .step-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .step-desc {
+            color: #888;
+            font-size: 0.93rem;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        /* ─── Form Elements ────────────────────────────────────────── */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-row.single { grid-template-columns: 1fr; }
+
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+        label {
+            font-size: 0.82rem;
+            color: #aaa;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="time"],
+        select,
+        textarea {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            color: #f0f0f0;
+            font-size: 0.95rem;
+            padding: 10px 13px;
+            outline: none;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #4f46e5;
+        }
+
+        /* ─── Connect Buttons ──────────────────────────────────────── */
+        .connect-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .connect-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 14px 18px;
+            transition: border-color 0.2s;
+        }
+
+        .connect-item.connected {
+            border-color: #16a34a;
+            background: #0d1f14;
+        }
+
+        .connect-meta { display: flex; align-items: center; gap: 12px; }
+        .connect-icon { font-size: 1.5rem; }
+
+        .connect-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .connect-note {
+            font-size: 0.78rem;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .connect-status {
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: #222;
+            color: #666;
+        }
+
+        .connect-status.ok { background: #0d1f14; color: #4ade80; }
+
+        /* ─── Buttons ──────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 10px 18px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary { background: #4f46e5; color: #fff; }
+        .btn-primary:hover { background: #4338ca; transform: translateY(-1px); }
+
+        .btn-success { background: #16a34a; color: #fff; }
+        .btn-success:hover { background: #15803d; transform: translateY(-1px); }
+
+        .btn-connect {
+            background: #1e1b4b;
+            color: #a5b4fc;
+            border: 1px solid #3730a3;
+            padding: 8px 16px;
+            font-size: 0.82rem;
+        }
+
+        .btn-connect:hover { background: #312e81; }
+
+        .btn-connect.done {
+            background: #0d1f14;
+            color: #4ade80;
+            border-color: #166534;
+            cursor: default;
+        }
+
+        .btn-lg  { padding: 14px 28px; font-size: 1rem; border-radius: 10px; }
+        .btn-full { width: 100%; }
+
+        /* ─── Nav Row ──────────────────────────────────────────────── */
+        .nav-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #1e1e1e;
+        }
+
+        .skip-link {
+            font-size: 0.82rem;
+            color: #555;
+            cursor: pointer;
+            text-decoration: underline;
+            background: none;
+            border: none;
+            padding: 0;
+        }
+
+        .skip-link:hover { color: #888; }
+
+        /* ─── Embed Code ───────────────────────────────────────────── */
+        .embed-block {
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 14px 16px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #a5b4fc;
+            word-break: break-all;
+            margin-bottom: 12px;
+        }
+
+        .copy-confirm {
+            font-size: 0.8rem;
+            color: #4ade80;
+            margin-top: 6px;
+            display: none;
+        }
+
+        /* ─── First Post ───────────────────────────────────────────── */
+        .first-post-box {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .first-post-box textarea {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 8px;
+            width: 100%;
+            padding: 12px;
+            color: #f0f0f0;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+
+        .platform-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+        .badge {
+            background: #1e1b4b;
+            color: #a5b4fc;
+            border: 1px solid #3730a3;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        /* ─── Success Screen ───────────────────────────────────────── */
+        #step-done { text-align: center; padding: 20px 0; }
+
+        .done-icon {
+            font-size: 5rem;
+            margin-bottom: 16px;
+            display: block;
+            animation: pop 0.5s ease;
+        }
+
+        @keyframes pop {
+            0%   { transform: scale(0.5); opacity: 0; }
+            70%  { transform: scale(1.15); }
+            100% { transform: scale(1);   opacity: 1; }
+        }
+
+        .done-title { font-size: 2rem; font-weight: 800; margin-bottom: 10px; }
+
+        .done-sub {
+            color: #888;
+            font-size: 1rem;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .done-stats { display: flex; justify-content: center; gap: 28px; margin-bottom: 32px; }
+        .done-stat  { text-align: center; }
+        .done-stat-num   { font-size: 2rem; font-weight: 800; color: #4f46e5; }
+        .done-stat-label { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ─── Confetti ─────────────────────────────────────────────── */
+        .confetti-wrap {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 999;
+        }
+
+        .confetti-piece {
+            position: absolute;
+            top: -10px;
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            animation: fall linear forwards;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* ─── Notices ──────────────────────────────────────────────── */
+        .notice {
+            background: #1c1508;
+            border: 1px solid #92400e;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.85rem;
+            color: #fcd34d;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .notice-info { background: #0f172a; border-color: #1e3a8a; color: #93c5fd; }
+
+        .hint { font-size: 0.82rem; color: #555; margin-top: 8px; line-height: 1.5; }
+
+        @media (max-width: 600px) {
+            .ob-card { padding: 24px 20px; margin: 12px 16px 32px; }
+            .form-row { grid-template-columns: 1fr; }
+            .prog-label { display: none; }
+            .done-stats { gap: 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="confetti-wrap" id="confettiWrap"></div>
+
+<div class="ob-header">
+    <div class="ob-logo">🚀 PostPilot Pro</div>
+    <div class="ob-subtitle">Let's get you set up in under 5 minutes.</div>
+
+    <div class="progress-track" id="progressTrack">
+        <div class="prog-step">
+            <div class="prog-dot active" id="dot-1">1</div>
+            <div class="prog-label active" id="lbl-1">Business</div>
+        </div>
+        <div class="prog-line" id="line-1"></div>
+        <div class="prog-step">
+            <div class="prog-dot" id="dot-2">2</div>
+            <div class="prog-label" id="lbl-2">Facebook</div>
+        </div>
+        <div class="prog-line" id="line-2"></div>
+        <div class="prog-step">
+            <div class="prog-dot" id="dot-3">3</div>
+            <div class="prog-label" id="lbl-3">Google</div>
+        </div>
+        <div class="prog-line" id="line-3"></div>
+        <div class="prog-step">
+            <div class="prog-dot" id="dot-4">4</div>
+            <div class="prog-label" id="lbl-4">TikTok</div>
+        </div>
+        <div class="prog-line" id="line-4"></div>
+        <div class="prog-step">
+            <div class="prog-dot" id="dot-5">5</div>
+            <div class="prog-label" id="lbl-5">Website</div>
+        </div>
+        <div class="prog-line" id="line-5"></div>
+        <div class="prog-step">
+            <div class="prog-dot" id="dot-6">🚀</div>
+            <div class="prog-label" id="lbl-6">First Post</div>
+        </div>
+    </div>
+</div>
+
+<div class="ob-card">
+
+    <!-- Step 1: Business Info -->
+    <div class="step-panel active" id="step-1">
+        <div class="step-title">👋 Tell us about your business</div>
+        <div class="step-desc">This powers your AI captions, location posts, and website hub. Takes 60 seconds.</div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="biz-name" placeholder="Alley Katz Food Truck" oninput="updateFirstPost()">
+            </div>
+            <div class="form-group">
+                <label>Business Type</label>
+                <select id="biz-type">
+                    <option value="">Select type…</option>
+                    <option value="food_truck">🚚 Food Truck</option>
+                    <option value="coffee_shop">☕ Coffee Shop</option>
+                    <option value="cafe">🥐 Café</option>
+                    <option value="bar">🍺 Bar</option>
+                    <option value="brewery">🍻 Brewery</option>
+                    <option value="restaurant">🍽️ Restaurant</option>
+                    <option value="farmers_market">🌿 Farmers Market</option>
+                    <option value="popup">🎪 Pop-Up</option>
+                    <option value="catering">🍱 Catering</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row single">
+            <div class="form-group">
+                <label>City / Location</label>
+                <input type="text" id="biz-location" placeholder="Charlotte, NC">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Typical Hours</label>
+                <input type="text" id="biz-hours" placeholder="Mon–Sat 11AM–8PM">
+            </div>
+            <div class="form-group">
+                <label>Morning Prompt Time</label>
+                <input type="time" id="biz-prompt-time" value="07:00">
+            </div>
+        </div>
+
+        <p class="hint">📲 We'll send your daily "Where are you today?" prompt at this time every morning.</p>
+
+        <div class="nav-row">
+            <span></span>
+            <button class="btn btn-primary btn-lg" onclick="goStep(2)">Continue → Connect Facebook</button>
+        </div>
+    </div>
+
+    <!-- Step 2: Facebook + Instagram -->
+    <div class="step-panel" id="step-2">
+        <div class="step-title">📘 Connect Facebook & Instagram</div>
+        <div class="step-desc">One OAuth flow connects both. Select your Facebook Page and linked Instagram Business account.</div>
+
+        <div class="connect-list">
+            <div class="connect-item" id="facebook-item">
+                <div class="connect-meta">
+                    <div class="connect-icon">📘</div>
+                    <div>
+                        <div class="connect-name">Facebook Page</div>
+                        <div class="connect-note">Posts, scheduling, analytics — token refreshes every 60 days</div>
+                    </div>
+                </div>
+                <button class="btn btn-connect" id="btn-facebook" onclick="connectPlatform('facebook')">Connect</button>
+            </div>
+            <div class="connect-item" id="instagram-item">
+                <div class="connect-meta">
+                    <div class="connect-icon">📸</div>
+                    <div>
+                        <div class="connect-name">Instagram Business</div>
+                        <div class="connect-note">Included with Facebook — same OAuth, no extra step</div>
+                    </div>
+                </div>
+                <div class="connect-status" id="ig-status">Linked with FB</div>
+            </div>
+        </div>
+
+        <div class="nav-row">
+            <button class="skip-link" onclick="goStep(3)">Skip for now →</button>
+            <button class="btn btn-primary btn-lg" onclick="goStep(3)">Continue → Connect Google</button>
+        </div>
+    </div>
+
+    <!-- Step 3: Google Business + YouTube -->
+    <div class="step-panel" id="step-3">
+        <div class="step-title">📍 Connect Google Business & YouTube</div>
+        <div class="step-desc">One Google OAuth connects both. Your Google Business listing must be verified to post.</div>
+
+        <div class="notice">
+            ⚠️ <strong>Verification required:</strong> If your Google Business listing isn't verified yet,
+            we'll mark it as "pending" and you can post as soon as verification completes.
+            <a href="https://support.google.com/business/answer/2911778" target="_blank"
+               style="color:#fcd34d">How to verify →</a>
+        </div>
+
+        <div class="connect-list">
+            <div class="connect-item" id="google-item">
+                <div class="connect-meta">
+                    <div class="connect-icon">📍</div>
+                    <div>
+                        <div class="connect-name">Google Business Profile</div>
+                        <div class="connect-note">Posts, hours, specials, location — token auto-refreshes every hour</div>
+                    </div>
+                </div>
+                <button class="btn btn-connect" id="btn-google" onclick="connectPlatform('google')">Connect</button>
+            </div>
+            <div class="connect-item" id="youtube-item">
+                <div class="connect-meta">
+                    <div class="connect-icon">🎬</div>
+                    <div>
+                        <div class="connect-name">YouTube Channel</div>
+                        <div class="connect-note">Included with Google — video uploads, channel posts</div>
+                    </div>
+                </div>
+                <div class="connect-status" id="yt-status">Linked with Google</div>
+            </div>
+        </div>
+
+        <div class="nav-row">
+            <button class="skip-link" onclick="goStep(4)">Skip for now →</button>
+            <button class="btn btn-primary btn-lg" onclick="goStep(4)">Continue → Connect TikTok</button>
+        </div>
+    </div>
+
+    <!-- Step 4: TikTok -->
+    <div class="step-panel" id="step-4">
+        <div class="step-title">🎵 Connect TikTok</div>
+        <div class="step-desc">Auto-upload videos directly to TikTok. Token refreshes daily in the background.</div>
+
+        <div class="notice">
+            ⏳ <strong>App approval required:</strong> TikTok's Content Posting API requires a formal developer
+            app review (5–10 business days). Connect your account now — auto-upload activates the moment
+            approval lands. Nothing else needed on your end.
+        </div>
+
+        <div class="connect-list">
+            <div class="connect-item" id="tiktok-item">
+                <div class="connect-meta">
+                    <div class="connect-icon">🎵</div>
+                    <div>
+                        <div class="connect-name">TikTok Account</div>
+                        <div class="connect-note">Video auto-upload + caption posting — token refreshes every 24hrs</div>
+                    </div>
+                </div>
+                <button class="btn btn-connect" id="btn-tiktok" onclick="connectPlatform('tiktok')">Connect</button>
+            </div>
+        </div>
+
+        <p class="hint">
+            📝 While waiting for approval, PostPilot Pro generates a TikTok script you can read on camera.
+            Full auto-upload activates automatically post-approval.
+        </p>
+
+        <div class="nav-row">
+            <button class="skip-link" onclick="goStep(5)">Skip TikTok for now →</button>
+            <button class="btn btn-primary btn-lg" onclick="goStep(5)">Continue → Add to Website</button>
+        </div>
+    </div>
+
+    <!-- Step 5: Website Embed -->
+    <div class="step-panel" id="step-5">
+        <div class="step-title">🌐 Add PostPilot Pro to your website</div>
+        <div class="step-desc">
+            One line of code. Paste it into your website's <code style="color:#a5b4fc">&lt;body&gt;</code> tag.
+            Every time you hit Push, your website updates automatically — no logins, no editing.
+        </div>
+
+        <div class="notice notice-info">
+            💡 Works with any website: Squarespace, Wix, WordPress, Webflow, custom HTML — anything.
+            Paste it once. Never touch your website again.
+        </div>
+
+        <label style="margin-bottom:8px; display:block">Your Embed Code</label>
+        <div class="embed-block" id="embedCodeBlock">
+            &lt;script src="<span id="embedHost"></span>/static/embed.js"&gt;&lt;/script&gt;
+        </div>
+        <button class="btn btn-primary" onclick="copyEmbedCode()">📋 Copy Code</button>
+        <div class="copy-confirm" id="copyConfirm">✅ Copied! Paste it into your website's &lt;body&gt; tag.</div>
+
+        <p class="hint" style="margin-top:16px">
+            Your website will show: live banner, today's specials, hours, location map, and gallery —
+            all updated from your dashboard in real time.
+        </p>
+
+        <div class="nav-row">
+            <button class="skip-link" onclick="goStep(6)">I'll add it later →</button>
+            <button class="btn btn-primary btn-lg" onclick="goStep(6)">Done → Make Your First Post</button>
+        </div>
+    </div>
+
+    <!-- Step 6: First Post -->
+    <div class="step-panel" id="step-6">
+        <div class="step-title">🚀 Make your first post</div>
+        <div class="step-desc">
+            We've pre-written something to get you started. Edit it or just hit Push — it goes out right now.
+        </div>
+
+        <div class="first-post-box">
+            <label style="margin-bottom:10px; display:block">Your first post</label>
+            <textarea id="firstPostText" rows="4"></textarea>
+            <div class="platform-badges" id="activeBadges">
+                <span class="badge">🌐 Website</span>
+            </div>
+        </div>
+
+        <button class="btn btn-success btn-lg btn-full" onclick="sendFirstPost()">
+            🚀 Push Now — Go Live!
+        </button>
+
+        <p class="hint" style="text-align:center; margin-top:12px">
+            Posts to every platform you connected above. Edit anytime from the dashboard.
+        </p>
+    </div>
+
+    <!-- Done -->
+    <div class="step-panel" id="step-done">
+        <span class="done-icon">🎉</span>
+        <div class="done-title">You're live!</div>
+        <div class="done-sub">
+            Your first post just went out.<br>
+            Every morning at <strong id="promptTimeDisplay">7:00 AM</strong> we'll ask where you are and what's the special.
+            Hit reply — done.
+        </div>
+
+        <div class="done-stats">
+            <div class="done-stat">
+                <div class="done-stat-num" id="connectedCount">1</div>
+                <div class="done-stat-label">Platforms Connected</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-num">1</div>
+                <div class="done-stat-label">Posts Published</div>
+            </div>
+            <div class="done-stat">
+                <div class="done-stat-num">&lt; 5</div>
+                <div class="done-stat-label">Minutes to Set Up</div>
+            </div>
+        </div>
+
+        <a href="/" class="btn btn-primary btn-lg btn-full">→ Open Your Dashboard</a>
+
+        <p class="hint" style="text-align:center; margin-top:16px">
+            Connect more platforms, schedule posts, and edit your website hub from there.
+        </p>
+    </div>
+
+</div><!-- /.ob-card -->
+
+<script>
+    let currentStep = 1;
+    const connected = { facebook: false, instagram: false, google: false, youtube: false, tiktok: false };
+
+    // Set embed host on load
+    document.getElementById('embedHost').textContent = window.location.origin;
+
+    // ─── Step Navigation ────────────────────────────────────────────────
+    function goStep(n) {
+        const prevId = 'step-' + currentStep;
+        document.getElementById(prevId).classList.remove('active');
+
+        const prevDot = document.getElementById('dot-' + currentStep);
+        if (prevDot) { prevDot.classList.remove('active'); prevDot.classList.add('done'); prevDot.textContent = '✓'; }
+        const prevLbl = document.getElementById('lbl-' + currentStep);
+        if (prevLbl) { prevLbl.classList.remove('active'); prevLbl.classList.add('done'); }
+        const prevLine = document.getElementById('line-' + currentStep);
+        if (prevLine) prevLine.classList.add('done');
+
+        currentStep = n;
+
+        const nextPanel = document.getElementById('step-' + n);
+        if (nextPanel) {
+            nextPanel.classList.add('active');
+            const dot = document.getElementById('dot-' + n);
+            if (dot) { dot.classList.remove('done'); dot.classList.add('active'); }
+            const lbl = document.getElementById('lbl-' + n);
+            if (lbl) { lbl.classList.remove('done'); lbl.classList.add('active'); }
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ─── Platform Connect ────────────────────────────────────────────────
+    function connectPlatform(platform) {
+        const routes = { facebook: '/auth/facebook', google: '/auth/google', tiktok: '/auth/tiktok' };
+        if (routes[platform]) {
+            window.location.href = routes[platform] + '?next=/onboarding&step=' + currentStep;
+        }
+    }
+
+    // On load — check URL params for OAuth callback success
+    (function checkOAuthReturn() {
+        const params   = new URLSearchParams(window.location.search);
+        const platform = params.get('connected');
+        const step     = parseInt(params.get('step') || '1');
+        if (platform) {
+            goStep(step);
+            markConnected(platform);
+            window.history.replaceState({}, '', '/onboarding');
+        }
+    })();
+
+    function markConnected(platform) {
+        connected[platform] = true;
+        const btn = document.getElementById('btn-' + platform);
+        if (btn) { btn.textContent = '✅ Connected'; btn.classList.add('done'); btn.disabled = true; }
+        const item = document.getElementById(platform + '-item');
+        if (item) item.classList.add('connected');
+
+        if (platform === 'facebook') {
+            connected.instagram = true;
+            const igItem   = document.getElementById('instagram-item');
+            const igStatus = document.getElementById('ig-status');
+            if (igItem)   igItem.classList.add('connected');
+            if (igStatus) { igStatus.textContent = '✅ Connected'; igStatus.classList.add('ok'); }
+        }
+        if (platform === 'google') {
+            connected.youtube = true;
+            const ytItem   = document.getElementById('youtube-item');
+            const ytStatus = document.getElementById('yt-status');
+            if (ytItem)   ytItem.classList.add('connected');
+            if (ytStatus) { ytStatus.textContent = '✅ Connected'; ytStatus.classList.add('ok'); }
+        }
+        updateActiveBadges();
+        miniConfetti();
+    }
+
+    // ─── Platform Badges ─────────────────────────────────────────────────
+    function updateActiveBadges() {
+        const icons = {
+            facebook:  '📘 Facebook',
+            instagram: '📸 Instagram',
+            google:    '📍 Google Business',
+            youtube:   '🎬 YouTube',
+            tiktok:    '🎵 TikTok',
+        };
+        const el = document.getElementById('activeBadges');
+        let html = '<span class="badge">🌐 Website</span>';
+        Object.entries(connected).forEach(([p, on]) => {
+            if (on) html += `<span class="badge">${icons[p]}</span>`;
+        });
+        el.innerHTML = html;
+    }
+
+    // ─── First Post Pre-fill ──────────────────────────────────────────────
+    function updateFirstPost() {
+        const name = document.getElementById('biz-name').value.trim() || 'We';
+        const el   = document.getElementById('firstPostText');
+        if (el) el.value = `${name} is open today! 🎉\n\nStop by and see what's fresh. Follow us here for daily updates, specials, and location drops. We can't wait to see you! 🙌`;
+    }
+    updateFirstPost();
+
+    // ─── Send First Post ──────────────────────────────────────────────────
+    function sendFirstPost() {
+        const text = document.getElementById('firstPostText').value.trim();
+        if (!text) { alert('Add something to post first!'); return; }
+
+        const btn = document.querySelector('#step-6 .btn-success');
+        btn.textContent = '⏳ Posting…';
+        btn.disabled    = true;
+
+        const bizData = {
+            name:        document.getElementById('biz-name').value,
+            type:        document.getElementById('biz-type').value,
+            location:    document.getElementById('biz-location').value,
+            hours:       document.getElementById('biz-hours').value,
+            prompt_time: document.getElementById('biz-prompt-time').value,
+        };
+
+        fetch('/api/onboarding/setup', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(bizData),
+        })
+        .then(() => fetch('/api/publish', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({
+                content_type: 'text',
+                caption:      text,
+                platforms:    getActivePlatforms(),
+            }),
+        }))
+        .then(r => r.json())
+        .then(() => showDone())
+        .catch(()  => showDone()); // never block the user
+    }
+
+    function getActivePlatforms() {
+        const p = ['website'];
+        if (connected.facebook)  p.push('facebook');
+        if (connected.instagram) p.push('instagram');
+        if (connected.google)    p.push('google');
+        if (connected.youtube)   p.push('youtube');
+        if (connected.tiktok)    p.push('tiktok');
+        return p;
+    }
+
+    // ─── Done Screen ──────────────────────────────────────────────────────
+    function showDone() {
+        goStep('done');
+        const timeVal = document.getElementById('biz-prompt-time').value || '07:00';
+        const [h, m]  = timeVal.split(':');
+        const d = new Date(); d.setHours(h); d.setMinutes(m);
+        document.getElementById('promptTimeDisplay').textContent =
+            d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const count = Object.values(connected).filter(Boolean).length + 1;
+        document.getElementById('connectedCount').textContent = count;
+        bigConfetti();
+    }
+
+    // ─── Embed Copy ───────────────────────────────────────────────────────
+    function copyEmbedCode() {
+        const code    = `<script src="${window.location.origin}/static/embed.js"><\/script>`;
+        navigator.clipboard.writeText(code).then(() => {
+            const el = document.getElementById('copyConfirm');
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 3500);
+        });
+    }
+
+    // ─── Confetti ─────────────────────────────────────────────────────────
+    const COLORS = ['#4f46e5','#16a34a','#f59e0b','#ec4899','#06b6d4','#a855f7'];
+
+    function spawnConfetti(count) {
+        const wrap = document.getElementById('confettiWrap');
+        for (let i = 0; i < count; i++) {
+            const el        = document.createElement('div');
+            el.className    = 'confetti-piece';
+            el.style.left   = Math.random() * 100 + 'vw';
+            el.style.background  = COLORS[Math.floor(Math.random() * COLORS.length)];
+            el.style.width  = (Math.random() * 8 + 5) + 'px';
+            el.style.height = (Math.random() * 8 + 5) + 'px';
+            el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+            const dur = (Math.random() * 1.5 + 1.5).toFixed(2);
+            el.style.animationDuration = dur + 's';
+            el.style.animationDelay    = (Math.random() * 0.8).toFixed(2) + 's';
+            wrap.appendChild(el);
+            setTimeout(() => el.remove(), (parseFloat(dur) + 1) * 1000);
+        }
+    }
+
+    function miniConfetti() { spawnConfetti(40); }
+    function bigConfetti()  { spawnConfetti(120); }
+</script>
+</body>
+</html>

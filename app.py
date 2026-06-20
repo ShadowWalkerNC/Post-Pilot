@@ -44,6 +44,11 @@ def calendar():
 def analytics_page():
     return render_template('analytics.html')
 
+@app.route('/onboarding')
+def onboarding():
+    """First-run guided setup wizard (Phase 4 Session 6)."""
+    return render_template('onboarding.html')
+
 
 # ── CORE: UNIVERSAL PUSH ──────────────────────────────────────────────
 
@@ -64,6 +69,77 @@ def api_push_all():
         web_data     = data.get('web_data'),
     )
     return jsonify({'success': True, 'results': results})
+
+
+@app.route('/api/publish', methods=['POST'])
+def api_publish():
+    """
+    Alias for /api/push_all used by the onboarding wizard first-post flow.
+    Accepts: content_type, caption, platforms (list), image_url, video_url, link_url.
+    """
+    data      = request.json
+    uid       = data.get('user_id', 'default')
+    tokens    = user_sessions.get(uid, {}).get('tokens', {})
+    publisher = UniversalPublisher(tokens)
+    results   = publisher.push_all(
+        caption      = data.get('caption', ''),
+        content_type = data.get('content_type', 'text'),
+        image_url    = data.get('image_url'),
+        video_url    = data.get('video_url'),
+        link_url     = data.get('link_url'),
+        platforms    = data.get('platforms'),
+    )
+    return jsonify({'success': True, 'results': results})
+
+
+# ── ONBOARDING SETUP ──────────────────────────────────────────────────
+
+@app.route('/api/onboarding/setup', methods=['POST'])
+def api_onboarding_setup():
+    """
+    Saves business info submitted at Step 1 of the onboarding wizard.
+    Stores in user session and sets up the post generator with business context.
+
+    Expected JSON:
+        name         — Business name
+        type         — Business type slug (food_truck, cafe, etc.)
+        location     — City / location string
+        hours        — Operating hours string
+        prompt_time  — Morning prompt time (HH:MM, 24hr)
+    """
+    data = request.json or {}
+    uid  = data.get('user_id', 'default')
+    user_sessions.setdefault(uid, {})
+
+    business_info = {
+        'name':         data.get('name', ''),
+        'type':         data.get('type', ''),
+        'location':     data.get('location', ''),
+        'hours':        data.get('hours', ''),
+        'prompt_time':  data.get('prompt_time', '07:00'),
+    }
+
+    user_sessions[uid]['business'] = business_info
+
+    # Wire up post generator with business context
+    gen = user_sessions[uid].get('generator', SocialMediaPostGenerator())
+    gen.setup_business(business_info)
+    user_sessions[uid]['generator'] = gen
+
+    # Persist to auth_manager DB for use across restarts
+    try:
+        from modules.auth_manager import save_token
+        import json
+        # Store business info as a pseudo-token so it survives restarts
+        save_token(
+            platform      = 'business_profile',
+            access_token  = json.dumps(business_info),
+            user_id       = uid,
+        )
+    except Exception:
+        pass  # Non-fatal — session storage is the primary store
+
+    return jsonify({'success': True, 'business': business_info})
 
 
 # ── CONNECTION STATUS ───────────────────────────────────────────────
@@ -156,6 +232,12 @@ def auth_facebook():
     app_id       = os.getenv('FACEBOOK_APP_ID')
     redirect_uri = os.getenv('REDIRECT_URI', 'http://localhost:5000/auth/facebook/callback')
     scopes       = 'pages_manage_posts,pages_read_engagement,instagram_content_publish,instagram_basic'
+    # Pass next/step through state param for onboarding redirect
+    next_url = request.args.get('next', '/')
+    step     = request.args.get('step', '2')
+    session['oauth_next'] = next_url
+    session['oauth_step'] = step
+    session['oauth_platform'] = 'facebook'
     return redirect(f'https://www.facebook.com/v19.0/dialog/oauth?client_id={app_id}&redirect_uri={redirect_uri}&scope={scopes}')
 
 
@@ -176,6 +258,13 @@ def auth_facebook_callback():
     user_sessions.setdefault(uid, {})
     user_sessions[uid].setdefault('tokens', {}).update(
         facebook_token=page_token, facebook_page_id=page_id, instagram_token=page_token, instagram_id=ig_id)
+
+    # Redirect back to onboarding if that's where we came from
+    next_url  = session.pop('oauth_next', '/')
+    step      = session.pop('oauth_step', '2')
+    platform  = session.pop('oauth_platform', 'facebook')
+    if next_url == '/onboarding':
+        return redirect(f'/onboarding?connected={platform}&step={step}')
     return redirect(url_for('home'))
 
 
@@ -186,6 +275,11 @@ def auth_google():
     client_id = os.getenv('GOOGLE_CLIENT_ID')
     redir     = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/auth/google/callback')
     scope     = 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/youtube.upload'
+    next_url  = request.args.get('next', '/')
+    step      = request.args.get('step', '3')
+    session['oauth_next'] = next_url
+    session['oauth_step'] = step
+    session['oauth_platform'] = 'google'
     return redirect(f'https://accounts.google.com/o/oauth2/v2/auth?client_id={client_id}&redirect_uri={redir}&response_type=code&scope={scope}&access_type=offline')
 
 
@@ -208,6 +302,12 @@ def auth_google_callback():
     user_sessions.setdefault(uid, {})
     user_sessions[uid].setdefault('tokens', {}).update(
         google_token=gtoken, google_location_id=loc_id, youtube_token=gtoken)
+
+    next_url = session.pop('oauth_next', '/')
+    step     = session.pop('oauth_step', '3')
+    platform = session.pop('oauth_platform', 'google')
+    if next_url == '/onboarding':
+        return redirect(f'/onboarding?connected={platform}&step={step}')
     return redirect(url_for('home'))
 
 
@@ -218,6 +318,11 @@ def auth_tiktok():
     client_key = os.getenv('TIKTOK_CLIENT_KEY')
     redir      = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/auth/tiktok/callback')
     scope      = 'user.info.basic,video.upload,video.publish'
+    next_url   = request.args.get('next', '/')
+    step       = request.args.get('step', '4')
+    session['oauth_next'] = next_url
+    session['oauth_step'] = step
+    session['oauth_platform'] = 'tiktok'
     return redirect(f'https://www.tiktok.com/v2/auth/authorize?client_key={client_key}&redirect_uri={redir}&response_type=code&scope={scope}')
 
 
@@ -234,6 +339,12 @@ def auth_tiktok_callback():
     uid = 'default'
     user_sessions.setdefault(uid, {})
     user_sessions[uid].setdefault('tokens', {}).update(tiktok_token=tt_token)
+
+    next_url = session.pop('oauth_next', '/')
+    step     = session.pop('oauth_step', '4')
+    platform = session.pop('oauth_platform', 'tiktok')
+    if next_url == '/onboarding':
+        return redirect(f'/onboarding?connected={platform}&step={step}')
     return redirect(url_for('home'))
 
 

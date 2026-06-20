@@ -1,1 +1,11 @@
-{"message": "Welcome! Check out our latest specials.", "link": "", "active": true, "updated": ""}
+{
+  "message": "Welcome! Check out our latest specials.",
+  "full": "",
+  "image": "",
+  "link": "",
+  "active": true,
+  "updated": "",
+  "specials": "",
+  "hours": "",
+  "location": ""
+}

@@ -3,172 +3,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostPilot Pro — Command Center</title>
+    <title>PostPilot Pro — Hub</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
-    <header class="topbar">
-        <div class="topbar-left">
-            <span class="logo-text">🚀 PostPilot Pro</span>
-            <span class="tag">Command Center</span>
+
+<header class="topbar">
+    <div class="topbar-left">
+        <span class="logo-text">🚀 PostPilot Pro</span>
+        <span class="tag">Content Hub</span>
+    </div>
+    <div class="topbar-right">
+        <div class="platform-status">
+            <span class="pill" id="pill-fb" title="Facebook">📘 FB</span>
+            <span class="pill" id="pill-ig" title="Instagram">📸 IG</span>
+            <span class="pill" id="pill-yt" title="YouTube">🎬 YT</span>
+            <span class="pill" id="pill-tt" title="TikTok">🎵 TT</span>
+            <span class="pill" id="pill-gb" title="Google Business">📍 GB</span>
+            <span class="pill" id="pill-web" title="Your Website">🌐 WEB</span>
         </div>
-        <div class="topbar-right">
-            <div class="platform-status" id="platformStatus">
-                <span class="pill" id="pill-fb">📘 FB</span>
-                <span class="pill" id="pill-ig">📸 IG</span>
-                <span class="pill" id="pill-tt">🎵 TT</span>
-                <span class="pill" id="pill-gb">📍 GB</span>
-                <span class="pill" id="pill-web">🌐 WEB</span>
-            </div>
-            <a href="/setup" class="btn btn-sm">⚙️ Settings</a>
+        <a href="/setup" class="btn btn-sm">⚙️ Settings</a>
+    </div>
+</header>
+
+<div class="dashboard">
+
+    <!-- LEFT: Smart Compose -->
+    <aside class="compose-panel">
+        <h2>✏️ What are you posting?</h2>
+
+        <!-- Content Type Selector -->
+        <div class="content-type-bar">
+            <button class="ctype active" id="ctype-text"    onclick="setContentType('text',    this)">📝 Text</button>
+            <button class="ctype"         id="ctype-image"   onclick="setContentType('image',   this)">📸 Photo</button>
+            <button class="ctype"         id="ctype-video"   onclick="setContentType('video',   this)">🎬 Video</button>
+            <button class="ctype"         id="ctype-promo"   onclick="setContentType('promo',   this)">🎉 Promo</button>
+            <button class="ctype"         id="ctype-update"  onclick="setContentType('update',  this)">📊 Update</button>
         </div>
-    </header>
 
-    <div class="dashboard">
+        <!-- Smart routing hint -->
+        <div class="routing-hint" id="routingHint">
+            📝 <strong>Text post</strong> → auto-routes to Facebook, Google Business, Website
+        </div>
 
-        <!-- LEFT: Compose Panel -->
-        <aside class="compose-panel">
-            <h2>✏️ Compose Update</h2>
-            <p class="hint">Write once — push to all platforms instantly.</p>
+        <!-- Caption / Body -->
+        <div class="form-group">
+            <label>Caption / Message</label>
+            <textarea id="mainCaption" rows="5" placeholder="Write your update here. PostPilot Pro will format it correctly for each platform."></textarea>
+        </div>
 
-            <div class="form-group">
-                <label>Message / Caption</label>
-                <textarea id="mainCaption" rows="5" placeholder="e.g. 🔥 Today's special: BBQ Brisket Tacos — open 11 AM at Downtown Corner! Come get yours before we sell out."></textarea>
+        <!-- Media (shown for image/video) -->
+        <div class="form-group" id="mediaGroup">
+            <label id="mediaLabel">📸 Image URL</label>
+            <input type="text" id="mediaUrl" placeholder="https://yoursite.com/photo.jpg">
+            <div id="videoGroup" style="display:none;margin-top:10px">
+                <label>🎬 Video URL <span class="optional">(YouTube / direct MP4)</span></label>
+                <input type="text" id="videoUrl" placeholder="https://youtube.com/watch?v=... or direct .mp4">
             </div>
+        </div>
 
-            <div class="form-group">
-                <label>Image URL <span class="optional">(optional)</span></label>
-                <input type="text" id="imageUrl" placeholder="https://yoursite.com/photo.jpg">
+        <!-- Link -->
+        <div class="form-group">
+            <label>🔗 Link URL <span class="optional">(optional)</span></label>
+            <input type="text" id="linkUrl" placeholder="https://yourwebsite.com/specials">
+        </div>
+
+        <!-- Smart Platform Routing -->
+        <div class="form-group">
+            <div class="routing-header">
+                <label>🧠 Smart Routing</label>
+                <span class="auto-badge">AUTO</span>
             </div>
-
-            <div class="form-group">
-                <label>Link URL <span class="optional">(for website + Google)</span></label>
-                <input type="text" id="linkUrl" placeholder="https://yourwebsite.com/specials">
+            <div class="platform-toggles" id="platformToggles">
+                <label class="toggle-item" id="tog-wrap-fb">
+                    <input type="checkbox" id="tog-fb"> 📘 Facebook
+                    <span class="route-tag" id="rtag-fb"></span>
+                </label>
+                <label class="toggle-item" id="tog-wrap-ig">
+                    <input type="checkbox" id="tog-ig"> 📸 Instagram
+                    <span class="route-tag" id="rtag-ig"></span>
+                </label>
+                <label class="toggle-item" id="tog-wrap-yt">
+                    <input type="checkbox" id="tog-yt"> 🎬 YouTube
+                    <span class="route-tag" id="rtag-yt"></span>
+                </label>
+                <label class="toggle-item" id="tog-wrap-tt">
+                    <input type="checkbox" id="tog-tt"> 🎵 TikTok
+                    <span class="route-tag" id="rtag-tt"></span>
+                </label>
+                <label class="toggle-item" id="tog-wrap-gb">
+                    <input type="checkbox" id="tog-gb"> 📍 Google Business
+                    <span class="route-tag" id="rtag-gb"></span>
+                </label>
+                <label class="toggle-item" id="tog-wrap-web">
+                    <input type="checkbox" id="tog-web" checked> 🌐 Website
+                    <span class="route-tag" id="rtag-web">always</span>
+                </label>
             </div>
+        </div>
 
-            <div class="form-group">
-                <label>Push To</label>
-                <div class="platform-toggles">
-                    <label class="toggle-item">
-                        <input type="checkbox" id="tog-fb" checked> 📘 Facebook
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="tog-ig" checked> 📸 Instagram
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="tog-tt"> 🎵 TikTok Script
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="tog-gb"> 📍 Google Business
-                    </label>
-                    <label class="toggle-item">
-                        <input type="checkbox" id="tog-web"> 🌐 Website Banner
-                    </label>
+        <!-- Schedule -->
+        <div class="form-group">
+            <label>📅 Schedule <span class="optional">(blank = publish now)</span></label>
+            <input type="datetime-local" id="scheduleTime">
+        </div>
+
+        <button class="btn btn-success btn-full" onclick="pushToAll()">🚀 Push to All Selected</button>
+        <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="autoGenerate()">✨ Auto-Generate Caption</button>
+    </aside>
+
+    <!-- CENTER: Live Preview + Website Editor -->
+    <main class="preview-panel">
+        <div class="preview-tabs">
+            <button class="ptab active" onclick="switchPreview('fb',  this)">📘 Facebook</button>
+            <button class="ptab"         onclick="switchPreview('ig',  this)">📸 Instagram</button>
+            <button class="ptab"         onclick="switchPreview('yt',  this)">🎬 YouTube</button>
+            <button class="ptab"         onclick="switchPreview('tt',  this)">🎵 TikTok</button>
+            <button class="ptab"         onclick="switchPreview('gb',  this)">📍 Google</button>
+            <button class="ptab"         onclick="switchPreview('web', this)">🌐 Website</button>
+        </div>
+
+        <!-- Facebook preview -->
+        <div id="preview-fb" class="preview-frame">
+            <div class="mock-fb">
+                <div class="mock-header"><div class="mock-avatar">🏪</div><div><strong>Your Business</strong><br><small>Just now · 🌍</small></div></div>
+                <p id="prev-fb-text" class="mock-body">Your post will preview here…</p>
+                <div id="prev-fb-media"></div>
+                <div class="mock-actions"><span>👍 Like</span><span>💬 Comment</span><span>↗️ Share</span></div>
+            </div>
+        </div>
+
+        <!-- Instagram preview -->
+        <div id="preview-ig" class="preview-frame" style="display:none">
+            <div class="mock-ig">
+                <div class="mock-header"><div class="mock-avatar">🏪</div><strong>yourbusiness</strong></div>
+                <div id="prev-ig-media" class="mock-img"><div class="mock-img-placeholder">📷 Photo / Video Preview</div></div>
+                <div class="mock-ig-actions">❤️ &nbsp;💬 &nbsp;✈️ &nbsp;🔖</div>
+                <p id="prev-ig-text" class="mock-body">Caption will appear here…</p>
+            </div>
+        </div>
+
+        <!-- YouTube preview -->
+        <div id="preview-yt" class="preview-frame" style="display:none">
+            <div class="mock-yt">
+                <h3>🎬 YouTube / Video</h3>
+                <div id="prev-yt-embed" class="yt-embed-box">Video embed will appear here after you add a YouTube or MP4 URL.</div>
+                <div class="yt-meta">
+                    <div id="prev-yt-title" class="yt-title">Video title will appear here…</div>
+                    <div id="prev-yt-desc" class="yt-desc">Description will appear here…</div>
+                </div>
+                <div class="route-note">🎵 Also routes to: TikTok script, Instagram Reel caption, Facebook video post</div>
+            </div>
+        </div>
+
+        <!-- TikTok preview -->
+        <div id="preview-tt" class="preview-frame" style="display:none">
+            <div class="mock-tt">
+                <h3>🎵 TikTok Script</h3>
+                <div id="prev-tt-text" class="script-box">Your TikTok script will appear here…</div>
+                <p class="hint">Read this on camera for a 15–30 sec TikTok. Full auto-upload in Phase 4.</p>
+            </div>
+        </div>
+
+        <!-- Google Business preview -->
+        <div id="preview-gb" class="preview-frame" style="display:none">
+            <div class="mock-gb">
+                <h3>📍 Google Business Post</h3>
+                <div class="gb-card">
+                    <div id="prev-gb-media" class="mock-img-placeholder">📷 Photo</div>
+                    <p id="prev-gb-text">Your Google Business update will appear here…</p>
+                    <a id="prev-gb-link" class="gb-btn" href="#">Learn More</a>
                 </div>
             </div>
+        </div>
 
-            <div class="form-group">
-                <label>Schedule <span class="optional">(leave blank = publish now)</span></label>
-                <input type="datetime-local" id="scheduleTime">
-            </div>
-
-            <button class="btn btn-success btn-full" onclick="pushToAll()">🚀 Push to All Selected Platforms</button>
-            <button class="btn btn-secondary btn-full" style="margin-top:10px" onclick="autoGenerate()">✨ Auto-Generate Caption</button>
-        </aside>
-
-        <!-- CENTER: Live Preview -->
-        <main class="preview-panel">
-            <h2>👁️ Live Preview</h2>
-            <div class="preview-tabs">
-                <button class="ptab active" onclick="switchPreview('fb', this)">📘 Facebook</button>
-                <button class="ptab" onclick="switchPreview('ig', this)">📸 Instagram</button>
-                <button class="ptab" onclick="switchPreview('tt', this)">🎵 TikTok</button>
-                <button class="ptab" onclick="switchPreview('gb', this)">📍 Google</button>
-                <button class="ptab" onclick="switchPreview('web', this)">🌐 Website</button>
-            </div>
-
-            <div id="preview-fb" class="preview-frame">
-                <div class="mock-fb">
-                    <div class="mock-header"><div class="mock-avatar">🏪</div><div><strong id="prev-fb-name">Your Business</strong><br><small>Just now · 🌍</small></div></div>
-                    <p id="prev-fb-text" class="mock-body">Your post will preview here…</p>
-                    <div id="prev-fb-img" class="mock-img" style="display:none"><img id="prev-fb-imgEl" src="" alt="Post image"></div>
-                    <div class="mock-actions"><span>👍 Like</span><span>💬 Comment</span><span>↗️ Share</span></div>
+        <!-- Website HUB editor -->
+        <div id="preview-web" class="preview-frame" style="display:none">
+            <div class="web-hub">
+                <div class="web-hub-header">
+                    <h3>🌐 Your Website Hub</h3>
+                    <span class="hub-badge">LIVE EDITOR</span>
                 </div>
-            </div>
+                <p class="hint">Edit any section below. Changes publish to your website instantly when you hit Push.</p>
 
-            <div id="preview-ig" class="preview-frame" style="display:none">
-                <div class="mock-ig">
-                    <div class="mock-header"><div class="mock-avatar">🏪</div><strong id="prev-ig-name">yourbusiness</strong></div>
-                    <div id="prev-ig-img" class="mock-img"><div class="mock-img-placeholder">📷 Image Preview</div></div>
-                    <div class="mock-ig-actions">❤️ &nbsp; 💬 &nbsp; ✈️ &nbsp; 🔖</div>
-                    <p id="prev-ig-text" class="mock-body">Your caption will preview here…</p>
-                </div>
-            </div>
-
-            <div id="preview-tt" class="preview-frame" style="display:none">
-                <div class="mock-tt">
-                    <h3>🎵 TikTok Script</h3>
-                    <div id="prev-tt-text" class="script-box">Your TikTok script will appear here…</div>
-                    <p class="hint">Read this on camera for a 15–30 sec TikTok video.</p>
-                </div>
-            </div>
-
-            <div id="preview-gb" class="preview-frame" style="display:none">
-                <div class="mock-gb">
-                    <h3>📍 Google Business Post</h3>
-                    <div class="gb-card">
-                        <div id="prev-gb-img" class="mock-img-placeholder">📷 Photo</div>
-                        <p id="prev-gb-text">Your Google Business update will appear here…</p>
-                        <a id="prev-gb-link" class="gb-btn" href="#">Learn More</a>
-                    </div>
-                </div>
-            </div>
-
-            <div id="preview-web" class="preview-frame" style="display:none">
-                <div class="mock-web">
-                    <h3>🌐 Website Banner</h3>
-                    <div class="web-banner">
-                        <div id="prev-web-text">📣 Your website announcement will appear here…</div>
+                <!-- Live banner -->
+                <div class="hub-section">
+                    <div class="hub-section-label">📣 Announcement Banner</div>
+                    <div class="web-banner" id="bannerPreview">
+                        <div id="prev-web-text">📣 Your latest update will appear here…</div>
                         <a id="prev-web-link" class="web-cta" href="#">View Details →</a>
                     </div>
-                    <p class="hint">This embeds as a banner at the top of your website via a JS snippet.</p>
+                </div>
+
+                <!-- Specials section -->
+                <div class="hub-section">
+                    <div class="hub-section-label">🔥 Today's Specials</div>
+                    <textarea id="webSpecials" class="hub-textarea" rows="3" placeholder="e.g. BBQ Brisket Tacos — $12 today only!"></textarea>
+                </div>
+
+                <!-- Hours section -->
+                <div class="hub-section">
+                    <div class="hub-section-label">⏰ Hours</div>
+                    <textarea id="webHours" class="hub-textarea" rows="2" placeholder="Mon–Fri 11AM–8PM | Sat–Sun 10AM–9PM"></textarea>
+                </div>
+
+                <!-- Location section -->
+                <div class="hub-section">
+                    <div class="hub-section-label">📍 Location / Next Stop</div>
+                    <textarea id="webLocation" class="hub-textarea" rows="2" placeholder="e.g. Downtown Corner of 5th & Main today!"></textarea>
+                </div>
+
+                <!-- Embed instructions -->
+                <div class="hub-embed-box">
+                    <div class="hub-embed-label">🔗 Add to your website once — never touch it again</div>
+                    <code id="embedCode">&lt;script src="http://localhost:5000/static/embed.js"&gt;&lt;/script&gt;</code>
+                    <button class="btn btn-sm" onclick="copyEmbed()">Copy Embed Code</button>
                 </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <!-- RIGHT: Activity Feed -->
-        <aside class="activity-panel">
-            <h2>📋 Activity Feed</h2>
-            <div id="activityFeed" class="feed">
-                <div class="feed-item feed-info">Welcome to PostPilot Pro Command Center. Compose a post and push to all your platforms in one click.</div>
-            </div>
+    <!-- RIGHT: Activity + Stats -->
+    <aside class="activity-panel">
+        <h2>📋 Activity Feed</h2>
+        <div id="activityFeed" class="feed">
+            <div class="feed-item feed-info">Welcome! Select content type, write your update, and push to all platforms at once.</div>
+        </div>
 
-            <hr style="margin: 20px 0">
+        <hr style="margin:18px 0">
 
-            <h2>📊 Quick Stats</h2>
-            <div class="stats-grid" id="statsGrid">
-                <div class="stat-card"><div class="stat-num" id="stat-posts">—</div><div class="stat-label">Posts This Week</div></div>
-                <div class="stat-card"><div class="stat-num" id="stat-reach">—</div><div class="stat-label">Total Reach</div></div>
-                <div class="stat-card"><div class="stat-num" id="stat-likes">—</div><div class="stat-label">Total Likes</div></div>
-                <div class="stat-card"><div class="stat-num" id="stat-platforms">0/5</div><div class="stat-label">Platforms Live</div></div>
-            </div>
+        <h2>📊 This Week</h2>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-num" id="stat-posts">—</div><div class="stat-label">Posts</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-reach">—</div><div class="stat-label">Reach</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-likes">—</div><div class="stat-label">Likes</div></div>
+            <div class="stat-card"><div class="stat-num" id="stat-platforms">0/6</div><div class="stat-label">Connected</div></div>
+        </div>
 
-            <hr style="margin: 20px 0">
+        <hr style="margin:18px 0">
 
-            <h2>⚡ Quick Actions</h2>
-            <div class="quick-actions">
-                <button class="btn btn-sm btn-full" onclick="autoGenerate()">✨ Auto-Generate</button>
-                <button class="btn btn-sm btn-full btn-secondary" onclick="window.location='/calendar'">📅 View Calendar</button>
-                <button class="btn btn-sm btn-full btn-secondary" onclick="window.location='/analytics'">📊 Full Analytics</button>
-                <button class="btn btn-sm btn-full btn-secondary" onclick="loadWeeklyPlan()">📋 Load Weekly Plan</button>
-            </div>
-        </aside>
-    </div>
+        <h2>🧠 Smart Routing Rules</h2>
+        <div class="routing-rules">
+            <div class="rule">📝 <strong>Text only</strong> → FB, Google, Website</div>
+            <div class="rule">📸 <strong>Photo</strong> → FB, IG, Google, Website</div>
+            <div class="rule">🎬 <strong>Video</strong> → YT, TikTok, FB, IG Reel</div>
+            <div class="rule">🎉 <strong>Promo</strong> → All platforms</div>
+            <div class="rule">📊 <strong>Update</strong> → FB, Google, Website</div>
+            <div class="rule">🌐 <strong>Website</strong> → Always included</div>
+        </div>
 
-    <!-- Toast Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
+        <hr style="margin:18px 0">
 
-    <script src="/static/dashboard.js"></script>
+        <h2>⚡ Quick Actions</h2>
+        <div class="quick-actions">
+            <button class="btn btn-sm btn-full" onclick="autoGenerate()">✨ Auto-Generate</button>
+            <button class="btn btn-sm btn-full btn-secondary" onclick="switchPreview('web', document.querySelector('.ptab:last-child'))">🌐 Edit Website</button>
+            <button class="btn btn-sm btn-full btn-secondary" onclick="window.location='/calendar'">📅 Calendar</button>
+            <button class="btn btn-sm btn-full btn-secondary" onclick="window.location='/analytics'">📊 Analytics</button>
+        </div>
+    </aside>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="/static/dashboard.js"></script>
 </body>
 </html>

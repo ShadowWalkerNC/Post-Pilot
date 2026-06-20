@@ -1,0 +1,62 @@
+# render.yaml — deploy Post-Pilot to Render (free or paid tier)
+# https://render.com/docs/render-yaml-spec
+
+services:
+  - type: web
+    name: post-pilot
+    runtime: python
+    region: oregon
+    plan: free          # change to 'starter' ($7/mo) for always-on
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 2 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -
+    healthCheckPath: /v1/health
+    autoDeploy: true
+
+    envVars:
+      # ── Core ──────────────────────────────────────────────────────────
+      - key: FLASK_SECRET_KEY
+        generateValue: true       # Render auto-generates a secure random value
+      - key: DATABASE_PATH
+        value: postpilot.db
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+      # ── OpenAI ────────────────────────────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false               # set manually in Render dashboard
+
+      # ── Stripe ────────────────────────────────────────────────────────
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_STARTER
+        sync: false
+      - key: STRIPE_PRICE_GROWTH
+        sync: false
+      - key: STRIPE_PRICE_AGENCY
+        sync: false
+
+      # ── Meta (Facebook / Instagram) ──────────────────────────────────
+      - key: FACEBOOK_APP_ID
+        sync: false
+      - key: FACEBOOK_APP_SECRET
+        sync: false
+      - key: REDIRECT_URI
+        sync: false               # https://<your-render-domain>/auth/facebook/callback
+
+      # ── Google (Business + YouTube) ──────────────────────────────────
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false               # https://<your-render-domain>/auth/google/callback
+
+      # ── TikTok ───────────────────────────────────────────────────────
+      - key: TIKTOK_CLIENT_KEY
+        sync: false
+      - key: TIKTOK_CLIENT_SECRET
+        sync: false
+      - key: TIKTOK_REDIRECT_URI
+        sync: false               # https://<your-render-domain>/auth/tiktok/callback

@@ -1,29 +1,19 @@
 """
-plan_guard.py — Subscription plan enforcement for Post-Pilot.
-
-Provides:
-    @require_plan('starter')       — route decorator
-    check_platform_limit(tier, platforms)  — helper for push_all
-
-Plan hierarchy (weakest → strongest):
-    free < starter < pro < agency
-
-Feature limits are defined in PRICING.md and enforced here.
-This is the single source of truth for server-side plan checks.
+plan_guard.py -- Subscription plan enforcement for Post-Pilot.
 
 Usage in app.py:
     from modules.plan_guard import require_plan, check_platform_limit
 
-    @app.route('/api/generate_weekly', methods=['POST'])
+    @app.route('/api/analytics', methods=['POST'])
     @login_required
-    @require_plan('starter')
-    def api_generate_weekly():
+    @require_plan('pro')
+    def api_analytics():
         ...
 
-    # Inside api_push_all, before publishing:
-    platforms = data.get('platforms') or []
-    if not check_platform_limit(current_user.subscription_tier, platforms):
-        return jsonify({'success': False, 'error': {...}}), 403
+Plan hierarchy (weakest to strongest):
+    free < starter < pro < agency
+
+Feature -> minimum plan mapping is defined in FEATURE_PLANS (from PRICING.md).
 """
 
 import functools
@@ -33,7 +23,6 @@ from flask_login import current_user
 
 logger = logging.getLogger(__name__)
 
-# Plan rank: higher = more access
 PLAN_RANK = {
     'free':    0,
     'starter': 1,
@@ -41,7 +30,19 @@ PLAN_RANK = {
     'agency':  3,
 }
 
-# Per-plan platform publish limits (PRICING.md)
+# Feature -> minimum required plan (mirrors PRICING.md)
+FEATURE_PLANS = {
+    'multi_platform': 'starter',
+    'ai_generate':    'starter',
+    'scheduling':     'starter',
+    'analytics':      'pro',
+    'bulk_schedule':  'pro',
+    'api_access':     'pro',
+    'website_hub':    'starter',
+    'white_label':    'agency',
+}
+
+# Per-plan concurrent platform limits
 PLATFORM_LIMITS = {
     'free':    1,
     'starter': 3,
@@ -49,35 +50,25 @@ PLATFORM_LIMITS = {
     'agency':  6,
 }
 
-# Per-plan monthly AI generation limits (PRICING.md)
-AI_MONTHLY_LIMITS = {
-    'free':    10,
-    'starter': 100,
-    'pro':     500,
-    'agency':  999999,  # unlimited
-}
 
-
-def _rank(tier: str) -> int:
+def _plan_rank(tier: str) -> int:
     return PLAN_RANK.get((tier or 'free').lower(), 0)
 
 
 def require_plan(minimum_plan: str):
     """
-    Decorator: block access if the logged-in user is below `minimum_plan`.
-
-    - API routes (/api/*) and JSON requests return HTTP 403 JSON.
-    - HTML routes redirect to /billing with a flash message.
+    Decorator: block users below `minimum_plan`.
+    - API/JSON requests -> 403 JSON with upgrade_url
+    - Browser requests  -> redirect to /billing with flash
     """
     def decorator(f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             user_tier = getattr(current_user, 'subscription_tier', 'free') or 'free'
-            if _rank(user_tier) < _rank(minimum_plan):
+            if _plan_rank(user_tier) < _plan_rank(minimum_plan):
                 logger.warning(
                     'Plan gate blocked: user=%s tier=%s path=%s requires=%s',
-                    getattr(current_user, 'id', 'anon'),
-                    user_tier, request.path, minimum_plan,
+                    getattr(current_user, 'id', 'anon'), user_tier, request.path, minimum_plan
                 )
                 if request.is_json or request.path.startswith('/api/'):
                     return jsonify({
@@ -88,49 +79,18 @@ def require_plan(minimum_plan: str):
                             'upgrade_url': '/billing',
                         }
                     }), 403
-                flash(
-                    f'Upgrade to the {minimum_plan.title()} plan to unlock this feature.',
-                    'warning'
-                )
+                flash(f'Upgrade to {minimum_plan.title()} to unlock this feature.', 'warning')
                 return redirect(url_for('billing'))
             return f(*args, **kwargs)
         return wrapped
     return decorator
 
 
-def check_platform_limit(user_tier: str, requested_platforms: list) -> tuple[bool, str]:
+def check_platform_limit(user_tier: str, requested_platforms: list) -> tuple[bool, int]:
     """
-    Check whether a user's plan allows publishing to the requested number of platforms.
-
-    Returns:
-        (True,  '')           — allowed
-        (False, reason_str)   — blocked, with a user-facing reason message
+    Check whether the user's plan allows publishing to N platforms at once.
+    Returns (allowed: bool, limit: int).
     """
     tier  = (user_tier or 'free').lower()
     limit = PLATFORM_LIMITS.get(tier, 1)
-    count = len(requested_platforms or [])
-    if count <= limit:
-        return True, ''
-    return False, (
-        f'Your {tier.title()} plan allows publishing to {limit} platform(s) at once. '
-        f'You selected {count}. Upgrade to publish to more platforms.'
-    )
-
-
-def get_plan_limits(user_tier: str) -> dict:
-    """
-    Return a dict of all limits for the given tier.
-    Useful for the billing/dashboard UI to show what the user can do.
-    """
-    tier = (user_tier or 'free').lower()
-    return {
-        'tier':              tier,
-        'platform_limit':    PLATFORM_LIMITS.get(tier, 1),
-        'ai_monthly_limit':  AI_MONTHLY_LIMITS.get(tier, 10),
-        'scheduling':        _rank(tier) >= _rank('starter'),
-        'analytics':         _rank(tier) >= _rank('pro'),
-        'bulk_schedule':     _rank(tier) >= _rank('pro'),
-        'api_access':        _rank(tier) >= _rank('pro'),
-        'website_hub':       _rank(tier) >= _rank('starter'),
-        'white_label':       _rank(tier) >= _rank('agency'),
-    }
+    return len(requested_platforms) <= limit, limit

@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ''
+      DATABASE_PATH: ':memory:'
+      FLASK_SECRET_KEY: ci-test-secret-key
+      TOKEN_ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktb25seQ==
+      FLASK_ENV: testing
+      OPENAI_API_KEY: dummy
+      STRIPE_SECRET_KEY: dummy
+      FACEBOOK_APP_ID: dummy
+      FACEBOOK_APP_SECRET: dummy
+      GOOGLE_CLIENT_ID: dummy
+      GOOGLE_CLIENT_SECRET: dummy
+      TIKTOK_CLIENT_KEY: dummy
+      TIKTOK_CLIENT_SECRET: dummy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Syntax check
+        run: |
+          python -m py_compile app.py
+          find modules -name '*.py' | xargs python -m py_compile
+          echo "All files compile OK"
+
+      - name: Lint (errors only)
+        run: |
+          pip install flake8
+          flake8 app.py modules/ --count --select=E9,F6,F7,F8 --show-source --statistics
+
+      - name: Run smoke tests
+        run: |
+          pytest tests/ -v --tb=short

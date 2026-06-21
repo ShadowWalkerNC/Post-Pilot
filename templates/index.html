@@ -59,10 +59,25 @@
     .faq-open .faq-chevron { transform:rotate(180deg); }
     .faq-chevron { transition:transform .3s; }
     body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); opacity:.4; }
-    .platform-tile { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:.85rem 1.25rem; border-radius:.875rem; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); transition:border-color .2s,background .2s; min-width:110px; }
+
+    /* ── Platform strip tiles ── */
+    .platform-tile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: .45rem;
+      padding: .9rem .75rem;
+      border-radius: .875rem;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      transition: border-color .2s, background .2s;
+      width: 100%;
+    }
     .platform-tile:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); }
-    .platform-tile .pt-name { font-size:.72rem; font-weight:700; color:#94a3b8; }
-    .platform-tile .pt-how  { font-size:.62rem; color:#475569; letter-spacing:.03em; }
+    .platform-tile svg  { width: 1.75rem; height: 1.75rem; flex-shrink: 0; }
+    .platform-tile .pt-name { font-size:.72rem; font-weight:700; color:#94a3b8; text-align:center; line-height:1.2; }
+    .platform-tile .pt-how  { font-size:.6rem; color:#475569; letter-spacing:.03em; text-align:center; line-height:1.2; }
+
     .hub-step { display:flex; gap:1rem; align-items:flex-start; }
     .hub-step-num { flex-shrink:0; width:2rem; height:2rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; }
     .hub-connector { width:2rem; flex-shrink:0; display:flex; justify-content:center; }
@@ -187,21 +202,62 @@
 <section id="platforms" class="py-16 px-6 overflow-hidden border-y" style="background:#0a0a20;border-color:rgba(255,255,255,.04)">
   <div class="max-w-5xl mx-auto">
     <p class="text-center text-xs font-semibold text-gray-600 uppercase tracking-widest mb-8">Connects via API to</p>
-    <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 justify-items-center">
-      {% for name, color, how, icon in [
-        ('Facebook',        '#1877F2', 'Graph API',       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/></svg>'),
-        ('Instagram',       '#E1306C', 'Graph API',       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'),
-        ('TikTok',          '#69C9D0', 'Content API',     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/></svg>'),
-        ('YouTube',         '#FF0000', 'Data API v3',     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>'),
-        ('Google Business', '#4285F4', 'My Business API', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'),
-        ('Your Website',    '#10b981', 'Embed / Webhook',  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'),
-      ] %}
+    <div class="grid grid-cols-3 sm:grid-cols-6 gap-3">
+
+      <!-- Facebook -->
       <div class="platform-tile">
-        <span style="color:{{ color }}; width:1.75rem; height:1.75rem">{{ icon }}</span>
-        <span class="pt-name">{{ name }}</span>
-        <span class="pt-how">{{ how }}</span>
+        <svg viewBox="0 0 24 24" fill="#1877F2" aria-hidden="true">
+          <path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/>
+        </svg>
+        <span class="pt-name">Facebook</span>
+        <span class="pt-how">Graph API</span>
       </div>
-      {% endfor %}
+
+      <!-- Instagram -->
+      <div class="platform-tile">
+        <svg viewBox="0 0 24 24" fill="#E1306C" aria-hidden="true">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+        </svg>
+        <span class="pt-name">Instagram</span>
+        <span class="pt-how">Graph API</span>
+      </div>
+
+      <!-- TikTok -->
+      <div class="platform-tile">
+        <svg viewBox="0 0 24 24" fill="#69C9D0" aria-hidden="true">
+          <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/>
+        </svg>
+        <span class="pt-name">TikTok</span>
+        <span class="pt-how">Content API</span>
+      </div>
+
+      <!-- YouTube -->
+      <div class="platform-tile">
+        <svg viewBox="0 0 24 24" fill="#FF0000" aria-hidden="true">
+          <path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/>
+        </svg>
+        <span class="pt-name">YouTube</span>
+        <span class="pt-how">Data API v3</span>
+      </div>
+
+      <!-- Google Business -->
+      <div class="platform-tile">
+        <svg viewBox="0 0 24 24" fill="#4285F4" aria-hidden="true">
+          <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+        </svg>
+        <span class="pt-name">Google Business</span>
+        <span class="pt-how">My Business API</span>
+      </div>
+
+      <!-- Your Website -->
+      <div class="platform-tile">
+        <svg viewBox="0 0 24 24" fill="#10b981" aria-hidden="true">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+        <span class="pt-name">Your Website</span>
+        <span class="pt-how">Embed / Webhook</span>
+      </div>
+
     </div>
     <p class="text-center text-xs text-gray-700 mt-6 max-w-lg mx-auto leading-relaxed">
       Post-Pilot connects to your existing accounts via each platform's official API.
@@ -547,7 +603,7 @@
       </div>
       {% for col, links in [
         ('Product',  [('Dashboard','/dashboard'),('Pricing','#pricing'),('API Docs','/v1/manifest'),('Changelog','#')]),
-        ('Company',  [('About','#'),('Blog','#'),('Privacy','#'),('Terms','#')]),
+        ('Company',  [('About','#'),('Blog','#'),('Privacy','/legal/privacy'),('Terms','/legal/terms')]),
         ('Connect',  [('Facebook','#'),('Instagram','#'),('TikTok','#'),('Discord','#')]),
       ] %}
       <div>

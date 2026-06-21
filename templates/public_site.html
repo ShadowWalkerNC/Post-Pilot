@@ -42,15 +42,13 @@
 </head>
 <body>
 
-{# ── PREVIEW BANNER ──────────────────────────────────────────────── #}
 {% if preview %}
 <div class="preview-bar">
-  ⚡ Preview Mode — This is how your site looks to visitors.
-  <a href="/website" style="margin-left:.75rem;text-decoration:underline;">Edit Site →</a>
+  &#9889; Preview Mode &mdash; This is how your site looks to visitors.
+  <a href="/website" style="margin-left:.75rem;text-decoration:underline;">Edit Site &rarr;</a>
 </div>
 {% endif %}
 
-{# ── NAV ─────────────────────────────────────────────────────────── #}
 <nav class="site-nav sticky top-0 z-50 shadow">
   <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
     <a href="#hero" class="flex items-center gap-3">
@@ -67,10 +65,8 @@
   </div>
 </nav>
 
-{# ── SECTIONS ─────────────────────────────────────────────────────── #}
 {% for sec in sections %}
 
-  {# HERO #}
   {% if sec.id == 'hero' %}
   <section id="hero" class="hero-section py-24 px-6">
     <div class="max-w-4xl mx-auto text-center">
@@ -88,7 +84,6 @@
   </section>
   {% endif %}
 
-  {# ABOUT #}
   {% if sec.id == 'about' %}
   <section id="about" class="py-20 px-6">
     <div class="max-w-3xl mx-auto text-center">
@@ -98,7 +93,6 @@
   </section>
   {% endif %}
 
-  {# SERVICES #}
   {% if sec.id == 'services' %}
   <section id="services" class="py-20 px-6 {% if theme == 'minimal' %}bg-gray-50{% elif theme == 'bold' %}bg-[#111]{% else %}bg-white{% endif %}">
     <div class="max-w-6xl mx-auto">
@@ -121,7 +115,6 @@
   </section>
   {% endif %}
 
-  {# POSTS / FEED #}
   {% if sec.id == 'posts' %}
   <section id="posts" class="py-20 px-6">
     <div class="max-w-6xl mx-auto">
@@ -130,26 +123,21 @@
         {% if site.recent_posts %}
           {% for post in site.recent_posts[:6] %}
           <div class="card rounded-2xl overflow-hidden">
-            {% if post.image_url %}
-              <img src="{{ post.image_url }}" alt="Post" class="w-full h-48 object-cover">
-            {% endif %}
+            {% if post.image_url %}<img src="{{ post.image_url }}" alt="Post" class="w-full h-48 object-cover">{% endif %}
             <div class="p-5">
-              <p class="text-sm {% if theme == 'bold' %}text-gray-300{% else %}text-gray-700{% endif %} leading-relaxed">{{ post.caption[:160] }}{% if post.caption|length > 160 %}…{% endif %}</p>
-              {% if post.created_at %}
-                <p class="text-xs text-gray-400 mt-3">{{ post.created_at }}</p>
-              {% endif %}
+              <p class="text-sm {% if theme == 'bold' %}text-gray-300{% else %}text-gray-700{% endif %} leading-relaxed">{{ post.caption[:160] }}{% if post.caption|length > 160 %}&hellip;{% endif %}</p>
+              {% if post.created_at %}<p class="text-xs text-gray-400 mt-3">{{ post.created_at }}</p>{% endif %}
             </div>
           </div>
           {% endfor %}
         {% else %}
-          <div class="card rounded-2xl p-6 col-span-3 text-center text-gray-400 py-12">No posts yet — content will appear here once published.</div>
+          <div class="card rounded-2xl p-6 col-span-3 text-center text-gray-400 py-12">No posts yet &mdash; content will appear here once published.</div>
         {% endif %}
       </div>
     </div>
   </section>
   {% endif %}
 
-  {# HOURS #}
   {% if sec.id == 'hours' %}
   <section id="hours" class="py-20 px-6 {% if theme == 'minimal' %}bg-gray-50{% elif theme == 'bold' %}bg-[#111]{% else %}bg-slate-50{% endif %}">
     <div class="max-w-xl mx-auto">
@@ -170,7 +158,6 @@
   </section>
   {% endif %}
 
-  {# CONTACT #}
   {% if sec.id == 'contact' %}
   <section id="contact" class="py-20 px-6">
     <div class="max-w-2xl mx-auto">
@@ -178,25 +165,25 @@
       <div class="card rounded-2xl p-8 space-y-4">
         {% if site.address %}
         <div class="flex items-start gap-3">
-          <span class="text-2xl">📍</span>
+          <span class="text-2xl">&#128205;</span>
           <span class="{% if theme == 'bold' %}text-gray-300{% else %}text-gray-700{% endif %}">{{ site.address }}</span>
         </div>
         {% endif %}
         {% if site.phone %}
         <div class="flex items-center gap-3">
-          <span class="text-2xl">📞</span>
+          <span class="text-2xl">&#128222;</span>
           <a href="tel:{{ site.phone }}" class="text-brand hover:underline">{{ site.phone }}</a>
         </div>
         {% endif %}
         {% if site.email %}
         <div class="flex items-center gap-3">
-          <span class="text-2xl">✉️</span>
+          <span class="text-2xl">&#9993;</span>
           <a href="mailto:{{ site.email }}" class="text-brand hover:underline">{{ site.email }}</a>
         </div>
         {% endif %}
         {% if site.website_url %}
         <div class="flex items-center gap-3">
-          <span class="text-2xl">🌐</span>
+          <span class="text-2xl">&#127760;</span>
           <a href="{{ site.website_url }}" target="_blank" class="text-brand hover:underline">{{ site.website_url }}</a>
         </div>
         {% endif %}
@@ -205,26 +192,25 @@
   </section>
   {% endif %}
 
-  {# SOCIALS #}
   {% if sec.id == 'socials' %}
   <section id="socials" class="py-16 px-6 {% if theme == 'minimal' %}bg-gray-50{% elif theme == 'bold' %}bg-[#111]{% else %}bg-slate-50{% endif %}">
     <div class="max-w-xl mx-auto text-center">
       <h2 class="text-3xl font-bold mb-8 text-brand">Find Us Online</h2>
       <div class="flex flex-wrap justify-center gap-4">
         {% if socials.facebook %}
-          <a href="{{ socials.facebook }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#1877F2] text-white hover:opacity-90 transition">📘 Facebook</a>
+          <a href="{{ socials.facebook }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#1877F2] text-white hover:opacity-90 transition">Facebook</a>
         {% endif %}
         {% if socials.instagram %}
-          <a href="{{ socials.instagram }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-[#f09433] to-[#bc1888] text-white hover:opacity-90 transition">📸 Instagram</a>
+          <a href="{{ socials.instagram }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white hover:opacity-90 transition" style="background:linear-gradient(135deg,#f09433,#bc1888)">Instagram</a>
         {% endif %}
         {% if socials.tiktok %}
-          <a href="{{ socials.tiktok }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#010101] text-white border border-white/20 hover:opacity-90 transition">🎵 TikTok</a>
+          <a href="{{ socials.tiktok }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-black text-white border border-white/20 hover:opacity-90 transition">TikTok</a>
         {% endif %}
         {% if socials.youtube %}
-          <a href="{{ socials.youtube }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#FF0000] text-white hover:opacity-90 transition">▶️ YouTube</a>
+          <a href="{{ socials.youtube }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#FF0000] text-white hover:opacity-90 transition">YouTube</a>
         {% endif %}
         {% if socials.google %}
-          <a href="{{ socials.google }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#4285F4] text-white hover:opacity-90 transition">📍 Google</a>
+          <a href="{{ socials.google }}" target="_blank" class="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-[#4285F4] text-white hover:opacity-90 transition">Google</a>
         {% endif %}
       </div>
     </div>
@@ -233,15 +219,15 @@
 
 {% endfor %}
 
-{# ── FOOTER ──────────────────────────────────────────────────────── #}
 <footer class="{% if theme == 'minimal' %}bg-white border-t border-gray-200{% elif theme == 'bold' %}bg-black{% else %}bg-[#0f172a]{% endif %} py-8 px-6 text-center">
   <p class="text-sm {% if theme == 'minimal' %}text-gray-400{% else %}text-gray-500{% endif %}">
-    &copy; {{ site.name or 'My Business' }} {{ '' | strftime('%Y') if '' | strftime else '2026' }}.
+    &copy; <span id="yr"></span> {{ site.name or 'My Business' }}.
     {% if not preview %}
       <span class="ml-2 opacity-50">Powered by <a href="/" class="hover:underline">Post-Pilot</a></span>
     {% endif %}
   </p>
 </footer>
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
 
 </body>
 </html>

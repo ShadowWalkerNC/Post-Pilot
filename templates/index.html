@@ -59,14 +59,10 @@
     .faq-open .faq-chevron { transform:rotate(180deg); }
     .faq-chevron { transition:transform .3s; }
     body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); opacity:.4; }
-
-    /* ---- Platform strip ---- */
     .platform-tile { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:.85rem 1.25rem; border-radius:.875rem; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); transition:border-color .2s,background .2s; min-width:110px; }
     .platform-tile:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); }
     .platform-tile .pt-name { font-size:.72rem; font-weight:700; color:#94a3b8; }
     .platform-tile .pt-how  { font-size:.62rem; color:#475569; letter-spacing:.03em; }
-
-    /* ---- Website Hub explainer ---- */
     .hub-step { display:flex; gap:1rem; align-items:flex-start; }
     .hub-step-num { flex-shrink:0; width:2rem; height:2rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; }
     .hub-connector { width:2rem; flex-shrink:0; display:flex; justify-content:center; }
@@ -89,10 +85,11 @@
       <span>Post<span class="text-brand-400">-</span>Pilot</span>
     </a>
     <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
-      <a href="#how"       class="hover:text-white transition-colors">How It Works</a>
-      <a href="#platforms" class="hover:text-white transition-colors">Platforms</a>
-      <a href="#pricing"   class="hover:text-white transition-colors">Pricing</a>
-      <a href="#faq"       class="hover:text-white transition-colors">FAQ</a>
+      <a href="#how"         class="hover:text-white transition-colors">How It Works</a>
+      <a href="#platforms"   class="hover:text-white transition-colors">Platforms</a>
+      <a href="#website-hub" class="hover:text-white transition-colors">Website Hub</a>
+      <a href="#pricing"     class="hover:text-white transition-colors">Pricing</a>
+      <a href="#faq"         class="hover:text-white transition-colors">FAQ</a>
     </div>
     <div class="flex items-center gap-3">
       <a href="/login"    class="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 hidden sm:block">Sign In</a>
@@ -130,7 +127,6 @@
          style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">See How It Works</a>
     </div>
     <p class="text-sm text-gray-600 mt-4">No credit card required &nbsp;·&nbsp; Free plan forever &nbsp;·&nbsp; Setup in 2 minutes</p>
-    <!-- Dashboard Mockup -->
     <div class="mt-16 animate-fade-up animate-float" style="animation-delay:.35s">
       <div class="rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)]" style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px)">
         <div class="flex items-center gap-2 px-5 py-3.5 border-b border-white/5" style="background:rgba(255,255,255,.02)">
@@ -289,12 +285,10 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ WEBSITE HUB EXPLAINER ═══════════════════════════ -->
+<!-- WEBSITE HUB EXPLAINER -->
 <section id="website-hub" class="py-24 px-6 section-alt relative overflow-hidden">
   <div class="orb w-[500px] h-[500px] top-0 right-[-150px]" style="background:rgba(16,185,129,.06)"></div>
   <div class="max-w-6xl mx-auto">
-
-    <!-- Header -->
     <div class="text-center mb-16">
       <p class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:#34d399">Website Hub — how it works</p>
       <h2 class="text-4xl md:text-5xl font-black mb-4">
@@ -306,14 +300,8 @@
         Here's exactly how that works.
       </p>
     </div>
-
-    <!-- Two-column layout -->
     <div class="grid lg:grid-cols-2 gap-12 items-start">
-
-      <!-- LEFT: step-by-step flow -->
       <div class="space-y-0">
-
-        <!-- Step 1 -->
         <div class="hub-step">
           <div class="flex flex-col items-center">
             <div class="hub-step-num">1</div>
@@ -321,15 +309,9 @@
           </div>
           <div class="pt-0.5 pb-6">
             <h3 class="font-bold text-white mb-1">Copy your embed snippet</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">
-              In Settings → Website Hub, Post-Pilot generates a unique
-              <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">&lt;script&gt;</code> tag
-              tied to your account. One line of code, no framework required.
-            </p>
+            <p class="text-sm text-gray-400 leading-relaxed">In Settings → Website Hub, Post-Pilot generates a unique <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">&lt;script&gt;</code> tag tied to your account. One line of code, no framework required.</p>
           </div>
         </div>
-
-        <!-- Step 2 -->
         <div class="hub-step">
           <div class="flex flex-col items-center">
             <div class="hub-step-num">2</div>
@@ -337,15 +319,9 @@
           </div>
           <div class="pt-0.5 pb-6">
             <h3 class="font-bold text-white mb-1">Paste it into your site's <code class="text-green-400 text-sm">&lt;head&gt;</code> or use a webhook</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">
-              Works with WordPress, Squarespace, Wix, Shopify, custom HTML — any site
-              that lets you add a script tag. Prefer server-side? Use the webhook URL instead
-              and receive a <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">POST</code> payload on every new post.
-            </p>
+            <p class="text-sm text-gray-400 leading-relaxed">Works with WordPress, Squarespace, Wix, Shopify, custom HTML — any site that lets you add a script tag. Prefer server-side? Use the webhook URL instead and receive a <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">POST</code> payload on every new post.</p>
           </div>
         </div>
-
-        <!-- Step 3 -->
         <div class="hub-step">
           <div class="flex flex-col items-center">
             <div class="hub-step-num">3</div>
@@ -353,40 +329,22 @@
           </div>
           <div class="pt-0.5 pb-6">
             <h3 class="font-bold text-white mb-1">Post-Pilot detects the connection</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">
-              Once the script is live, Post-Pilot pings your domain to verify the connection.
-              Your site shows as <span class="text-green-400 font-semibold">Connected ✓</span> in your dashboard within seconds.
-            </p>
+            <p class="text-sm text-gray-400 leading-relaxed">Once the script is live, Post-Pilot pings your domain to verify the connection. Your site shows as <span class="text-green-400 font-semibold">Connected ✓</span> in your dashboard within seconds.</p>
           </div>
         </div>
-
-        <!-- Step 4 -->
         <div class="hub-step">
-          <div class="flex flex-col items-center">
-            <div class="hub-step-num">4</div>
-          </div>
+          <div class="flex flex-col items-center"><div class="hub-step-num">4</div></div>
           <div class="pt-0.5">
             <h3 class="font-bold text-white mb-1">Content pushes live automatically</h3>
-            <p class="text-sm text-gray-400 leading-relaxed">
-              Every time a post is scheduled, Post-Pilot also sends the content to your site's
-              feed widget — announcements, daily specials, location updates — all without you
-              having to log into your website.
-            </p>
+            <p class="text-sm text-gray-400 leading-relaxed">Every time a post is scheduled, Post-Pilot also sends the content to your site's feed widget — announcements, daily specials, location updates — all without you having to log into your website.</p>
           </div>
         </div>
-
       </div>
-
-      <!-- RIGHT: code mockup + what you can show -->
       <div class="space-y-5">
-
-        <!-- Embed snippet code block -->
         <div>
           <div class="flex items-center justify-between mb-2 px-1">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Embed snippet</span>
-            <span class="text-xs text-green-400 font-semibold flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>One-time setup
-            </span>
+            <span class="text-xs text-green-400 font-semibold flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>One-time setup</span>
           </div>
           <pre class="code-block"><span class="cm">&lt;!-- Paste inside your &lt;head&gt; --&gt;</span>
 <span class="tg">&lt;script</span>
@@ -399,8 +357,6 @@
 <span class="cm">&lt;!-- Drop the feed widget anywhere on your page --&gt;</span>
 <span class="tg">&lt;div</span> <span class="at">id</span>=<span class="val">"postpilot-feed"</span><span class="tg">&gt;&lt;/div&gt;</span></pre>
         </div>
-
-        <!-- Webhook payload code block -->
         <div>
           <div class="flex items-center justify-between mb-2 px-1">
             <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Webhook payload (optional)</span>
@@ -414,29 +370,22 @@
   <span class="at">"business"</span>:  <span class="val">"Oak St. Food Truck"</span>
 }</pre>
         </div>
-
-        <!-- What gets pushed chips -->
         <div class="rounded-2xl p-5" style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.12)">
           <p class="text-xs font-semibold text-green-400 uppercase tracking-wider mb-3">What gets pushed to your site</p>
           <div class="flex flex-wrap gap-2">
             {% for chip in ['Daily specials','Location updates','Announcements','New menu items','Event promos','Operating hours','Post captions','Photos & media'] %}
-            <span class="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7">{{ chip }}</span>
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium" style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7">{{ chip }}</span>
             {% endfor %}
           </div>
         </div>
-
-        <!-- Compatibility chips -->
         <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)">
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Works with any platform</p>
           <div class="flex flex-wrap gap-2">
             {% for cms in ['WordPress','Squarespace','Wix','Shopify','Webflow','Custom HTML','Ghost','Framer'] %}
-            <span class="text-xs px-2.5 py-1 rounded-full font-medium text-gray-400"
-                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">{{ cms }}</span>
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium text-gray-400" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">{{ cms }}</span>
             {% endfor %}
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -463,10 +412,7 @@
          'SR'),
       ] %}
       <div class="card rounded-2xl p-7 flex flex-col">
-        <div class="flex gap-0.5 mb-4">
-          {% for _ in range(5) %}<span class="text-yellow-400 text-sm">★</span>{% endfor %}
-          <span class="text-gray-500 text-xs ml-2 self-center">{{ rating }}</span>
-        </div>
+        <div class="flex gap-0.5 mb-4">{% for _ in range(5) %}<span class="text-yellow-400 text-sm">★</span>{% endfor %}<span class="text-gray-500 text-xs ml-2 self-center">{{ rating }}</span></div>
         <p class="text-gray-300 text-sm leading-relaxed italic flex-1 mb-6">"{{ quote }}"</p>
         <div class="flex items-center gap-3 pt-4 border-t border-white/5">
           <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">{{ initials }}</div>
@@ -494,9 +440,7 @@
           <div id="toggleThumb" class="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform"></div>
         </div>
       </label>
-      <span id="lblAnnual" class="text-sm font-medium text-gray-400">
-        Annual <span class="text-green-400 font-bold text-xs ml-1 bg-green-400/10 px-2 py-0.5 rounded-full">SAVE 2 MONTHS</span>
-      </span>
+      <span id="lblAnnual" class="text-sm font-medium text-gray-400">Annual <span class="text-green-400 font-bold text-xs ml-1 bg-green-400/10 px-2 py-0.5 rounded-full">SAVE 2 MONTHS</span></span>
     </div>
     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
       {% for name, monthly, annual, features, popular, plan in [
@@ -506,9 +450,7 @@
         ('Agency',  '$149', '$124',  ['All 6 platform APIs','Unlimited posts','10 client accounts','White-label','Custom domain','Full API'], False, 'agency'),
       ] %}
       <div class="rounded-2xl p-6 flex flex-col border {{ 'tier-popular border-brand-500/50' if popular else 'card border-white/5' }}">
-        {% if popular %}
-        <div class="text-xs font-bold px-3 py-1 rounded-full self-start mb-4 text-white" style="background:linear-gradient(90deg,#6366f1,#c084fc)">MOST POPULAR</div>
-        {% endif %}
+        {% if popular %}<div class="text-xs font-bold px-3 py-1 rounded-full self-start mb-4 text-white" style="background:linear-gradient(90deg,#6366f1,#c084fc)">MOST POPULAR</div>{% endif %}
         <div class="font-black text-xl mb-2">{{ name }}</div>
         <div class="mb-5 flex items-end gap-1">
           <span class="text-4xl font-black monthly-price">{{ monthly }}</span>
@@ -551,17 +493,17 @@
         ('Does Post-Pilot build me a website?',
          'No — Post-Pilot is not a website builder. The Website Hub connects to your existing site via a lightweight embed snippet or webhook. Once connected, Post-Pilot pushes announcements, specials, and hours to your site automatically without you having to log in.'),
         ('Which CMS or website platforms does the Website Hub support?',
-         'Any site that allows custom script tags or can receive a webhook — WordPress, Squarespace, Wix, Shopify, Webflow, Framer, Ghost, or plain HTML. If your platform supports <script> tags in the <head>, it works.'),
+         'Any site that allows custom script tags or can receive a webhook — WordPress, Squarespace, Wix, Shopify, Webflow, Framer, Ghost, or plain HTML.'),
         ('Which social platforms does Post-Pilot support?',
-         'Facebook (Graph API), Instagram (Graph API), TikTok (Content API), YouTube (Data API v3), Google Business Profile (My Business API), and your own website via embed/webhook. More integrations are on the roadmap.'),
+         'Facebook (Graph API), Instagram (Graph API), TikTok (Content API), YouTube (Data API v3), Google Business Profile (My Business API), and your own website via embed/webhook.'),
         ('Can I edit the AI-generated posts before they go live?',
          'Absolutely. Every post can be previewed, edited, or deleted before publishing. You can also toggle auto-publishing on or off per platform.'),
         ('What business types are supported?',
          'Food trucks, restaurants, cafes, hotels, and food companies. Each type gets tailored caption styles, hashtag sets, and posting schedules.'),
         ('Is there an API for developers or other apps?',
-         'Yes — Growth and Agency plans include full API access via the ShadowRealm Network (SRN) protocol. Call Post-Pilot from Discord bots, automation tools, or any app.'),
+         'Yes — Growth and Agency plans include full API access via the ShadowRealm Network (SRN) protocol.'),
         ('Can I manage multiple locations or clients?',
-         'The Agency plan supports up to 10 client accounts with white-label branding and a unified dashboard. Each client gets their own login and settings.'),
+         'The Agency plan supports up to 10 client accounts with white-label branding and a unified dashboard.'),
         ('What happens to my posts if I cancel?',
          'Your data is never deleted. You move to the Free plan automatically. Scheduled posts in the queue will still publish within your remaining billing period.'),
       ] %}
@@ -601,10 +543,7 @@
           Post-Pilot
         </div>
         <p class="text-sm text-gray-600 leading-relaxed">Automated social media for food trucks, restaurants, cafes &amp; hotels.</p>
-        <div class="flex items-center gap-1.5 mt-4">
-          <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-          <span class="text-xs text-gray-600">All systems operational</span>
-        </div>
+        <div class="flex items-center gap-1.5 mt-4"><span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span><span class="text-xs text-gray-600">All systems operational</span></div>
       </div>
       {% for col, links in [
         ('Product',  [('Dashboard','/dashboard'),('Pricing','#pricing'),('API Docs','/v1/manifest'),('Changelog','#')]),

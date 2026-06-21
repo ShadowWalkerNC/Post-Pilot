@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
 Post-Pilot — Smart Social Media Hub
-Session 16: security hardening
-  - OAuth tokens persisted to DB via auth_manager (no more in-memory loss)
-  - Tokens loaded from DB on every request via _get_tokens()
-  - FLASK_SECRET_KEY required — raises at startup if missing in production
-  - Flask-Limiter on /login (5/min) and /register (10/min) per IP
-  - Flask-WTF CSRFProtect on all POST forms
-  - Custom 404, 500, 429 error handlers
-  - /auth/disconnect now calls auth_manager.delete_token
+Session 17:
+  - /legal/privacy and /legal/terms routes added
+  - init_db() called at module level so Gunicorn/Railway runs it on boot
+  - GET /api/post_history endpoint added (recent published + scheduled posts)
 """
 
 import os
@@ -144,6 +140,13 @@ def init_db():
     auth_init_db()
 
 
+# ── Run init_db at module load so Gunicorn/Railway boots with tables ──────
+try:
+    init_db()
+except Exception as _init_err:
+    print(f'[WARN] init_db on startup failed: {_init_err}')
+
+
 # ── Token helpers (DB-backed, replaces in-memory user_sessions) ───────────
 
 def _uid() -> str:
@@ -269,6 +272,17 @@ def index():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
     return render_template('index.html', site={})
+
+
+# ── LEGAL PAGES ───────────────────────────────────────────────────────────
+
+@app.route('/legal/privacy')
+def legal_privacy():
+    return render_template('legal/privacy.html')
+
+@app.route('/legal/terms')
+def legal_terms():
+    return render_template('legal/terms.html')
 
 
 # ── BILLING ROUTES ────────────────────────────────────────────────────────
@@ -692,6 +706,35 @@ def api_scheduled_posts():
     return jsonify({'success': True, 'posts': posts})
 
 
+@app.route('/api/post_history', methods=['GET'])
+@login_required
+def api_post_history():
+    """Return recent post history (published + scheduled) for the current user."""
+    uid   = _uid()
+    db    = get_db()
+    limit = min(int(request.args.get('limit', 20)), 100)
+    try:
+        rows = db.execute(
+            'SELECT * FROM post_history WHERE user_id = ? '
+            'ORDER BY created_at DESC LIMIT ?',
+            (uid, limit)
+        ).fetchall()
+        posts = [{
+            'id':           row['id'],
+            'caption':      row['caption'],
+            'content_type': row['content_type'],
+            'image_url':    row['image_url'],
+            'platforms':    json.loads(row['platforms'] or '[]'),
+            'status':       row['status'],
+            'scheduled_at': row['scheduled_at'],
+            'created_at':   row['created_at'],
+            'results':      json.loads(row['results'] or '{}'),
+        } for row in rows]
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'posts': []})
+    return jsonify({'success': True, 'posts': posts, 'count': len(posts)})
+
+
 @app.route('/api/bulk_schedule', methods=['POST'])
 @login_required
 def api_bulk_schedule():
@@ -762,25 +805,33 @@ def auth_facebook():
 @login_required
 def auth_facebook_callback():
     import requests as req
+    # Handle user-denied or error from Facebook
+    if request.args.get('error'):
+        flash('Facebook connection was cancelled or denied.')
+        return redirect(url_for('connect_page'))
     code       = request.args.get('code')
     app_id     = os.getenv('FACEBOOK_APP_ID')
     app_secret = os.getenv('FACEBOOK_APP_SECRET')
     redir      = os.getenv('REDIRECT_URI', 'http://localhost:5000/auth/facebook/callback')
-    token      = req.get('https://graph.facebook.com/v19.0/oauth/access_token',
-                         params={'client_id': app_id, 'client_secret': app_secret,
-                                 'redirect_uri': redir, 'code': code}).json().get('access_token')
-    page       = req.get('https://graph.facebook.com/v19.0/me/accounts',
-                         params={'access_token': token}).json().get('data', [{}])[0]
-    page_id    = page.get('id')
-    page_token = page.get('access_token', token)
-    ig_id      = req.get(f'https://graph.facebook.com/v19.0/{page_id}',
-                         params={'fields': 'instagram_business_account',
-                                 'access_token': page_token}).json()\
-                    .get('instagram_business_account', {}).get('id')
-    uid = _uid()
-    save_token('facebook', page_token,
-               meta={'page_id': page_id, 'ig_id': ig_id},
-               user_id=uid)
+    try:
+        token = req.get('https://graph.facebook.com/v19.0/oauth/access_token',
+                        params={'client_id': app_id, 'client_secret': app_secret,
+                                'redirect_uri': redir, 'code': code}).json().get('access_token')
+        page       = req.get('https://graph.facebook.com/v19.0/me/accounts',
+                             params={'access_token': token}).json().get('data', [{}])[0]
+        page_id    = page.get('id')
+        page_token = page.get('access_token', token)
+        ig_id      = req.get(f'https://graph.facebook.com/v19.0/{page_id}',
+                             params={'fields': 'instagram_business_account',
+                                     'access_token': page_token}).json()\
+                        .get('instagram_business_account', {}).get('id')
+        uid = _uid()
+        save_token('facebook', page_token,
+                   meta={'page_id': page_id, 'ig_id': ig_id},
+                   user_id=uid)
+    except Exception as e:
+        flash(f'Facebook connection failed: {e}')
+        return redirect(url_for('connect_page'))
     next_url = session.pop('oauth_next', '/')
     step     = session.pop('oauth_step', '2')
     platform = session.pop('oauth_platform', 'facebook')
@@ -813,27 +864,34 @@ def auth_google():
 def auth_google_callback():
     import requests as req
     from datetime import datetime, timedelta
+    if request.args.get('error'):
+        flash('Google connection was cancelled or denied.')
+        return redirect(url_for('connect_page'))
     code   = request.args.get('code')
     cid    = os.getenv('GOOGLE_CLIENT_ID')
     csec   = os.getenv('GOOGLE_CLIENT_SECRET')
     redir  = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/auth/google/callback')
-    tokens = req.post('https://oauth2.googleapis.com/token',
-                      data={'code': code, 'client_id': cid, 'client_secret': csec,
-                            'redirect_uri': redir, 'grant_type': 'authorization_code'}).json()
-    gtoken = tokens.get('access_token')
-    rtoken = tokens.get('refresh_token')
-    accts  = req.get('https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
-                     headers={'Authorization': f'Bearer {gtoken}'}).json()
-    acct   = (accts.get('accounts') or [{}])[0].get('name', '')
-    locs   = req.get(f'https://mybusinessbusinessinformation.googleapis.com/v1/{acct}/locations',
-                     headers={'Authorization': f'Bearer {gtoken}'}).json()
-    loc_id = (locs.get('locations') or [{}])[0].get('name', '')
-    uid = _uid()
-    save_token('google', gtoken,
-               refresh_token=rtoken,
-               expires_at=datetime.utcnow() + timedelta(hours=1),
-               meta={'location_id': loc_id},
-               user_id=uid)
+    try:
+        tokens = req.post('https://oauth2.googleapis.com/token',
+                          data={'code': code, 'client_id': cid, 'client_secret': csec,
+                                'redirect_uri': redir, 'grant_type': 'authorization_code'}).json()
+        gtoken = tokens.get('access_token')
+        rtoken = tokens.get('refresh_token')
+        accts  = req.get('https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
+                         headers={'Authorization': f'Bearer {gtoken}'}).json()
+        acct   = (accts.get('accounts') or [{}])[0].get('name', '')
+        locs   = req.get(f'https://mybusinessbusinessinformation.googleapis.com/v1/{acct}/locations',
+                         headers={'Authorization': f'Bearer {gtoken}'}).json()
+        loc_id = (locs.get('locations') or [{}])[0].get('name', '')
+        uid = _uid()
+        save_token('google', gtoken,
+                   refresh_token=rtoken,
+                   expires_at=datetime.utcnow() + timedelta(hours=1),
+                   meta={'location_id': loc_id},
+                   user_id=uid)
+    except Exception as e:
+        flash(f'Google connection failed: {e}')
+        return redirect(url_for('connect_page'))
     next_url = session.pop('oauth_next', '/')
     step     = session.pop('oauth_step', '3')
     platform = session.pop('oauth_platform', 'google')
@@ -865,21 +923,28 @@ def auth_tiktok():
 def auth_tiktok_callback():
     import requests as req
     from datetime import datetime, timedelta
+    if request.args.get('error'):
+        flash('TikTok connection was cancelled or denied.')
+        return redirect(url_for('connect_page'))
     code   = request.args.get('code')
     ckey   = os.getenv('TIKTOK_CLIENT_KEY')
     csec   = os.getenv('TIKTOK_CLIENT_SECRET')
     redir  = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/auth/tiktok/callback')
-    tokens = req.post('https://open.tiktokapis.com/v2/oauth/token/',
-                      data={'client_key': ckey, 'client_secret': csec, 'code': code,
-                            'grant_type': 'authorization_code', 'redirect_uri': redir},
-                      headers={'Content-Type': 'application/x-www-form-urlencoded'}).json()
-    tt_token  = tokens.get('access_token')
-    tt_rtoken = tokens.get('refresh_token')
-    uid = _uid()
-    save_token('tiktok', tt_token,
-               refresh_token=tt_rtoken,
-               expires_at=datetime.utcnow() + timedelta(hours=24),
-               user_id=uid)
+    try:
+        tokens = req.post('https://open.tiktokapis.com/v2/oauth/token/',
+                          data={'client_key': ckey, 'client_secret': csec, 'code': code,
+                                'grant_type': 'authorization_code', 'redirect_uri': redir},
+                          headers={'Content-Type': 'application/x-www-form-urlencoded'}).json()
+        tt_token  = tokens.get('access_token')
+        tt_rtoken = tokens.get('refresh_token')
+        uid = _uid()
+        save_token('tiktok', tt_token,
+                   refresh_token=tt_rtoken,
+                   expires_at=datetime.utcnow() + timedelta(hours=24),
+                   user_id=uid)
+    except Exception as e:
+        flash(f'TikTok connection failed: {e}')
+        return redirect(url_for('connect_page'))
     next_url = session.pop('oauth_next', '/')
     step     = session.pop('oauth_step', '4')
     platform = session.pop('oauth_platform', 'tiktok')

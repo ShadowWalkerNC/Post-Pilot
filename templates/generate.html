@@ -1,47 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostPilot Pro — Generate</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Generate Posts — Post-Pilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5' },
+            flame: { 400:'#fb923c', 500:'#f97316' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background:#07071a; }
+    .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); }
+    .input-base { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); color:#fff; border-radius:.75rem; padding:.65rem 1rem; width:100%; font-size:.875rem; transition:border-color .2s; outline:none; }
+    .input-base:focus { border-color:#6366f1; }
+    .input-base option { background:#0d0d24; }
+    .platform-toggle input:checked + label { background:rgba(99,102,241,.2); border-color:#6366f1; color:#a5b4fc; }
+    .platform-toggle label { cursor:pointer; transition:.15s; }
+    .tab-btn.active { background:rgba(99,102,241,.15); border-color:#6366f1; color:#a5b4fc; }
+    .post-card { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); border-radius:1rem; }
+    .post-card:hover { border-color:rgba(99,102,241,.3); }
+    .skeleton { background:linear-gradient(90deg, rgba(255,255,255,.04) 25%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.04) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:.5rem; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .sidebar { background:#0a0a20; border-right:1px solid rgba(255,255,255,.05); }
+  </style>
 </head>
-<body>
-    <nav>
-        <a href="/">🚀 PostPilot Pro</a> |
-        <a href="/calendar">📅 Calendar</a> |
-        <a href="/analytics">📊 Analytics</a> |
-        <a href="/setup">⚙️ Setup</a>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <h1>✏️ Generate Posts</h1>
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('weekly', this)">📅 Weekly Schedule</button>
-                <button class="tab" onclick="switchTab('single', this)">✏️ Single Post</button>
-            </div>
-            <div id="weekly" class="tab-content">
-                <p class="hint">Generate 7 days of optimised posts — location, menu, engagement, team, and giveaway.</p>
-                <button class="btn btn-success" onclick="generateWeekly()">⚡ Generate Week of Posts</button>
-                <button class="btn btn-secondary" onclick="bulkSchedule()">📅 Bulk Schedule to Meta</button>
-                <div id="weeklyResult"></div>
-            </div>
-            <div id="single" class="tab-content" style="display:none">
-                <div class="form-group">
-                    <label>Template</label>
-                    <select id="templateSelect">
-                        <option value="instagram_location">📍 Instagram — Location</option>
-                        <option value="instagram_menu">🍔 Instagram — Menu Spotlight</option>
-                        <option value="instagram_engagement">❓ Instagram — Engagement Question</option>
-                        <option value="instagram_team">👨‍🍳 Instagram — Team Spotlight</option>
-                        <option value="facebook_giveaway">🎊 Facebook — Giveaway</option>
-                    </select>
-                </div>
-                <button class="btn" onclick="generateSingle()">Generate Post</button>
-                <div id="singleResult"></div>
-            </div>
-        </div>
+<body class="text-white antialiased min-h-screen flex">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-56 min-h-screen flex-shrink-0 hidden md:flex flex-col py-6 px-4">
+  <a href="/" class="flex items-center gap-2.5 font-black text-base mb-8 px-2">
+    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+    Post<span class="text-brand-400">-</span>Pilot
+  </a>
+  {% set nav = [
+    ('/dashboard','📊','Dashboard'),
+    ('/generate','✏️','Generate'),
+    ('/calendar','📅','Calendar'),
+    ('/analytics','📈','Analytics'),
+    ('/website_hub','🌐','Website Hub'),
+    ('/billing','💳','Billing'),
+    ('/setup','⚙️','Settings'),
+  ] %}
+  {% for href, icon, label in nav %}
+  <a href="{{ href }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-1 transition-colors
+     {{ 'bg-brand-500/15 text-brand-300 font-semibold' if request.path == href else 'text-gray-500 hover:text-white hover:bg-white/5' }}">
+    <span>{{ icon }}</span>{{ label }}
+  </a>
+  {% endfor %}
+  <div class="mt-auto pt-6 border-t border-white/5">
+    <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:text-white hover:bg-white/5 transition-colors">🚪 Sign Out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 flex flex-col min-h-screen">
+
+  <!-- Top bar -->
+  <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between" style="background:rgba(10,10,32,.8);backdrop-filter:blur(12px)">
+    <div>
+      <h1 class="text-lg font-black">✏️ Generate Posts</h1>
+      <p class="text-xs text-gray-500 mt-0.5">AI-written captions, ready to publish</p>
     </div>
-    <script src="/static/app.js"></script>
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-600 hidden sm:block">{{ session.get('business_name', 'Your Business') }}</span>
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">{{ session.get('business_name','U')[0]|upper }}</div>
+    </div>
+  </header>
+
+  <div class="flex-1 p-6 max-w-5xl w-full mx-auto">
+
+    <!-- Mode tabs -->
+    <div class="flex gap-2 mb-6">
+      <button id="tabWeekly" onclick="setTab('weekly')" class="tab-btn active px-5 py-2.5 rounded-xl text-sm font-semibold border border-white/10 transition">📅 7-Day Schedule</button>
+      <button id="tabSingle" onclick="setTab('single')" class="tab-btn px-5 py-2.5 rounded-xl text-sm font-semibold border border-white/10 transition text-gray-400">✏️ Single Post</button>
+    </div>
+
+    <!-- ─── WEEKLY TAB ─── -->
+    <div id="panelWeekly">
+      <div class="grid lg:grid-cols-3 gap-5">
+
+        <!-- Config -->
+        <div class="lg:col-span-1 space-y-4">
+          <div class="card rounded-2xl p-5">
+            <h2 class="font-bold text-sm mb-4 text-gray-300 uppercase tracking-wider">Week Settings</h2>
+
+            <label class="block text-xs text-gray-500 mb-1">Starting from</label>
+            <input type="date" id="weekStart" class="input-base mb-3" />
+
+            <label class="block text-xs text-gray-500 mb-1">Posting times</label>
+            <select id="postingTime" class="input-base mb-3">
+              <option value="optimal">🤖 AI-optimised</option>
+              <option value="morning">☀️ Morning (8–10 AM)</option>
+              <option value="lunch">🍽️ Lunch (11 AM–1 PM)</option>
+              <option value="evening">🌆 Evening (5–7 PM)</option>
+            </select>
+
+            <label class="block text-xs text-gray-500 mb-2">Platforms to publish to</label>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+              {% for pid, label, color in [
+                ('fb',  'Facebook',  '#1877F2'),
+                ('ig',  'Instagram', '#E1306C'),
+                ('tt',  'TikTok',    '#69C9D0'),
+                ('yt',  'YouTube',   '#FF0000'),
+                ('gb',  'Google Biz','#4285F4'),
+                ('web', 'Website',   '#10b981'),
+              ] %}
+              <div class="platform-toggle">
+                <input type="checkbox" id="pt_{{ pid }}" class="sr-only" {% if pid in ['fb','ig'] %}checked{% endif %} />
+                <label for="pt_{{ pid }}" class="block text-xs text-center px-2 py-2 rounded-lg border border-white/10 font-semibold" style="color:{{ color }}">{{ label }}</label>
+              </div>
+              {% endfor %}
+            </div>
+
+            <label class="block text-xs text-gray-500 mb-1">Tone override <span class="text-gray-700">(optional)</span></label>
+            <select id="toneOverride" class="input-base mb-4">
+              <option value="">Use saved brand voice</option>
+              <option value="energetic">⚡ Energetic</option>
+              <option value="friendly">😊 Friendly & warm</option>
+              <option value="professional">💼 Professional</option>
+              <option value="funny">😂 Funny / playful</option>
+            </select>
+
+            <button onclick="generateWeekly()" id="btnWeekly"
+              class="w-full py-3 rounded-xl font-bold text-white text-sm transition"
+              style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.4)">
+              ⚡ Generate 7 Posts
+            </button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div class="lg:col-span-2" id="weeklyResult">
+          <div class="card rounded-2xl p-8 text-center">
+            <div class="text-5xl mb-4">🤖</div>
+            <p class="text-gray-400 text-sm">Configure your settings and hit <strong class="text-white">Generate 7 Posts</strong> to create a full week of captions.</p>
+            <p class="text-xs text-gray-600 mt-2">AI uses your business profile, posting history, and platform best practices.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SINGLE POST TAB ─── -->
+    <div id="panelSingle" class="hidden">
+      <div class="grid lg:grid-cols-3 gap-5">
+
+        <div class="lg:col-span-1 space-y-4">
+          <div class="card rounded-2xl p-5">
+            <h2 class="font-bold text-sm mb-4 text-gray-300 uppercase tracking-wider">Post Settings</h2>
+
+            <label class="block text-xs text-gray-500 mb-1">Template</label>
+            <select id="templateSelect" class="input-base mb-3">
+              <option value="instagram_location">📍 Location Check-In</option>
+              <option value="instagram_menu">🍔 Menu Spotlight</option>
+              <option value="instagram_engagement">❓ Engagement Question</option>
+              <option value="instagram_team">👨‍🍳 Team Spotlight</option>
+              <option value="facebook_giveaway">🎊 Giveaway / Promo</option>
+              <option value="daily_special">⭐ Daily Special</option>
+              <option value="event_promo">🎉 Event Promo</option>
+              <option value="hours_update">🕐 Hours Update</option>
+            </select>
+
+            <label class="block text-xs text-gray-500 mb-1">Platform</label>
+            <select id="singlePlatform" class="input-base mb-3">
+              <option value="instagram">Instagram</option>
+              <option value="facebook">Facebook</option>
+              <option value="tiktok">TikTok</option>
+              <option value="youtube">YouTube</option>
+              <option value="google_business">Google Business</option>
+              <option value="website">Website Hub</option>
+            </select>
+
+            <label class="block text-xs text-gray-500 mb-1">Extra context <span class="text-gray-700">(optional)</span></label>
+            <textarea id="extraContext" rows="3" placeholder="e.g. Mention the Friday special, use the phrase 'come find us'…" class="input-base mb-4 resize-none"></textarea>
+
+            <label class="block text-xs text-gray-500 mb-1">Schedule for</label>
+            <input type="datetime-local" id="scheduleTime" class="input-base mb-4" />
+
+            <button onclick="generateSingle()" id="btnSingle"
+              class="w-full py-3 rounded-xl font-bold text-white text-sm transition"
+              style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.4)">
+              ✏️ Generate Post
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="lg:col-span-2" id="singleResult">
+          <div class="card rounded-2xl p-8 text-center">
+            <div class="text-5xl mb-4">✏️</div>
+            <p class="text-gray-400 text-sm">Pick a template and platform, then hit <strong class="text-white">Generate Post</strong> to preview your caption.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+// Set default date to today
+const d = new Date();
+document.getElementById('weekStart').value = d.toISOString().split('T')[0];
+document.getElementById('scheduleTime').value = d.toISOString().slice(0,16);
+
+function setTab(tab) {
+  ['weekly','single'].forEach(t => {
+    document.getElementById('panel'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('hidden', t !== tab);
+    const btn = document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1));
+    btn.classList.toggle('active', t === tab);
+    btn.classList.toggle('text-gray-400', t !== tab);
+  });
+}
+
+function platformBadge(pid) {
+  const map = { instagram:'IG', facebook:'FB', tiktok:'TT', youtube:'YT', google_business:'GB', website:'WEB' };
+  const col = { instagram:'bg-pink-600', facebook:'bg-blue-600', tiktok:'bg-gray-700', youtube:'bg-red-600', google_business:'bg-blue-500', website:'bg-emerald-600' };
+  return `<span class="text-xs px-2 py-0.5 rounded-full font-bold ${col[pid]||'bg-gray-700'}">${map[pid]||pid.toUpperCase()}</span>`;
+}
+
+function postCard(post, idx) {
+  return `
+  <div class="post-card p-4 mb-3 transition">
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold text-gray-400">${post.day || 'Day '+(idx+1)}</span>
+        ${(post.platforms||[post.platform||'instagram']).map(platformBadge).join('')}
+      </div>
+      <span class="text-xs text-gray-600">${post.time || ''}</span>
+    </div>
+    <p class="text-sm text-gray-200 leading-relaxed mb-3">${post.caption}</p>
+    <div class="flex flex-wrap gap-1 mb-3">
+      ${(post.hashtags||[]).map(h=>`<span class="text-xs text-brand-400">${h}</span>`).join(' ')}
+    </div>
+    <div class="flex gap-2">
+      <button onclick="editPost(${idx})" class="text-xs px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:border-white/30 transition">✏️ Edit</button>
+      <button onclick="schedulePost(${idx})" class="text-xs px-3 py-1.5 rounded-lg font-semibold text-white transition" style="background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.3)">📅 Schedule</button>
+      <button onclick="publishNow(${idx})" class="text-xs px-3 py-1.5 rounded-lg font-semibold text-white transition" style="background:rgba(249,115,22,.15);border:1px solid rgba(249,115,22,.3)">🚀 Publish Now</button>
+    </div>
+  </div>`;
+}
+
+function skeletonCards(n) {
+  return Array.from({length:n}, (_,i) => `
+  <div class="post-card p-4 mb-3">
+    <div class="flex gap-2 mb-3"><div class="skeleton h-4 w-16"></div><div class="skeleton h-4 w-12"></div></div>
+    <div class="skeleton h-3 w-full mb-1.5"></div>
+    <div class="skeleton h-3 w-5/6 mb-1.5"></div>
+    <div class="skeleton h-3 w-4/6 mb-4"></div>
+    <div class="flex gap-2"><div class="skeleton h-7 w-16"></div><div class="skeleton h-7 w-20"></div><div class="skeleton h-7 w-24"></div></div>
+  </div>`).join('');
+}
+
+let lastPosts = [];
+
+async function generateWeekly() {
+  const btn = document.getElementById('btnWeekly');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  document.getElementById('weeklyResult').innerHTML = skeletonCards(7);
+  const platforms = ['fb','ig','tt','yt','gb','web'].filter(p => document.getElementById('pt_'+p)?.checked);
+  try {
+    const res = await fetch('/api/generate_posts', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        user_id: 'default',
+        week_start: document.getElementById('weekStart').value,
+        posting_time: document.getElementById('postingTime').value,
+        platforms, tone: document.getElementById('toneOverride').value
+      })
+    });
+    const data = await res.json();
+    if (!data.posts?.length) throw new Error(data.message || 'No posts returned');
+    lastPosts = data.posts;
+    document.getElementById('weeklyResult').innerHTML =
+      `<div class="flex items-center justify-between mb-4">
+        <span class="text-sm font-semibold text-green-400">✓ ${data.posts.length} posts generated</span>
+        <button onclick="bulkSchedule()" class="text-xs px-4 py-2 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#10b981,#059669)">📅 Schedule All</button>
+      </div>` + data.posts.map(postCard).join('');
+  } catch(e) {
+    document.getElementById('weeklyResult').innerHTML =
+      `<div class="card rounded-2xl p-6 text-center"><p class="text-red-400 text-sm">⚠️ ${e.message}</p><p class="text-gray-600 text-xs mt-2">Check your business profile is set up in Settings.</p></div>`;
+  }
+  btn.disabled = false; btn.textContent = '⚡ Generate 7 Posts';
+}
+
+async function generateSingle() {
+  const btn = document.getElementById('btnSingle');
+  btn.disabled = true; btn.textContent = '⏳ Generating…';
+  document.getElementById('singleResult').innerHTML = skeletonCards(1);
+  try {
+    const res = await fetch('/api/generate_single', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        user_id: 'default',
+        template: document.getElementById('templateSelect').value,
+        platform: document.getElementById('singlePlatform').value,
+        extra_context: document.getElementById('extraContext').value,
+        schedule_time: document.getElementById('scheduleTime').value,
+      })
+    });
+    const data = await res.json();
+    if (!data.post) throw new Error(data.message || 'No post returned');
+    lastPosts = [data.post];
+    document.getElementById('singleResult').innerHTML = postCard(data.post, 0);
+  } catch(e) {
+    document.getElementById('singleResult').innerHTML =
+      `<div class="card rounded-2xl p-6 text-center"><p class="text-red-400 text-sm">⚠️ ${e.message}</p></div>`;
+  }
+  btn.disabled = false; btn.textContent = '✏️ Generate Post';
+}
+
+async function schedulePost(idx) {
+  const post = lastPosts[idx];
+  const res = await fetch('/api/schedule_post', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id:'default', post })
+  });
+  const data = await res.json();
+  alert(data.success ? '✅ Post scheduled!' : '⚠️ ' + data.message);
+}
+
+async function publishNow(idx) {
+  if (!confirm('Publish this post now to all selected platforms?')) return;
+  const post = lastPosts[idx];
+  const res = await fetch('/api/publish_post', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id:'default', post })
+  });
+  const data = await res.json();
+  alert(data.success ? '🚀 Published!' : '⚠️ ' + data.message);
+}
+
+async function bulkSchedule() {
+  const res = await fetch('/api/bulk_schedule', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id:'default', posts: lastPosts })
+  });
+  const data = await res.json();
+  alert(data.success ? `✅ ${lastPosts.length} posts scheduled to calendar!` : '⚠️ ' + data.message);
+}
+
+function editPost(idx) {
+  const caption = lastPosts[idx]?.caption;
+  const edited = prompt('Edit caption:', caption);
+  if (edited !== null) {
+    lastPosts[idx].caption = edited;
+    const cards = document.querySelectorAll('.post-card');
+    if (cards[idx]) cards[idx].querySelector('p').textContent = edited;
+  }
+}
+</script>
 </body>
 </html>

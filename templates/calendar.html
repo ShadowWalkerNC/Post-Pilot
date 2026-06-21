@@ -1,38 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostPilot Pro — Calendar</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar — Post-Pilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        brand: { 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5' },
+        flame: { 400:'#fb923c', 500:'#f97316' }
+      }}}
+    }
+  </script>
+  <style>
+    body { background:#07071a; }
+    .sidebar { background:#0a0a20; border-right:1px solid rgba(255,255,255,.05); }
+    .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); }
+    .day-col { min-height: 160px; }
+    .day-col.today { border-color: rgba(99,102,241,.4) !important; background: rgba(99,102,241,.04); }
+    .post-pill { font-size:.65rem; border-radius:.5rem; padding:.25rem .6rem; cursor:pointer; transition:.15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .post-pill:hover { opacity:.8; }
+    .pill-ig  { background:rgba(225,48,108,.2);  border:1px solid rgba(225,48,108,.35);  color:#f9a8d4; }
+    .pill-fb  { background:rgba(24,119,242,.2);  border:1px solid rgba(24,119,242,.35);  color:#93c5fd; }
+    .pill-tt  { background:rgba(105,201,208,.15); border:1px solid rgba(105,201,208,.3);  color:#a5f3fc; }
+    .pill-yt  { background:rgba(255,0,0,.15);     border:1px solid rgba(255,0,0,.3);       color:#fca5a5; }
+    .pill-gb  { background:rgba(66,133,244,.15);  border:1px solid rgba(66,133,244,.3);   color:#93c5fd; }
+    .pill-web { background:rgba(16,185,129,.15);  border:1px solid rgba(16,185,129,.3);   color:#6ee7b7; }
+    .pill-pending  { opacity:.6; }
+    .pill-published { }
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:50; display:flex; align-items:center; justify-content:center; }
+    .modal-box { background:#0d0d24; border:1px solid rgba(255,255,255,.1); border-radius:1.25rem; padding:2rem; max-width:480px; width:100%; margin:1rem; }
+    .input-base { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); color:#fff; border-radius:.75rem; padding:.65rem 1rem; width:100%; font-size:.875rem; outline:none; }
+    .input-base:focus { border-color:#6366f1; }
+  </style>
 </head>
-<body>
-    <nav>
-        <a href="/">🚀 PostPilot Pro</a> |
-        <a href="/generate">✏️ Generate</a> |
-        <a href="/analytics">📊 Analytics</a>
-    </nav>
-    <div class="container">
-        <div class="card">
-            <h1>📅 Content Calendar</h1>
-            <p class="subtitle">Your weekly posting schedule at a glance</p>
-            <table class="calendar">
-                <thead><tr><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Sun</th></tr></thead>
-                <tbody><tr>
-                    <td class="cal-cell"><span class="cal-tag ig">📍 8AM</span><br>Location</td>
-                    <td class="cal-cell"><span class="cal-tag ig">🍔 11AM</span><br>Menu</td>
-                    <td class="cal-cell"><span class="cal-tag ig">❓ 5PM</span><br>Engage</td>
-                    <td class="cal-cell"><span class="cal-tag ig">👨‍🍳 8AM</span><br>Team</td>
-                    <td class="cal-cell"><span class="cal-tag fb">🎊 11AM</span><br>Giveaway</td>
-                    <td class="cal-cell"><span class="cal-tag ig">📍 8AM</span><br>Location</td>
-                    <td class="cal-cell"><span class="cal-tag ig">❓ 5PM</span><br>Poll</td>
-                </tr></tbody>
-            </table>
-            <div class="legend">
-                <span class="cal-tag ig">Instagram</span>
-                <span class="cal-tag fb">Facebook</span>
-            </div>
-        </div>
+<body class="text-white antialiased min-h-screen flex">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-56 min-h-screen flex-shrink-0 hidden md:flex flex-col py-6 px-4">
+  <a href="/" class="flex items-center gap-2.5 font-black text-base mb-8 px-2">
+    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+    Post<span class="text-brand-400">-</span>Pilot
+  </a>
+  {% set nav = [
+    ('/dashboard','📊','Dashboard'),
+    ('/generate','✏️','Generate'),
+    ('/calendar','📅','Calendar'),
+    ('/analytics','📈','Analytics'),
+    ('/website_hub','🌐','Website Hub'),
+    ('/billing','💳','Billing'),
+    ('/setup','⚙️','Settings'),
+  ] %}
+  {% for href, icon, label in nav %}
+  <a href="{{ href }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-1 transition-colors
+     {{ 'bg-brand-500/15 text-brand-300 font-semibold' if request.path == href else 'text-gray-500 hover:text-white hover:bg-white/5' }}">
+    <span>{{ icon }}</span>{{ label }}
+  </a>
+  {% endfor %}
+  <div class="mt-auto pt-6 border-t border-white/5">
+    <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:text-white hover:bg-white/5 transition-colors">🚪 Sign Out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 flex flex-col min-h-screen">
+
+  <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between" style="background:rgba(10,10,32,.8);backdrop-filter:blur(12px)">
+    <div>
+      <h1 class="text-lg font-black">📅 Content Calendar</h1>
+      <p class="text-xs text-gray-500 mt-0.5">Your weekly posting schedule at a glance</p>
     </div>
+    <div class="flex items-center gap-3">
+      <button onclick="shiftWeek(-1)" class="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition">‹</button>
+      <span id="weekLabel" class="text-sm font-semibold text-gray-300 min-w-[140px] text-center"></span>
+      <button onclick="shiftWeek(1)"  class="w-8 h-8 rounded-lg border border-white/10 flex items-center justify-center text-gray-400 hover:text-white transition">›</button>
+      <a href="/generate" class="text-sm px-4 py-2 rounded-xl font-semibold text-white ml-2" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">+ Generate</a>
+    </div>
+  </header>
+
+  <div class="flex-1 p-6">
+
+    <!-- Platform filter -->
+    <div class="flex flex-wrap gap-2 mb-5" id="platformFilters">
+      {% for pid, label, cls in [
+        ('all','All platforms','bg-brand-500/20 border-brand-500/40 text-brand-300'),
+        ('ig','Instagram','pill-ig'),
+        ('fb','Facebook','pill-fb'),
+        ('tt','TikTok','pill-tt'),
+        ('yt','YouTube','pill-yt'),
+        ('gb','Google Biz','pill-gb'),
+        ('web','Website','pill-web'),
+      ] %}
+      <button onclick="filterPlatform('{{ pid }}', this)"
+        class="post-pill border {{ cls }} {{ 'ring-2 ring-brand-400' if pid == 'all' else '' }}" data-filter="{{ pid }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+
+    <!-- Calendar grid -->
+    <div class="grid grid-cols-7 gap-2 mb-4">
+      {% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}
+      <div class="text-xs font-semibold text-gray-600 text-center uppercase tracking-wider py-2">{{ d }}</div>
+      {% endfor %}
+    </div>
+    <div class="grid grid-cols-7 gap-2" id="calGrid">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Legend -->
+    <div class="flex flex-wrap gap-3 mt-5">
+      {% for label, cls in [
+        ('Instagram','pill-ig'),
+        ('Facebook','pill-fb'),
+        ('TikTok','pill-tt'),
+        ('YouTube','pill-yt'),
+        ('Google Biz','pill-gb'),
+        ('Website','pill-web'),
+      ] %}
+      <span class="post-pill {{ cls }}">{{ label }}</span>
+      {% endfor %}
+      <span class="text-xs text-gray-600 self-center ml-2">Faded = pending · Solid = published</span>
+    </div>
+  </div>
+</main>
+
+<!-- POST DETAIL MODAL -->
+<div id="modal" class="modal-overlay hidden" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-black text-base" id="modalTitle">Post Details</h2>
+      <button onclick="document.getElementById('modal').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl leading-none">&times;</button>
+    </div>
+    <div class="flex gap-2 mb-3" id="modalBadges"></div>
+    <p class="text-sm text-gray-300 leading-relaxed mb-4" id="modalCaption"></p>
+    <div class="flex flex-wrap gap-1 mb-4" id="modalHashtags"></div>
+    <div class="grid grid-cols-2 gap-3 text-xs mb-4">
+      <div class="rounded-lg p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+        <div class="text-gray-500 mb-1">Scheduled for</div>
+        <div class="font-semibold" id="modalTime"></div>
+      </div>
+      <div class="rounded-lg p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
+        <div class="text-gray-500 mb-1">Status</div>
+        <div class="font-semibold" id="modalStatus"></div>
+      </div>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="publishModal()" class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">🚀 Publish Now</button>
+      <button onclick="deleteModal()" class="flex-1 py-2.5 rounded-xl font-semibold text-sm text-red-400 border border-red-400/30 hover:bg-red-400/10 transition">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLATFORM_PILL = { ig:'pill-ig', fb:'pill-fb', tt:'pill-tt', yt:'pill-yt', gb:'pill-gb', web:'pill-web' };
+const PLATFORM_LABEL = { ig:'IG', fb:'FB', tt:'TT', yt:'YT', gb:'GB', web:'WEB' };
+
+let weekOffset = 0;
+let allPosts = [];
+let activeFilter = 'all';
+let activePostId = null;
+
+function getMondayOfWeek(offset) {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1 + offset * 7);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function fmt(d) { return d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtFull(d) { return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+
+function shiftWeek(dir) { weekOffset += dir; renderCalendar(); loadPosts(); }
+
+function renderCalendar() {
+  const monday = getMondayOfWeek(weekOffset);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  document.getElementById('weekLabel').textContent = `${fmt(monday)} – ${fmt(sunday)}`;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  for (let i=0;i<7;i++) {
+    const day = new Date(monday); day.setDate(monday.getDate()+i);
+    const isToday = day.getTime()===today.getTime();
+    const isoDate = day.toISOString().split('T')[0];
+    const col = document.createElement('div');
+    col.className = `day-col card rounded-xl p-2 relative`;
+    col.dataset.date = isoDate;
+    if (isToday) col.classList.add('today');
+    col.innerHTML = `
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold ${isToday ? 'text-brand-400' : 'text-gray-500'}">${day.getDate()}</span>
+        ${isToday ? '<span class="text-xs bg-brand-500/20 text-brand-300 px-1.5 py-0.5 rounded-full font-semibold">Today</span>' : ''}
+      </div>
+      <div class="posts-container space-y-1"></div>`;
+    grid.appendChild(col);
+  }
+  paintPosts();
+}
+
+function paintPosts() {
+  document.querySelectorAll('.posts-container').forEach(c => c.innerHTML = '');
+  const filtered = activeFilter === 'all' ? allPosts : allPosts.filter(p => (p.platforms||[p.platform]).includes(activeFilter));
+  filtered.forEach(post => {
+    const date = post.scheduled_date || post.date;
+    const col = document.querySelector(`[data-date="${date}"] .posts-container`);
+    if (!col) return;
+    const pill = document.createElement('div');
+    const plat = (post.platforms||[post.platform||'ig'])[0];
+    pill.className = `post-pill ${PLATFORM_PILL[plat]||'pill-ig'} ${post.status==='published' ? '' : 'pill-pending'}`;
+    pill.title = post.caption;
+    pill.textContent = `${post.time||''} ${post.template||post.caption?.slice(0,20)||'Post'}`;
+    pill.onclick = () => openModal(post);
+    col.appendChild(pill);
+  });
+}
+
+async function loadPosts() {
+  const monday = getMondayOfWeek(weekOffset);
+  const sunday = new Date(monday); sunday.setDate(monday.getDate()+6);
+  try {
+    const res = await fetch(`/api/scheduled_posts?user_id=default&from=${monday.toISOString().split('T')[0]}&to=${sunday.toISOString().split('T')[0]}`);
+    const data = await res.json();
+    allPosts = data.posts || [];
+    paintPosts();
+  } catch(e) { console.warn('Could not load posts:', e); }
+}
+
+function filterPlatform(pid, btn) {
+  activeFilter = pid;
+  document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('ring-2','ring-brand-400'));
+  btn.classList.add('ring-2','ring-brand-400');
+  paintPosts();
+}
+
+function openModal(post) {
+  activePostId = post.id;
+  const plats = post.platforms || [post.platform || 'ig'];
+  document.getElementById('modalTitle').textContent = post.template || 'Post';
+  document.getElementById('modalBadges').innerHTML = plats.map(p =>
+    `<span class="post-pill ${PLATFORM_PILL[p]||'pill-ig'}">${PLATFORM_LABEL[p]||p.toUpperCase()}</span>`).join('');
+  document.getElementById('modalCaption').textContent = post.caption;
+  document.getElementById('modalHashtags').innerHTML = (post.hashtags||[]).map(h=>`<span class="text-xs text-brand-400">${h}</span>`).join(' ');
+  document.getElementById('modalTime').textContent = post.scheduled_date ? `${post.scheduled_date} ${post.time||''}` : 'Not scheduled';
+  document.getElementById('modalStatus').innerHTML = post.status === 'published'
+    ? '<span class="text-green-400">✓ Published</span>'
+    : '<span class="text-yellow-400">⏳ Pending</span>';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal')) document.getElementById('modal').classList.add('hidden');
+}
+
+async function publishModal() {
+  if (!activePostId) return;
+  const res = await fetch('/api/publish_post', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id:'default', post_id: activePostId })
+  });
+  const data = await res.json();
+  if (data.success) { document.getElementById('modal').classList.add('hidden'); loadPosts(); }
+  else alert('⚠️ ' + data.message);
+}
+
+async function deleteModal() {
+  if (!confirm('Delete this post?')) return;
+  const res = await fetch('/api/delete_post', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id:'default', post_id: activePostId })
+  });
+  const data = await res.json();
+  if (data.success) { document.getElementById('modal').classList.add('hidden'); loadPosts(); }
+  else alert('⚠️ ' + data.message);
+}
+
+// Init
+renderCalendar();
+loadPosts();
+</script>
 </body>
 </html>

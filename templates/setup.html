@@ -1,68 +1,383 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PostPilot Pro — Setup</title>
-    <link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — Post-Pilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        brand: { 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5' },
+        flame: { 400:'#fb923c', 500:'#f97316' }
+      }}}
+    }
+  </script>
+  <style>
+    body { background:#07071a; }
+    .sidebar { background:#0a0a20; border-right:1px solid rgba(255,255,255,.05); }
+    .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); }
+    .input-base { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); color:#fff; border-radius:.75rem; padding:.65rem 1rem; width:100%; font-size:.875rem; transition:border-color .2s; outline:none; }
+    .input-base:focus { border-color:#6366f1; }
+    .input-base option { background:#0d0d24; }
+    .section-tab { cursor:pointer; transition:.2s; }
+    .section-tab.active { background:rgba(99,102,241,.12); border-color:rgba(99,102,241,.4); color:#a5b4fc; }
+    .tone-btn input:checked + label { background:rgba(99,102,241,.2); border-color:#6366f1; color:#a5b4fc; }
+    .connect-card { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06); border-radius:1rem; }
+    .status-dot { width:.5rem; height:.5rem; border-radius:9999px; flex-shrink:0; }
+    .toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:99; background:#0d0d24; border:1px solid rgba(99,102,241,.3); border-radius:.875rem; padding:.875rem 1.25rem; display:flex; align-items:center; gap:.75rem; font-size:.875rem; box-shadow:0 8px 32px rgba(0,0,0,.4); transform:translateY(100px); opacity:0; transition:.4s cubic-bezier(.16,1,.3,1); }
+    .toast.show { transform:translateY(0); opacity:1; }
+  </style>
 </head>
-<body>
-    <nav><a href="/">← PostPilot Pro</a></nav>
-    <div class="container">
-        <div class="card">
-            <h1>📋 Setup Your Business</h1>
-            <p class="subtitle">Enter your details once. PostPilot Pro handles the rest.</p>
-            <form id="setupForm">
-                <div class="form-group">
-                    <label>Business Type</label>
-                    <select id="businessType" required>
-                        <option value="food_truck">🍔 Food Truck</option>
-                        <option value="restaurant">🍷 Restaurant</option>
-                        <option value="hotel">🏨 Hotel / Resort</option>
-                        <option value="cafe">☕ Cafe</option>
-                        <option value="food_company">🍳 Food Company</option>
-                    </select>
-                </div>
-                <div class="form-group"><label>Business Name</label><input type="text" id="businessName" placeholder="e.g. Taco Revolution" required></div>
-                <div class="form-group"><label>Location / Address</label><input type="text" id="location" placeholder="e.g. Downtown, 12th & Main" required></div>
-                <div class="form-group"><label>Hours</label><input type="text" id="hours" placeholder="e.g. 11 AM – 8 PM" required></div>
-                <div class="form-group"><label>City</label><input type="text" id="city" placeholder="e.g. Portland" required></div>
-                <div class="form-group"><label>Signature Item</label><input type="text" id="specialItem" placeholder="e.g. Bacon BBQ Burger" required></div>
-                <div class="form-group">
-                    <label>Custom Hashtags <span class="optional">(optional — space separated)</span></label>
-                    <input type="text" id="hashtags" placeholder="e.g. #portlandeats #foodtruck #tacos">
-                </div>
-                <button type="submit" class="btn btn-full">Save & Continue →</button>
-            </form>
-        </div>
-        <div class="card card-connect">
-            <h2>🔑 Connect Facebook & Instagram</h2>
-            <p>Connect once to publish and schedule posts directly from PostPilot Pro.</p>
-            <a href="/auth/facebook" class="btn btn-facebook">📘 Connect with Facebook</a>
-            <p class="help">Requires: pages_manage_posts, instagram_content_publish</p>
-        </div>
+<body class="text-white antialiased min-h-screen flex">
+
+<!-- SIDEBAR -->
+<aside class="sidebar w-56 min-h-screen flex-shrink-0 hidden md:flex flex-col py-6 px-4">
+  <a href="/" class="flex items-center gap-2.5 font-black text-base mb-8 px-2">
+    <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+    Post<span class="text-brand-400">-</span>Pilot
+  </a>
+  {% set nav = [
+    ('/dashboard','📊','Dashboard'),
+    ('/generate','✏️','Generate'),
+    ('/calendar','📅','Calendar'),
+    ('/analytics','📈','Analytics'),
+    ('/website_hub','🌐','Website Hub'),
+    ('/billing','💳','Billing'),
+    ('/setup','⚙️','Settings'),
+  ] %}
+  {% for href, icon, label in nav %}
+  <a href="{{ href }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm mb-1 transition-colors
+     {{ 'bg-brand-500/15 text-brand-300 font-semibold' if request.path == href else 'text-gray-500 hover:text-white hover:bg-white/5' }}">
+    <span>{{ icon }}</span>{{ label }}
+  </a>
+  {% endfor %}
+  <div class="mt-auto pt-6 border-t border-white/5">
+    <a href="/logout" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:text-white hover:bg-white/5 transition-colors">🚪 Sign Out</a>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="flex-1 flex flex-col min-h-screen">
+
+  <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between" style="background:rgba(10,10,32,.8);backdrop-filter:blur(12px)">
+    <div>
+      <h1 class="text-lg font-black">⚙️ Settings</h1>
+      <p class="text-xs text-gray-500 mt-0.5">Manage your business profile, brand voice & connections</p>
     </div>
-    <script>
-        document.getElementById('setupForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const raw = document.getElementById('hashtags').value;
-            const info = {
-                business_type: document.getElementById('businessType').value,
-                business_name: document.getElementById('businessName').value,
-                location:      document.getElementById('location').value,
-                hours:         document.getElementById('hours').value,
-                city:          document.getElementById('city').value,
-                special_item:  document.getElementById('specialItem').value,
-                hashtags: raw ? raw.split(' ').filter(h => h.startsWith('#')) : []
-            };
-            const res = await fetch('/api/setup_business', {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({user_id: 'default', business_info: info})
-            });
-            const result = await res.json();
-            if (result.success) window.location.href = '/generate';
-            else alert('Error: ' + result.message);
-        });
-    </script>
+    <button onclick="saveAll()" class="text-sm px-5 py-2.5 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.35)">Save Changes</button>
+  </header>
+
+  <div class="flex-1 p-6 max-w-5xl mx-auto w-full">
+
+    <!-- Section tabs -->
+    <div class="flex gap-2 mb-6 flex-wrap">
+      {% for sid, label in [('business','🏪 Business Profile'),('brand','🎨 Brand Voice'),('schedule','📅 Schedule'),('notifications','🔔 Notifications'),('connections','🔗 Connections')] %}
+      <button onclick="showSection('{{ sid }}', this)" class="section-tab text-sm px-4 py-2 rounded-xl border border-white/10 text-gray-400 {{ 'active' if sid == 'business' else '' }}" data-section="{{ sid }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+
+    <!-- ─── BUSINESS PROFILE ─── -->
+    <div id="sec-business">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-5">Business Profile</h2>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Business Type</label>
+            <select id="businessType" class="input-base">
+              {% for val, label in [
+                ('food_truck','🍔 Food Truck'),
+                ('restaurant','🍷 Restaurant'),
+                ('cafe','☕ Cafe'),
+                ('hotel','🏨 Hotel / Resort'),
+                ('food_company','🍳 Food Company'),
+              ] %}
+              <option value="{{ val }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Business Name</label>
+            <input type="text" id="businessName" class="input-base" placeholder="e.g. Taco Revolution" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Location / Address</label>
+            <input type="text" id="location" class="input-base" placeholder="e.g. Downtown, 12th & Main" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">City</label>
+            <input type="text" id="city" class="input-base" placeholder="e.g. Portland" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Hours</label>
+            <input type="text" id="hours" class="input-base" placeholder="e.g. 11 AM – 8 PM" />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Signature / Hero Item</label>
+            <input type="text" id="specialItem" class="input-base" placeholder="e.g. Bacon BBQ Burger" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5">Custom Hashtags <span class="text-gray-700">(space-separated)</span></label>
+            <input type="text" id="hashtags" class="input-base" placeholder="e.g. #portlandeats #foodtruck #tacos" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs text-gray-500 mb-1.5">Short Business Description <span class="text-gray-700">(AI uses this for context)</span></label>
+            <textarea id="bizDescription" rows="3" class="input-base resize-none" placeholder="e.g. A bold, smoky BBQ food truck serving Portland since 2019. Famous for our brisket tacos."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── BRAND VOICE ─── -->
+    <div id="sec-brand" class="hidden">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-2">Brand Voice</h2>
+        <p class="text-sm text-gray-500 mb-5">This shapes how the AI writes every caption. Pick a primary tone and add any words or phrases that feel like you.</p>
+        <label class="block text-xs text-gray-500 mb-3">Primary Tone</label>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {% for val, emoji, label in [
+            ('energetic','⚡','Energetic'),
+            ('friendly','😊','Friendly'),
+            ('professional','💼','Professional'),
+            ('funny','😂','Funny'),
+            ('bold','🔥','Bold'),
+            ('casual','😎','Casual'),
+            ('inspirational','✨','Inspirational'),
+            ('local','📍','Hyper-local'),
+          ] %}
+          <div class="tone-btn">
+            <input type="radio" name="tone" id="tone_{{ val }}" value="{{ val }}" class="sr-only" {% if val == 'energetic' %}checked{% endif %} />
+            <label for="tone_{{ val }}" class="block text-center py-3 px-2 rounded-xl border border-white/10 text-sm cursor-pointer transition">
+              <div class="text-xl mb-1">{{ emoji }}</div>
+              <div class="text-xs font-semibold text-gray-300">{{ label }}</div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <label class="block text-xs text-gray-500 mb-1.5">Brand phrases to always include <span class="text-gray-700">(optional)</span></label>
+        <textarea id="brandPhrases" rows="2" class="input-base resize-none mb-4" placeholder='e.g. "come find us", "hot off the grill"'></textarea>
+        <label class="block text-xs text-gray-500 mb-1.5">Words or topics to avoid</label>
+        <textarea id="avoidWords" rows="2" class="input-base resize-none" placeholder='e.g. "cheap", competitor names, political topics'></textarea>
+      </div>
+    </div>
+
+    <!-- ─── SCHEDULE ─── -->
+    <div id="sec-schedule" class="hidden">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-2">Default Posting Schedule</h2>
+        <p class="text-sm text-gray-500 mb-5">These defaults are used when you hit "Generate 7 Posts" — you can override per-post at any time.</p>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Preferred posting time</label>
+            <select id="defaultTime" class="input-base">
+              <option value="optimal">🤖 AI-optimised (recommended)</option>
+              <option value="morning">☀️ Morning (8–10 AM)</option>
+              <option value="lunch">🍽️ Lunch (11 AM–1 PM)</option>
+              <option value="evening">🌆 Evening (5–7 PM)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Posts per week</label>
+            <select id="postsPerWeek" class="input-base">
+              <option value="7">7 (one per day)</option>
+              <option value="5">5 (weekdays only)</option>
+              <option value="3">3 (Mon / Wed / Fri)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Auto-publish</label>
+            <select id="autoPublish" class="input-base">
+              <option value="off">Off — review before publishing</option>
+              <option value="on">On — publish automatically at scheduled time</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1.5">Timezone</label>
+            <select id="timezone" class="input-base">
+              {% for tz in ['America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Phoenix','Europe/London','Europe/Paris','Australia/Sydney'] %}
+              <option value="{{ tz }}">{{ tz.replace('_',' ') }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── NOTIFICATIONS ─── -->
+    <div id="sec-notifications" class="hidden">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-5">Notification Preferences</h2>
+        <div class="space-y-4">
+          {% for nid, label, sub, default in [
+            ('notif_publish','Post published','Receive an alert each time a post goes live', True),
+            ('notif_engagement','Engagement spike','Alert when a post reaches 2× your average reach', True),
+            ('notif_token','Token expiry warning','Alert 48 hours before a platform API token expires', True),
+            ('notif_weekly','Weekly summary','Sunday evening recap of reach, engagement, and upcoming posts', False),
+            ('notif_fail','Publish failures','Alert if a post fails to publish to any platform', True),
+          ] %}
+          <div class="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+            <div>
+              <div class="text-sm font-semibold">{{ label }}</div>
+              <div class="text-xs text-gray-500 mt-0.5">{{ sub }}</div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-4">
+              <input type="checkbox" id="{{ nid }}" class="sr-only" {% if default %}checked{% endif %} />
+              <div class="w-10 h-5 bg-gray-700 rounded-full relative peer peer-checked:bg-brand-500">
+                <div class="notif-thumb absolute top-0.5 left-0.5 bg-white rounded-full h-4 w-4 transition-transform"></div>
+              </div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── CONNECTIONS ─── -->
+    <div id="sec-connections" class="hidden">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-2">Platform Connections</h2>
+        <p class="text-sm text-gray-500 mb-5">Connect your accounts via OAuth. Post-Pilot never stores your passwords — revoke access anytime from each platform's settings.</p>
+        <div class="space-y-3">
+          {% for pid, name, color, auth_url, icon in [
+            ('fb',  'Facebook',         '#1877F2', '/auth/facebook',       '📘'),
+            ('ig',  'Instagram',        '#E1306C', '/auth/instagram',      '📸'),
+            ('tt',  'TikTok',           '#69C9D0', '/auth/tiktok',         '🎵'),
+            ('yt',  'YouTube',          '#FF0000', '/auth/youtube',        '▶️'),
+            ('gb',  'Google Business',  '#4285F4', '/auth/google',         '📍'),
+            ('web', 'Website Hub',      '#10b981', '/website_hub',         '🌐'),
+          ] %}
+          <div class="connect-card p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-xl">{{ icon }}</span>
+              <div>
+                <div class="font-semibold text-sm">{{ name }}</div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <div class="status-dot bg-gray-600" id="dot_{{ pid }}"></div>
+                  <span class="text-xs text-gray-500" id="status_{{ pid }}">Not connected</span>
+                </div>
+              </div>
+            </div>
+            <a href="{{ auth_url }}" id="btn_{{ pid }}"
+               class="text-xs px-4 py-2 rounded-xl font-semibold border transition"
+               style="color:{{ color }};border-color:{{ color }}40;background:{{ color }}15">
+              Connect
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="text-xs text-gray-700 mt-5">Permissions required: pages_manage_posts, instagram_content_publish, and read access per platform.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="toast">
+  <span class="text-green-400 text-base">✓</span>
+  <span id="toastMsg">Settings saved</span>
+</div>
+
+<script>
+function showSection(id, btn) {
+  document.querySelectorAll('[id^="sec-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('sec-'+id).classList.remove('hidden');
+  document.querySelectorAll('.section-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// Sync toggle thumbs
+document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+  function sync() { cb.nextElementSibling?.querySelector('.notif-thumb')?.style && (cb.nextElementSibling.querySelector('.notif-thumb').style.transform = cb.checked ? 'translateX(20px)' : ''); }
+  cb.addEventListener('change', sync); sync();
+});
+
+// Toast
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Load existing settings
+async function loadSettings() {
+  try {
+    const res = await fetch('/api/get_business?user_id=default');
+    const data = await res.json();
+    if (data.business_info) {
+      const b = data.business_info;
+      ['businessType','businessName','location','city','hours','specialItem'].forEach(id => {
+        const el = document.getElementById(id);
+        const key = id.replace(/([A-Z])/g, m => '_'+m.toLowerCase());
+        if (el && b[key] !== undefined) el.value = b[key];
+      });
+      if (b.hashtags) document.getElementById('hashtags').value = b.hashtags.join(' ');
+      if (b.description) document.getElementById('bizDescription').value = b.description;
+      if (b.tone) { const r = document.getElementById('tone_'+b.tone); if(r) r.checked = true; }
+    }
+  } catch(e) { console.warn('Could not load settings', e); }
+
+  // Load connection statuses
+  try {
+    const res = await fetch('/api/connection_status?user_id=default');
+    const data = await res.json();
+    Object.entries(data.connections||{}).forEach(([pid, status]) => {
+      const dot = document.getElementById('dot_'+pid);
+      const lbl = document.getElementById('status_'+pid);
+      const btn = document.getElementById('btn_'+pid);
+      if (!dot) return;
+      if (status === 'connected') {
+        dot.className = 'status-dot bg-green-400';
+        lbl.textContent = 'Connected ✓';
+        lbl.className = 'text-xs text-green-400';
+        btn.textContent = 'Disconnect';
+        btn.style.cssText = 'color:#f87171;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08);font-size:.75rem;padding:.35rem .9rem;border-radius:.75rem;border-width:1px;font-weight:600;transition:.15s';
+        btn.href = `/auth/disconnect/${pid}`;
+      }
+    });
+  } catch(e) { console.warn('Could not load connection status', e); }
+}
+
+async function saveAll() {
+  const raw = document.getElementById('hashtags').value;
+  const tone = document.querySelector('input[name=tone]:checked')?.value || 'energetic';
+  const info = {
+    business_type: document.getElementById('businessType').value,
+    business_name: document.getElementById('businessName').value,
+    location:      document.getElementById('location').value,
+    city:          document.getElementById('city').value,
+    hours:         document.getElementById('hours').value,
+    special_item:  document.getElementById('specialItem').value,
+    description:   document.getElementById('bizDescription').value,
+    hashtags:      raw ? raw.split(/\s+/).filter(h=>h.startsWith('#')) : [],
+    tone,
+    brand_phrases: document.getElementById('brandPhrases').value,
+    avoid_words:   document.getElementById('avoidWords').value,
+    default_time:  document.getElementById('defaultTime').value,
+    posts_per_week:document.getElementById('postsPerWeek').value,
+    auto_publish:  document.getElementById('autoPublish').value,
+    timezone:      document.getElementById('timezone').value,
+    notifications: {
+      publish:    document.getElementById('notif_publish').checked,
+      engagement: document.getElementById('notif_engagement').checked,
+      token:      document.getElementById('notif_token').checked,
+      weekly:     document.getElementById('notif_weekly').checked,
+      fail:       document.getElementById('notif_fail').checked,
+    }
+  };
+  try {
+    const res = await fetch('/api/setup_business', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ user_id:'default', business_info: info })
+    });
+    const data = await res.json();
+    if (data.success) showToast('Settings saved ✓');
+    else showToast('⚠️ ' + (data.message||'Save failed'));
+  } catch(e) { showToast('⚠️ Network error'); }
+}
+
+loadSettings();
+</script>
 </body>
 </html>

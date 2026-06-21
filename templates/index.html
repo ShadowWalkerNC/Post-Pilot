@@ -43,6 +43,7 @@
     .section-alt { background: #0d0d24; }
     .gradient-text { background:linear-gradient(100deg,#818cf8 0%,#c084fc 45%,#fb923c 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .gradient-text-warm { background:linear-gradient(90deg,#fb923c,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+    .gradient-text-green { background:linear-gradient(90deg,#10b981,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
     .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); transition:transform .25s,box-shadow .25s,border-color .25s; }
     .card:hover { transform:translateY(-5px); box-shadow:0 24px 48px rgba(99,102,241,.12); border-color:rgba(99,102,241,.3); }
     .card-flame:hover { box-shadow:0 24px 48px rgba(249,115,22,.12); border-color:rgba(249,115,22,.3); }
@@ -59,27 +60,32 @@
     .faq-chevron { transition:transform .3s; }
     body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); opacity:.4; }
 
-    /* ---- Platform strip: each platform tile ---- */
-    .platform-tile {
-      display: flex; flex-direction: column; align-items: center; gap: .5rem;
-      padding: .85rem 1.25rem; border-radius: .875rem;
-      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
-      transition: border-color .2s, background .2s;
-      min-width: 110px;
-    }
+    /* ---- Platform strip ---- */
+    .platform-tile { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:.85rem 1.25rem; border-radius:.875rem; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); transition:border-color .2s,background .2s; min-width:110px; }
     .platform-tile:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); }
-    .platform-tile .pt-name { font-size: .72rem; font-weight: 700; color: #94a3b8; }
-    .platform-tile .pt-how  { font-size: .62rem; color: #475569; letter-spacing: .03em; }
+    .platform-tile .pt-name { font-size:.72rem; font-weight:700; color:#94a3b8; }
+    .platform-tile .pt-how  { font-size:.62rem; color:#475569; letter-spacing:.03em; }
+
+    /* ---- Website Hub explainer ---- */
+    .hub-step { display:flex; gap:1rem; align-items:flex-start; }
+    .hub-step-num { flex-shrink:0; width:2rem; height:2rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; }
+    .hub-connector { width:2rem; flex-shrink:0; display:flex; justify-content:center; }
+    .hub-connector-line { width:2px; background:linear-gradient(to bottom, rgba(16,185,129,.3), rgba(16,185,129,.05)); flex:1; margin:.25rem 0; }
+    .code-block { font-family:'Courier New',monospace; font-size:.72rem; line-height:1.6; background:rgba(0,0,0,.4); border:1px solid rgba(16,185,129,.15); border-radius:1rem; padding:1.25rem 1.5rem; color:#86efac; overflow-x:auto; }
+    .code-block .kw  { color:#818cf8; }
+    .code-block .at  { color:#fb923c; }
+    .code-block .val { color:#34d399; }
+    .code-block .cm  { color:#374151; }
+    .code-block .tg  { color:#c084fc; }
   </style>
 </head>
 <body class="bg-[#07071a] text-white antialiased">
 
-<!-- ═══════════════════════════ NAV ═══════════════════════════ -->
+<!-- NAV -->
 <nav id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300">
   <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
     <a href="/" class="flex items-center gap-2.5 font-black text-lg tracking-tight">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold"
-           style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
       <span>Post<span class="text-brand-400">-</span>Pilot</span>
     </a>
     <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
@@ -96,32 +102,27 @@
   </div>
 </nav>
 
-<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<!-- HERO -->
 <section class="hero-bg relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-28 pb-20 overflow-hidden">
   <div class="orb w-[700px] h-[700px] bg-brand-600/20 top-[-200px] left-1/2 -translate-x-1/2"></div>
   <div class="orb w-[400px] h-[400px] bg-flame-500/10 bottom-0 right-[-100px]"></div>
   <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.06]">
     <img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1600&auto=format&fit=crop" alt="" class="w-full h-full object-cover scale-110" loading="lazy" />
   </div>
-
   <div class="relative z-10 max-w-4xl mx-auto">
     <div class="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-brand-300 mb-8 animate-fade-in"
          style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25)">
       <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-dot"></span>
       AI-powered &nbsp;·&nbsp; 6 platform integrations &nbsp;·&nbsp; Zero design skills needed
     </div>
-
     <h1 class="text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mb-6 animate-fade-up">
       Your restaurant's social media,<br/>
       <span class="gradient-text">on autopilot.</span>
     </h1>
-
-    <!-- FIXED: removed "publishes to your website" ambiguity, clarified it's API-driven -->
     <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up" style="animation-delay:.1s">
       Post-Pilot writes and schedules content, then pushes it to Facebook, Instagram,
       TikTok, YouTube, Google Business, and your existing website — via direct API connections.
     </p>
-
     <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style="animation-delay:.2s">
       <a href="/register" class="px-9 py-4 rounded-xl font-bold text-lg transition text-white"
          style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 28px rgba(99,102,241,.45)">Start for Free →</a>
@@ -129,44 +130,30 @@
          style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">See How It Works</a>
     </div>
     <p class="text-sm text-gray-600 mt-4">No credit card required &nbsp;·&nbsp; Free plan forever &nbsp;·&nbsp; Setup in 2 minutes</p>
-
     <!-- Dashboard Mockup -->
     <div class="mt-16 animate-fade-up animate-float" style="animation-delay:.35s">
-      <div class="rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)]"
-           style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px)">
+      <div class="rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)]" style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px)">
         <div class="flex items-center gap-2 px-5 py-3.5 border-b border-white/5" style="background:rgba(255,255,255,.02)">
           <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
           <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
           <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
           <span class="ml-4 text-xs text-gray-500 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-            app.postpilot.io/dashboard
+            <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>app.postpilot.io/dashboard
           </span>
         </div>
         <div class="p-6 grid md:grid-cols-3 gap-5 text-left">
           <div class="rounded-xl p-4" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">This Week</span>
-              <span class="text-xs text-green-400 font-semibold">● Live</span>
-            </div>
+            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">This Week</span><span class="text-xs text-green-400 font-semibold">● Live</span></div>
             <div class="text-3xl font-black mb-1">7</div>
             <div class="text-sm text-gray-400">Posts scheduled</div>
             <div class="mt-4 space-y-2">
               {% for day, pct, col in [('Mon','100','bg-brand-500'),('Tue','100','bg-brand-500'),('Wed','100','bg-brand-500'),('Thu','75','bg-flame-500'),('Fri','0','bg-gray-700')] %}
-              <div class="flex items-center gap-2 text-xs">
-                <span class="w-6 text-gray-500">{{ day }}</span>
-                <div class="flex-1 h-1.5 rounded-full bg-gray-800">
-                  <div class="h-1.5 rounded-full {{ col }}" style="width:{{ pct }}%"></div>
-                </div>
-              </div>
+              <div class="flex items-center gap-2 text-xs"><span class="w-6 text-gray-500">{{ day }}</span><div class="flex-1 h-1.5 rounded-full bg-gray-800"><div class="h-1.5 rounded-full {{ col }}" style="width:{{ pct }}%"></div></div></div>
               {% endfor %}
             </div>
           </div>
           <div class="rounded-xl p-4" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.18)">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-semibold text-flame-400 uppercase tracking-wider">Latest Post</span>
-              <span class="text-xs text-gray-500">2h ago</span>
-            </div>
+            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-flame-400 uppercase tracking-wider">Latest Post</span><span class="text-xs text-gray-500">2h ago</span></div>
             <div class="text-sm font-semibold text-white mb-2 leading-snug">"🔥 Brisket Tacos are BACK this Friday! Come find us at Oak St. 11am–3pm…"</div>
             <div class="flex gap-1.5 flex-wrap mt-3">
               {% for p, c in [('FB','bg-blue-600'),('IG','bg-pink-600'),('TT','bg-gray-700')] %}
@@ -180,10 +167,7 @@
             </div>
           </div>
           <div class="rounded-xl p-4" style="background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.15)">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Growth</span>
-              <span class="text-xs text-green-400 font-semibold">↑ +34%</span>
-            </div>
+            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Growth</span><span class="text-xs text-green-400 font-semibold">↑ +34%</span></div>
             <div class="text-3xl font-black mb-1">2,847</div>
             <div class="text-sm text-gray-400">Total reach this week</div>
             <svg class="w-full mt-4" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
@@ -203,23 +187,18 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ PLATFORM STRIP ═══════════════════════════ -->
-<!--
-  FIXED: Changed "Publishes directly to" → "Connects via API to"
-  Each tile now shows the connection method below the platform name.
-  Replaced scrolling marquee with a clean static grid — 6 tiles, easy to read.
--->
+<!-- PLATFORM STRIP -->
 <section id="platforms" class="py-16 px-6 overflow-hidden border-y" style="background:#0a0a20;border-color:rgba(255,255,255,.04)">
   <div class="max-w-5xl mx-auto">
     <p class="text-center text-xs font-semibold text-gray-600 uppercase tracking-widest mb-8">Connects via API to</p>
     <div class="grid grid-cols-3 sm:grid-cols-6 gap-3 justify-items-center">
       {% for name, color, how, icon in [
-        ('Facebook',        '#1877F2', 'Graph API',      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/></svg>'),
-        ('Instagram',       '#E1306C', 'Graph API',      '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'),
-        ('TikTok',          '#69C9D0', 'Content API',    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/></svg>'),
-        ('YouTube',         '#FF0000', 'Data API v3',    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>'),
-        ('Google Business', '#4285F4', 'My Business API','<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'),
-        ('Your Website',    '#10b981', 'Embed / Webhook', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'),
+        ('Facebook',        '#1877F2', 'Graph API',       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/></svg>'),
+        ('Instagram',       '#E1306C', 'Graph API',       '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'),
+        ('TikTok',          '#69C9D0', 'Content API',     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/></svg>'),
+        ('YouTube',         '#FF0000', 'Data API v3',     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>'),
+        ('Google Business', '#4285F4', 'My Business API', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'),
+        ('Your Website',    '#10b981', 'Embed / Webhook',  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'),
       ] %}
       <div class="platform-tile">
         <span style="color:{{ color }}; width:1.75rem; height:1.75rem">{{ icon }}</span>
@@ -228,7 +207,6 @@
       </div>
       {% endfor %}
     </div>
-    <!-- Clarification note -->
     <p class="text-center text-xs text-gray-700 mt-6 max-w-lg mx-auto leading-relaxed">
       Post-Pilot connects to your existing accounts via each platform's official API.
       You keep full ownership — we never store your passwords.
@@ -236,7 +214,7 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ SOCIAL PROOF STATS ═══════════════════════════ -->
+<!-- SOCIAL PROOF STATS -->
 <section class="py-20 px-6" style="background:#07071a">
   <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
     {% for val, label, sub in [
@@ -254,7 +232,7 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+<!-- HOW IT WORKS -->
 <section id="how" class="py-24 px-6 section-alt">
   <div class="max-w-5xl mx-auto">
     <div class="text-center mb-16">
@@ -273,8 +251,7 @@
       ] %}
       <div class="card card-flame rounded-2xl p-8 relative overflow-hidden">
         <div class="absolute top-4 right-5 text-6xl font-black opacity-5 select-none">{{ num }}</div>
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-5"
-             style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)">{{ emoji }}</div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-5" style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)">{{ emoji }}</div>
         <h3 class="text-lg font-bold mb-2">{{ title }}</h3>
         <p class="text-gray-400 text-sm leading-relaxed">{{ desc }}</p>
       </div>
@@ -283,7 +260,7 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ FEATURES ═══════════════════════════ -->
+<!-- FEATURES -->
 <section class="py-24 px-6" style="background:#07071a">
   <div class="max-w-6xl mx-auto">
     <div class="text-center mb-16">
@@ -291,40 +268,16 @@
       <h2 class="text-4xl md:text-5xl font-black mb-4">One tool. Every platform. <span class="gradient-text">Zero effort.</span></h2>
     </div>
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!--
-        FIXED:
-        - Removed "Free Business Website" card — Post-Pilot doesn’t build sites
-        - Replaced with "Website Hub" card that accurately describes the API/embed approach
-        - Updated "6 Platforms at Once" to mention API
-      -->
-      {% for icon, title, desc, accent in [
-        ('🤖', 'AI Caption Generator',
-         'Platform-specific captions with hashtags, emojis, and your brand voice — never generic.',
-         'brand'),
-        ('📅', 'Post Scheduler',
-         '7-day visual calendar. Schedule your whole week in one click, then forget about it.',
-         'flame'),
-        ('📊', 'Analytics Dashboard',
-         'Reach, engagement, and growth tracking across all connected platforms in one clean view.',
-         'purple'),
-        ('🌐', 'Website Hub',
-         'Connect your existing website via embed snippet or webhook. Post-Pilot pushes announcements, specials, and hours to your site automatically — no rebuild required.',
-         'green'),
-        ('🔗', '6 Platform API Connections',
-         'One post, everywhere. Post-Pilot sends content to each platform through its official API — Facebook, Instagram, TikTok, YouTube, Google Business & your site.',
-         'flame'),
-        ('🔔', 'Smart Notifications',
-         'Alerts when posts go live, engagement spikes, or a platform API token needs reconnecting.',
-         'brand'),
-        ('🏢', '5 Business Types',
-         'Food truck, restaurant, cafe, hotel, food company — each gets a tailored caption strategy and posting schedule.',
-         'flame'),
-        ('🔒', 'White-Label Agency',
-         'Manage up to 10 client accounts from one dashboard with your own branding.',
-         'purple'),
-        ('🔗', 'SRN API Access',
-         'Connect Post-Pilot to Discord bots, automation tools, and any app via the ShadowRealm Network API.',
-         'green'),
+      {% for icon, title, desc in [
+        ('🤖', 'AI Caption Generator',    'Platform-specific captions with hashtags, emojis, and your brand voice — never generic.'),
+        ('📅', 'Post Scheduler',           '7-day visual calendar. Schedule your whole week in one click, then forget about it.'),
+        ('📊', 'Analytics Dashboard',     'Reach, engagement, and growth tracking across all connected platforms in one clean view.'),
+        ('🌐', 'Website Hub',             'Connect your existing website via embed snippet or webhook. Post-Pilot pushes announcements, specials, and hours automatically — no rebuild required.'),
+        ('🔗', '6 Platform API Connections','One post, everywhere. Post-Pilot sends content to each platform through its official API — Facebook, Instagram, TikTok, YouTube, Google Business & your site.'),
+        ('🔔', 'Smart Notifications',     'Alerts when posts go live, engagement spikes, or a platform API token needs reconnecting.'),
+        ('🏢', '5 Business Types',        'Food truck, restaurant, cafe, hotel, food company — each gets a tailored caption strategy and posting schedule.'),
+        ('🔒', 'White-Label Agency',      'Manage up to 10 client accounts from one dashboard with your own branding.'),
+        ('🛰️', 'SRN API Access',          'Connect Post-Pilot to Discord bots, automation tools, and any app via the ShadowRealm Network API.'),
       ] %}
       <div class="card rounded-2xl p-6">
         <div class="text-3xl mb-4">{{ icon }}</div>
@@ -336,8 +289,161 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ TESTIMONIALS ═══════════════════════════ -->
-<section class="py-24 px-6 section-alt">
+<!-- ═══════════════════════════ WEBSITE HUB EXPLAINER ═══════════════════════════ -->
+<section id="website-hub" class="py-24 px-6 section-alt relative overflow-hidden">
+  <div class="orb w-[500px] h-[500px] top-0 right-[-150px]" style="background:rgba(16,185,129,.06)"></div>
+  <div class="max-w-6xl mx-auto">
+
+    <!-- Header -->
+    <div class="text-center mb-16">
+      <p class="text-xs font-semibold uppercase tracking-widest mb-3" style="color:#34d399">Website Hub — how it works</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">
+        Your site. Your content.<br/>
+        <span class="gradient-text-green">Kept in sync, automatically.</span>
+      </h2>
+      <p class="text-gray-400 text-lg max-w-xl mx-auto">
+        Post-Pilot doesn't build your website — it connects to the one you already have.
+        Here's exactly how that works.
+      </p>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="grid lg:grid-cols-2 gap-12 items-start">
+
+      <!-- LEFT: step-by-step flow -->
+      <div class="space-y-0">
+
+        <!-- Step 1 -->
+        <div class="hub-step">
+          <div class="flex flex-col items-center">
+            <div class="hub-step-num">1</div>
+            <div class="hub-connector"><div class="hub-connector-line" style="height:4rem"></div></div>
+          </div>
+          <div class="pt-0.5 pb-6">
+            <h3 class="font-bold text-white mb-1">Copy your embed snippet</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              In Settings → Website Hub, Post-Pilot generates a unique
+              <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">&lt;script&gt;</code> tag
+              tied to your account. One line of code, no framework required.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="hub-step">
+          <div class="flex flex-col items-center">
+            <div class="hub-step-num">2</div>
+            <div class="hub-connector"><div class="hub-connector-line" style="height:4rem"></div></div>
+          </div>
+          <div class="pt-0.5 pb-6">
+            <h3 class="font-bold text-white mb-1">Paste it into your site's <code class="text-green-400 text-sm">&lt;head&gt;</code> or use a webhook</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              Works with WordPress, Squarespace, Wix, Shopify, custom HTML — any site
+              that lets you add a script tag. Prefer server-side? Use the webhook URL instead
+              and receive a <code class="text-green-400 bg-white/5 px-1.5 py-0.5 rounded text-xs">POST</code> payload on every new post.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="hub-step">
+          <div class="flex flex-col items-center">
+            <div class="hub-step-num">3</div>
+            <div class="hub-connector"><div class="hub-connector-line" style="height:4rem"></div></div>
+          </div>
+          <div class="pt-0.5 pb-6">
+            <h3 class="font-bold text-white mb-1">Post-Pilot detects the connection</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              Once the script is live, Post-Pilot pings your domain to verify the connection.
+              Your site shows as <span class="text-green-400 font-semibold">Connected ✓</span> in your dashboard within seconds.
+            </p>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="hub-step">
+          <div class="flex flex-col items-center">
+            <div class="hub-step-num">4</div>
+          </div>
+          <div class="pt-0.5">
+            <h3 class="font-bold text-white mb-1">Content pushes live automatically</h3>
+            <p class="text-sm text-gray-400 leading-relaxed">
+              Every time a post is scheduled, Post-Pilot also sends the content to your site's
+              feed widget — announcements, daily specials, location updates — all without you
+              having to log into your website.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: code mockup + what you can show -->
+      <div class="space-y-5">
+
+        <!-- Embed snippet code block -->
+        <div>
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Embed snippet</span>
+            <span class="text-xs text-green-400 font-semibold flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>One-time setup
+            </span>
+          </div>
+          <pre class="code-block"><span class="cm">&lt;!-- Paste inside your &lt;head&gt; --&gt;</span>
+<span class="tg">&lt;script</span>
+  <span class="at">src</span>=<span class="val">"https://cdn.postpilot.io/hub.js"</span>
+  <span class="at">data-token</span>=<span class="val">"pp_live_abc123xyz"</span>
+  <span class="at">data-theme</span>=<span class="val">"dark"</span>
+  <span class="at">async</span>
+<span class="tg">&gt;&lt;/script&gt;</span>
+
+<span class="cm">&lt;!-- Drop the feed widget anywhere on your page --&gt;</span>
+<span class="tg">&lt;div</span> <span class="at">id</span>=<span class="val">"postpilot-feed"</span><span class="tg">&gt;&lt;/div&gt;</span></pre>
+        </div>
+
+        <!-- Webhook payload code block -->
+        <div>
+          <div class="flex items-center justify-between mb-2 px-1">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Webhook payload (optional)</span>
+            <span class="text-xs text-gray-600">Sent on every publish</span>
+          </div>
+          <pre class="code-block">{
+  <span class="at">"event"</span>:     <span class="val">"post.published"</span>,
+  <span class="at">"platform"</span>:  <span class="val">"website"</span>,
+  <span class="at">"caption"</span>:   <span class="val">"🔥 Brisket Tacos BACK Friday…"</span>,
+  <span class="at">"posted_at"</span>: <span class="val">"2026-06-20T17:00:00Z"</span>,
+  <span class="at">"business"</span>:  <span class="val">"Oak St. Food Truck"</span>
+}</pre>
+        </div>
+
+        <!-- What gets pushed chips -->
+        <div class="rounded-2xl p-5" style="background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.12)">
+          <p class="text-xs font-semibold text-green-400 uppercase tracking-wider mb-3">What gets pushed to your site</p>
+          <div class="flex flex-wrap gap-2">
+            {% for chip in ['Daily specials','Location updates','Announcements','New menu items','Event promos','Operating hours','Post captions','Photos & media'] %}
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium"
+                  style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);color:#6ee7b7">{{ chip }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Compatibility chips -->
+        <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Works with any platform</p>
+          <div class="flex flex-wrap gap-2">
+            {% for cms in ['WordPress','Squarespace','Wix','Shopify','Webflow','Custom HTML','Ghost','Framer'] %}
+            <span class="text-xs px-2.5 py-1 rounded-full font-medium text-gray-400"
+                  style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)">{{ cms }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="py-24 px-6" style="background:#07071a">
   <div class="max-w-5xl mx-auto">
     <div class="text-center mb-16">
       <p class="text-xs font-semibold text-flame-400 uppercase tracking-widest mb-3">Real owners. Real results.</p>
@@ -363,8 +469,7 @@
         </div>
         <p class="text-gray-300 text-sm leading-relaxed italic flex-1 mb-6">"{{ quote }}"</p>
         <div class="flex items-center gap-3 pt-4 border-t border-white/5">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-               style="background:linear-gradient(135deg,#6366f1,#f97316)">{{ initials }}</div>
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">{{ initials }}</div>
           <div><div class="font-semibold text-sm">{{ name }}</div><div class="text-xs text-gray-500">{{ role }}</div></div>
         </div>
       </div>
@@ -373,8 +478,8 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ PRICING ═══════════════════════════ -->
-<section id="pricing" class="py-24 px-6" style="background:#07071a">
+<!-- PRICING -->
+<section id="pricing" class="py-24 px-6 section-alt">
   <div class="max-w-6xl mx-auto">
     <div class="text-center mb-6">
       <p class="text-xs font-semibold text-brand-400 uppercase tracking-widest mb-3">Transparent pricing</p>
@@ -402,8 +507,7 @@
       ] %}
       <div class="rounded-2xl p-6 flex flex-col border {{ 'tier-popular border-brand-500/50' if popular else 'card border-white/5' }}">
         {% if popular %}
-        <div class="text-xs font-bold px-3 py-1 rounded-full self-start mb-4 text-white"
-             style="background:linear-gradient(90deg,#6366f1,#c084fc)">MOST POPULAR</div>
+        <div class="text-xs font-bold px-3 py-1 rounded-full self-start mb-4 text-white" style="background:linear-gradient(90deg,#6366f1,#c084fc)">MOST POPULAR</div>
         {% endif %}
         <div class="font-black text-xl mb-2">{{ name }}</div>
         <div class="mb-5 flex items-end gap-1">
@@ -431,8 +535,8 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ FAQ ═══════════════════════════ -->
-<section id="faq" class="py-24 px-6 section-alt">
+<!-- FAQ -->
+<section id="faq" class="py-24 px-6" style="background:#07071a">
   <div class="max-w-3xl mx-auto">
     <div class="text-center mb-16">
       <p class="text-xs font-semibold text-brand-400 uppercase tracking-widest mb-3">Got questions?</p>
@@ -443,10 +547,12 @@
         ('Do I need any design or marketing skills?',
          'None at all. Post-Pilot handles writing, formatting, hashtags, and scheduling. You just tell it about your business and it takes care of the rest.'),
         ('How does Post-Pilot connect to my social platforms?',
-         'Through each platform’s official API using OAuth. You authorize the connection in your browser — Post-Pilot never sees or stores your passwords. You can revoke access at any time from your platform settings.'),
+         'Through each platform\'s official API using OAuth. You authorize the connection in your browser — Post-Pilot never sees or stores your passwords. You can revoke access at any time from your platform settings.'),
         ('Does Post-Pilot build me a website?',
-         'No — Post-Pilot is not a website builder. The Website Hub connects to your existing site via a lightweight embed snippet or webhook. Once connected, Post-Pilot can automatically push announcements, specials, and hours to your site without you having to log in.'),
-        ('Which platforms does Post-Pilot support?',
+         'No — Post-Pilot is not a website builder. The Website Hub connects to your existing site via a lightweight embed snippet or webhook. Once connected, Post-Pilot pushes announcements, specials, and hours to your site automatically without you having to log in.'),
+        ('Which CMS or website platforms does the Website Hub support?',
+         'Any site that allows custom script tags or can receive a webhook — WordPress, Squarespace, Wix, Shopify, Webflow, Framer, Ghost, or plain HTML. If your platform supports <script> tags in the <head>, it works.'),
+        ('Which social platforms does Post-Pilot support?',
          'Facebook (Graph API), Instagram (Graph API), TikTok (Content API), YouTube (Data API v3), Google Business Profile (My Business API), and your own website via embed/webhook. More integrations are on the roadmap.'),
         ('Can I edit the AI-generated posts before they go live?',
          'Absolutely. Every post can be previewed, edited, or deleted before publishing. You can also toggle auto-publishing on or off per platform.'),
@@ -471,8 +577,8 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ FINAL CTA ═══════════════════════════ -->
-<section class="py-28 px-6 text-center relative overflow-hidden" style="background:#07071a">
+<!-- FINAL CTA -->
+<section class="py-28 px-6 text-center relative overflow-hidden section-alt">
   <div class="orb w-[600px] h-[600px] bg-brand-600/15 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
   <div class="orb w-[300px] h-[300px] bg-flame-500/10 bottom-0 right-[10%]"></div>
   <div class="relative z-10 max-w-2xl mx-auto">
@@ -485,7 +591,7 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<!-- FOOTER -->
 <footer style="background:#050514;border-top:1px solid rgba(255,255,255,.04)" class="py-16 px-6">
   <div class="max-w-6xl mx-auto">
     <div class="grid md:grid-cols-4 gap-10 mb-12">

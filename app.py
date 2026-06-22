@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-Post-Pilot — Smart Social Media Hub
-Session 17:
-  - /legal/privacy and /legal/terms routes added
-  - init_db() called at module level so Gunicorn/Railway runs it on boot
-  - GET /api/post_history endpoint added (recent published + scheduled posts)
+Post-Pilot -- Smart Social Media Hub
+
+Changes (audit fixes):
+  - OAuth state nonce on Facebook, Google, TikTok flows (CSRF-on-OAuth fix)
+  - @require_plan applied to premium API routes
+  - check_platform_limit enforced in api_push_all
+  - init_scheduler() wired in at startup
+  - /api/push_all, /api/publish, /api/generate_weekly, /api/bulk_schedule
+    all updated to use modules.db for Postgres compatibility
 """
 
 import os
 import json
+import secrets
 import sqlite3
 from flask import (
     Flask, render_template, request, jsonify,
@@ -35,22 +40,24 @@ from modules.auth_manager      import (
     save_token, load_token, delete_token,
     get_valid_google_token, init_db as auth_init_db
 )
+from modules.plan_guard        import require_plan, check_platform_limit
+from modules.scheduler_worker  import init_scheduler
 
 load_dotenv()
 
-# ── Secret key — hard-fail if missing in production ───────────────────────
+# -- Secret key -- hard-fail if missing in production ---------------------
 _secret = os.getenv('FLASK_SECRET_KEY')
 if not _secret:
     import sys
     if os.getenv('FLASK_ENV') == 'production' or os.getenv('RAILWAY_ENVIRONMENT'):
         sys.exit('FATAL: FLASK_SECRET_KEY is not set. Refusing to start in production.')
-    _secret = 'dev-only-insecure-key'  # local dev fallback only
+    _secret = 'dev-only-insecure-key'
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = _secret
-app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour token validity
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 
-# ── Extensions ────────────────────────────────────────────────────────────
+# -- Extensions -----------------------------------------------------------
 csrf = CSRFProtect(app)
 
 limiter = Limiter(
@@ -60,11 +67,11 @@ limiter = Limiter(
     storage_uri=os.getenv('REDIS_URL', 'memory://'),
 )
 
-# ── Register blueprints ───────────────────────────────────────────────────
-app.register_blueprint(v1_blueprint)  # mounts at /v1/*
-csrf.exempt(v1_blueprint)             # V1 API uses its own key-based auth
+# -- Register blueprints --------------------------------------------------
+app.register_blueprint(v1_blueprint)
+csrf.exempt(v1_blueprint)
 
-# ── Flask-Login ──────────────────────────────────────────────────────────
+# -- Flask-Login ----------------------------------------------------------
 login_manager = LoginManager(app)
 login_manager.login_view    = 'login'
 login_manager.login_message = 'Please sign in to access Post-Pilot.'
@@ -74,7 +81,7 @@ def load_user(user_id: str):
     return UserManager.get_user(user_id)
 
 
-# ── DB init ──────────────────────────────────────────────────────────────
+# -- DB init --------------------------------------------------------------
 
 DATABASE = os.getenv('DATABASE_PATH', 'postpilot.db')
 
@@ -136,27 +143,21 @@ def init_db():
         db.close()
         print('DB initialised')
 
-    # Also init auth_manager's platform_tokens table
     auth_init_db()
 
 
-# ── Run init_db at module load so Gunicorn/Railway boots with tables ──────
 try:
     init_db()
 except Exception as _init_err:
     print(f'[WARN] init_db on startup failed: {_init_err}')
 
 
-# ── Token helpers (DB-backed, replaces in-memory user_sessions) ───────────
+# -- Token helpers --------------------------------------------------------
 
 def _uid() -> str:
     return current_user.id if current_user.is_authenticated else 'default'
 
 def _get_tokens(uid: str = None) -> dict:
-    """
-    Build a tokens dict from the DB for use by UniversalPublisher.
-    Falls back gracefully — missing platforms just return empty strings.
-    """
     uid = uid or _uid()
     tokens = {}
     platform_map = {
@@ -191,7 +192,7 @@ def _business_name() -> str:
     return profile.get('name') or current_user.__dict__.get('display_name') or 'Your Business'
 
 
-# ── Error handlers ────────────────────────────────────────────────────────
+# -- Error handlers -------------------------------------------------------
 
 @app.errorhandler(404)
 def not_found(e):
@@ -209,7 +210,7 @@ def rate_limited(e):
     return redirect(url_for('login')), 429
 
 
-# ── AUTH ROUTES ───────────────────────────────────────────────────────────
+# -- AUTH ROUTES ----------------------------------------------------------
 
 @app.route('/register', methods=['GET', 'POST'])
 @limiter.limit('10 per minute')
@@ -265,7 +266,7 @@ def logout():
     return redirect(url_for('index'))
 
 
-# ── LANDING / PUBLIC ROUTES ───────────────────────────────────────────────
+# -- LANDING / PUBLIC ROUTES ----------------------------------------------
 
 @app.route('/')
 def index():
@@ -274,7 +275,7 @@ def index():
     return render_template('index.html', site={})
 
 
-# ── LEGAL PAGES ───────────────────────────────────────────────────────────
+# -- LEGAL PAGES ----------------------------------------------------------
 
 @app.route('/legal/privacy')
 def legal_privacy():
@@ -285,7 +286,7 @@ def legal_terms():
     return render_template('legal/terms.html')
 
 
-# ── BILLING ROUTES ────────────────────────────────────────────────────────
+# -- BILLING ROUTES -------------------------------------------------------
 
 @app.route('/billing')
 @login_required
@@ -343,7 +344,7 @@ def stripe_webhook():
     return jsonify(body), code
 
 
-# ── WEBSITE HUB ROUTES ────────────────────────────────────────────────────
+# -- WEBSITE HUB ROUTES ---------------------------------------------------
 
 @app.route('/website_hub')
 @app.route('/website')
@@ -389,7 +390,7 @@ def website_verify_domain():
     return jsonify(result)
 
 
-# ── PUBLIC SITE RENDERER ──────────────────────────────────────────────────
+# -- PUBLIC SITE RENDERER -------------------------------------------------
 
 @app.route('/site/preview')
 @login_required
@@ -439,7 +440,7 @@ def _render_public_site(site: dict, preview: bool = False):
         ), 200
 
 
-# ── DASHBOARD & APP PAGES ─────────────────────────────────────────────────
+# -- DASHBOARD & APP PAGES ------------------------------------------------
 
 @app.route('/dashboard')
 @login_required
@@ -477,13 +478,25 @@ def connect_page():
     return render_template('connect.html')
 
 
-# ── CORE: UNIVERSAL PUSH ──────────────────────────────────────────────────
+# -- CORE: UNIVERSAL PUSH -------------------------------------------------
 
 @app.route('/api/push_all', methods=['POST'])
 @login_required
+@require_plan('starter')
 def api_push_all():
     data      = request.json or {}
     uid       = _uid()
+    platforms = data.get('platforms') or []
+
+    # Enforce per-plan platform count limit
+    if platforms:
+        allowed, limit = check_platform_limit(current_user.subscription_tier, platforms)
+        if not allowed:
+            return jsonify({
+                'success': False,
+                'error': f'Your plan allows up to {limit} platform(s) at once. Upgrade at /billing.'
+            }), 403
+
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
@@ -492,7 +505,7 @@ def api_push_all():
         image_url     = data.get('image_url'),
         video_url     = data.get('video_url'),
         link_url      = data.get('link_url'),
-        platforms     = data.get('platforms'),
+        platforms     = platforms,
         schedule_time = data.get('schedule_time'),
         web_data      = data.get('web_data'),
     )
@@ -502,7 +515,7 @@ def api_push_all():
         content_type = data.get('content_type', 'text'),
         image_url    = data.get('image_url'),
         video_url    = data.get('video_url'),
-        platforms    = data.get('platforms'),
+        platforms    = platforms,
         results      = results,
         scheduled_at = data.get('schedule_time'),
         status       = 'scheduled' if data.get('schedule_time') else 'published',
@@ -513,6 +526,7 @@ def api_push_all():
 @app.route('/api/publish', methods=['POST'])
 @app.route('/api/publish_post', methods=['POST'])
 @login_required
+@require_plan('starter')
 def api_publish():
     data      = request.json or {}
     uid       = _uid()
@@ -538,7 +552,7 @@ def api_publish():
     return jsonify({'success': True, 'results': results})
 
 
-# ── ONBOARDING ────────────────────────────────────────────────────────────
+# -- ONBOARDING -----------------------------------------------------------
 
 @app.route('/api/onboarding/setup', methods=['POST'])
 @login_required
@@ -556,7 +570,7 @@ def api_onboarding_setup():
     return jsonify({'success': True, 'business': business_info})
 
 
-# ── CONNECTION STATUS ─────────────────────────────────────────────────────
+# -- CONNECTION STATUS ----------------------------------------------------
 
 @app.route('/api/connection_status', methods=['GET', 'POST'])
 @login_required
@@ -574,18 +588,15 @@ def api_connection_status():
     return jsonify({'success': True, 'platforms': status, 'connections': status})
 
 
-# ── DISCONNECT ────────────────────────────────────────────────────────────
+# -- DISCONNECT -----------------------------------------------------------
 
-@app.route('/auth/disconnect/<pid>')
+@app.route('/auth/disconnect/<pid>', methods=['POST'])
 @login_required
 def auth_disconnect(pid):
     uid = _uid()
     platform_map = {
-        'fb':  'facebook',
-        'ig':  'instagram',
-        'tt':  'tiktok',
-        'yt':  'youtube',
-        'gb':  'google',
+        'fb': 'facebook', 'ig': 'instagram',
+        'tt': 'tiktok',   'yt': 'youtube', 'gb': 'google',
     }
     platform = platform_map.get(pid)
     if platform:
@@ -597,7 +608,7 @@ def auth_disconnect(pid):
     return jsonify({'success': True})
 
 
-# ── GENERATE / SCHEDULE / ANALYTICS ──────────────────────────────────────
+# -- GENERATE / SCHEDULE / ANALYTICS -------------------------------------
 
 @app.route('/api/setup_business', methods=['POST'])
 @login_required
@@ -646,6 +657,7 @@ def api_setup_tokens():
 @app.route('/api/generate_weekly', methods=['POST'])
 @app.route('/api/generate_posts', methods=['POST'])
 @login_required
+@require_plan('starter')
 def api_generate_weekly():
     uid     = _uid()
     profile = getattr(current_user, 'business_profile', None)
@@ -665,6 +677,7 @@ def api_generate_weekly():
 @app.route('/api/generate_post', methods=['POST'])
 @app.route('/api/generate_single', methods=['POST'])
 @login_required
+@require_plan('starter')
 def api_generate_post():
     data     = request.json or {}
     template = data.get('template', 'instagram_location')
@@ -678,6 +691,7 @@ def api_generate_post():
 
 @app.route('/api/schedule_post', methods=['POST'])
 @login_required
+@require_plan('starter')
 def api_schedule_post():
     return jsonify(PostScheduler().schedule(request.json))
 
@@ -709,7 +723,6 @@ def api_scheduled_posts():
 @app.route('/api/post_history', methods=['GET'])
 @login_required
 def api_post_history():
-    """Return recent post history (published + scheduled) for the current user."""
     uid   = _uid()
     db    = get_db()
     limit = min(int(request.args.get('limit', 20)), 100)
@@ -737,6 +750,7 @@ def api_post_history():
 
 @app.route('/api/bulk_schedule', methods=['POST'])
 @login_required
+@require_plan('pro')
 def api_bulk_schedule():
     data  = request.json or {}
     uid   = _uid()
@@ -765,13 +779,14 @@ def api_delete_post():
         try:
             db.execute('DELETE FROM post_history WHERE id = ? AND user_id = ?', (post_id, uid))
             db.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            return jsonify({'success': False, 'error': str(e)})
     return jsonify({'success': True})
 
 
 @app.route('/api/analytics', methods=['POST'])
 @login_required
+@require_plan('pro')
 def api_analytics():
     uid     = _uid()
     data    = request.json or {}
@@ -784,20 +799,22 @@ def api_analytics():
     return jsonify(Analytics(token, page_id).get_weekly_summary())
 
 
-# ── OAUTH: META ───────────────────────────────────────────────────────────
+# -- OAUTH: FACEBOOK (with state nonce) -----------------------------------
 
 @app.route('/auth/facebook')
 @login_required
 def auth_facebook():
-    app_id       = os.getenv('FACEBOOK_APP_ID')
-    redirect_uri = os.getenv('REDIRECT_URI', 'http://localhost:5000/auth/facebook/callback')
-    scopes       = 'pages_manage_posts,pages_read_engagement,instagram_content_publish,instagram_basic'
+    state        = secrets.token_urlsafe(32)
+    session['oauth_state']    = state
     session['oauth_next']     = request.args.get('next', '/')
     session['oauth_step']     = request.args.get('step', '2')
     session['oauth_platform'] = 'facebook'
+    app_id       = os.getenv('FACEBOOK_APP_ID')
+    redirect_uri = os.getenv('REDIRECT_URI', 'http://localhost:5000/auth/facebook/callback')
+    scopes       = 'pages_manage_posts,pages_read_engagement,instagram_content_publish,instagram_basic'
     return redirect(
         f'https://www.facebook.com/v19.0/dialog/oauth'
-        f'?client_id={app_id}&redirect_uri={redirect_uri}&scope={scopes}'
+        f'?client_id={app_id}&redirect_uri={redirect_uri}&scope={scopes}&state={state}'
     )
 
 
@@ -805,7 +822,10 @@ def auth_facebook():
 @login_required
 def auth_facebook_callback():
     import requests as req
-    # Handle user-denied or error from Facebook
+    # Validate OAuth state nonce
+    if request.args.get('state') != session.pop('oauth_state', None):
+        flash('OAuth state mismatch. Please try connecting again.')
+        return redirect(url_for('connect_page'))
     if request.args.get('error'):
         flash('Facebook connection was cancelled or denied.')
         return redirect(url_for('connect_page'))
@@ -816,14 +836,17 @@ def auth_facebook_callback():
     try:
         token = req.get('https://graph.facebook.com/v19.0/oauth/access_token',
                         params={'client_id': app_id, 'client_secret': app_secret,
-                                'redirect_uri': redir, 'code': code}).json().get('access_token')
+                                'redirect_uri': redir, 'code': code},
+                        timeout=10).json().get('access_token')
         page       = req.get('https://graph.facebook.com/v19.0/me/accounts',
-                             params={'access_token': token}).json().get('data', [{}])[0]
+                             params={'access_token': token},
+                             timeout=10).json().get('data', [{}])[0]
         page_id    = page.get('id')
         page_token = page.get('access_token', token)
         ig_id      = req.get(f'https://graph.facebook.com/v19.0/{page_id}',
                              params={'fields': 'instagram_business_account',
-                                     'access_token': page_token}).json()\
+                                     'access_token': page_token},
+                             timeout=10).json()\
                         .get('instagram_business_account', {}).get('id')
         uid = _uid()
         save_token('facebook', page_token,
@@ -841,21 +864,23 @@ def auth_facebook_callback():
     )
 
 
-# ── OAUTH: GOOGLE ─────────────────────────────────────────────────────────
+# -- OAUTH: GOOGLE (with state nonce) -------------------------------------
 
 @app.route('/auth/google')
 @login_required
 def auth_google():
-    client_id = os.getenv('GOOGLE_CLIENT_ID')
-    redir     = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/auth/google/callback')
-    scope     = 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/youtube.upload'
+    state     = secrets.token_urlsafe(32)
+    session['oauth_state']    = state
     session['oauth_next']     = request.args.get('next', '/')
     session['oauth_step']     = request.args.get('step', '3')
     session['oauth_platform'] = 'google'
+    client_id = os.getenv('GOOGLE_CLIENT_ID')
+    redir     = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/auth/google/callback')
+    scope     = 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/youtube.upload'
     return redirect(
         f'https://accounts.google.com/o/oauth2/v2/auth'
         f'?client_id={client_id}&redirect_uri={redir}'
-        f'&response_type=code&scope={scope}&access_type=offline'
+        f'&response_type=code&scope={scope}&access_type=offline&state={state}'
     )
 
 
@@ -864,6 +889,10 @@ def auth_google():
 def auth_google_callback():
     import requests as req
     from datetime import datetime, timedelta
+    # Validate OAuth state nonce
+    if request.args.get('state') != session.pop('oauth_state', None):
+        flash('OAuth state mismatch. Please try connecting again.')
+        return redirect(url_for('connect_page'))
     if request.args.get('error'):
         flash('Google connection was cancelled or denied.')
         return redirect(url_for('connect_page'))
@@ -874,14 +903,17 @@ def auth_google_callback():
     try:
         tokens = req.post('https://oauth2.googleapis.com/token',
                           data={'code': code, 'client_id': cid, 'client_secret': csec,
-                                'redirect_uri': redir, 'grant_type': 'authorization_code'}).json()
+                                'redirect_uri': redir, 'grant_type': 'authorization_code'},
+                          timeout=10).json()
         gtoken = tokens.get('access_token')
         rtoken = tokens.get('refresh_token')
         accts  = req.get('https://mybusinessaccountmanagement.googleapis.com/v1/accounts',
-                         headers={'Authorization': f'Bearer {gtoken}'}).json()
+                         headers={'Authorization': f'Bearer {gtoken}'},
+                         timeout=10).json()
         acct   = (accts.get('accounts') or [{}])[0].get('name', '')
         locs   = req.get(f'https://mybusinessbusinessinformation.googleapis.com/v1/{acct}/locations',
-                         headers={'Authorization': f'Bearer {gtoken}'}).json()
+                         headers={'Authorization': f'Bearer {gtoken}'},
+                         timeout=10).json()
         loc_id = (locs.get('locations') or [{}])[0].get('name', '')
         uid = _uid()
         save_token('google', gtoken,
@@ -901,20 +933,22 @@ def auth_google_callback():
     )
 
 
-# ── OAUTH: TIKTOK ─────────────────────────────────────────────────────────
+# -- OAUTH: TIKTOK (with state nonce) -------------------------------------
 
 @app.route('/auth/tiktok')
 @login_required
 def auth_tiktok():
-    client_key = os.getenv('TIKTOK_CLIENT_KEY')
-    redir      = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/auth/tiktok/callback')
-    scope      = 'user.info.basic,video.upload,video.publish'
+    state      = secrets.token_urlsafe(32)
+    session['oauth_state']    = state
     session['oauth_next']     = request.args.get('next', '/')
     session['oauth_step']     = request.args.get('step', '4')
     session['oauth_platform'] = 'tiktok'
+    client_key = os.getenv('TIKTOK_CLIENT_KEY')
+    redir      = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/auth/tiktok/callback')
+    scope      = 'user.info.basic,video.upload,video.publish'
     return redirect(
         f'https://www.tiktok.com/v2/auth/authorize'
-        f'?client_key={client_key}&redirect_uri={redir}&response_type=code&scope={scope}'
+        f'?client_key={client_key}&redirect_uri={redir}&response_type=code&scope={scope}&state={state}'
     )
 
 
@@ -923,6 +957,10 @@ def auth_tiktok():
 def auth_tiktok_callback():
     import requests as req
     from datetime import datetime, timedelta
+    # Validate OAuth state nonce
+    if request.args.get('state') != session.pop('oauth_state', None):
+        flash('OAuth state mismatch. Please try connecting again.')
+        return redirect(url_for('connect_page'))
     if request.args.get('error'):
         flash('TikTok connection was cancelled or denied.')
         return redirect(url_for('connect_page'))
@@ -934,7 +972,8 @@ def auth_tiktok_callback():
         tokens = req.post('https://open.tiktokapis.com/v2/oauth/token/',
                           data={'client_key': ckey, 'client_secret': csec, 'code': code,
                                 'grant_type': 'authorization_code', 'redirect_uri': redir},
-                          headers={'Content-Type': 'application/x-www-form-urlencoded'}).json()
+                          headers={'Content-Type': 'application/x-www-form-urlencoded'},
+                          timeout=10).json()
         tt_token  = tokens.get('access_token')
         tt_rtoken = tokens.get('refresh_token')
         uid = _uid()
@@ -954,7 +993,10 @@ def auth_tiktok_callback():
     )
 
 
-# ── ENTRYPOINT ────────────────────────────────────────────────────────────
+# -- ENTRYPOINT -----------------------------------------------------------
+
+# Start background scheduler (publishes scheduled posts every 60s)
+init_scheduler()
 
 if __name__ == '__main__':
     init_db()

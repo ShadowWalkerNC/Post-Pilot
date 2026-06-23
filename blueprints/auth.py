@@ -1,9 +1,11 @@
 """
 blueprints/auth.py
 Authentication routes: login, register, logout.
-OAuth flows: Facebook, Google, TikTok.
+OAuth flows: Facebook, Google, TikTok, Twitter/X.
 """
 
+import base64
+import hashlib
 import os
 import secrets
 import requests
@@ -84,7 +86,8 @@ def auth_disconnect(pid):
     uid = _uid()
     platform_map = {
         'fb': 'facebook', 'ig': 'instagram',
-        'tt': 'tiktok',   'yt': 'youtube', 'gb': 'google',
+        'tt': 'tiktok',   'yt': 'youtube',
+        'gb': 'google',   'tw': 'twitter',
     }
     platform = platform_map.get(pid)
     if platform:
@@ -285,5 +288,106 @@ def auth_tiktok_callback():
     step     = session.pop('oauth_step', '4')
     return redirect(
         f'/onboarding?connected=tiktok&step={step}'
+        if next_url == '/onboarding' else url_for('pages.home')
+    )
+
+
+# ---------------------------------------------------------------------------
+# OAuth: Twitter / X  (OAuth 2.0 + PKCE)
+# ---------------------------------------------------------------------------
+# Required app settings in developer.twitter.com:
+#   - App type: Web App  (allows client_secret)
+#   - Scopes: tweet.read  tweet.write  users.read  offline.access
+#   - Callback URL: https://<your-domain>/auth/twitter/callback
+# ---------------------------------------------------------------------------
+
+def _twitter_pkce_pair():
+    """Return (code_verifier, code_challenge) for S256 PKCE."""
+    verifier  = secrets.token_urlsafe(64)          # 86 URL-safe chars
+    digest    = hashlib.sha256(verifier.encode()).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+    return verifier, challenge
+
+
+@auth_bp.route('/auth/twitter')
+@login_required
+def auth_twitter():
+    state                           = secrets.token_urlsafe(32)
+    verifier, challenge             = _twitter_pkce_pair()
+    session['oauth_state_twitter']  = state
+    session['twitter_code_verifier'] = verifier
+    session['oauth_next']           = request.args.get('next', '/')
+    session['oauth_step']           = request.args.get('step', '5')
+    client_id = os.getenv('TWITTER_CLIENT_ID')
+    redir     = os.getenv('TWITTER_REDIRECT_URI', 'http://localhost:5000/auth/twitter/callback')
+    scopes    = 'tweet.read%20tweet.write%20users.read%20offline.access'
+    return redirect(
+        f'https://twitter.com/i/oauth2/authorize'
+        f'?response_type=code'
+        f'&client_id={client_id}'
+        f'&redirect_uri={redir}'
+        f'&scope={scopes}'
+        f'&state={state}'
+        f'&code_challenge={challenge}'
+        f'&code_challenge_method=S256'
+    )
+
+
+@auth_bp.route('/auth/twitter/callback')
+@login_required
+def auth_twitter_callback():
+    from flask import current_app
+    if request.args.get('state') != session.pop('oauth_state_twitter', None):
+        flash('OAuth state mismatch. Please try connecting again.')
+        return redirect(url_for('pages.connect_page'))
+    if request.args.get('error'):
+        flash('Twitter / X connection was cancelled or denied.')
+        return redirect(url_for('pages.connect_page'))
+    code     = request.args.get('code')
+    verifier = session.pop('twitter_code_verifier', '')
+    cid      = os.getenv('TWITTER_CLIENT_ID')
+    csec     = os.getenv('TWITTER_CLIENT_SECRET')
+    redir    = os.getenv('TWITTER_REDIRECT_URI', 'http://localhost:5000/auth/twitter/callback')
+    try:
+        token_resp = requests.post(
+            'https://api.twitter.com/2/oauth2/token',
+            data={
+                'code':           code,
+                'grant_type':     'authorization_code',
+                'redirect_uri':   redir,
+                'code_verifier':  verifier,
+            },
+            auth=(cid, csec),
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            timeout=10,
+        ).json()
+        access_token  = token_resp.get('access_token')
+        refresh_token = token_resp.get('refresh_token')
+        expires_in    = token_resp.get('expires_in', 7200)
+
+        # Fetch authenticated user info
+        me = requests.get(
+            'https://api.twitter.com/2/users/me',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10,
+        ).json().get('data', {})
+
+        save_token(
+            'twitter',
+            access_token,
+            refresh_token=refresh_token,
+            expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+            meta={'user_id': me.get('id'), 'username': me.get('username')},
+            user_id=_uid(),
+        )
+    except Exception:
+        current_app.logger.exception('Twitter OAuth callback failed')
+        flash('Twitter / X connection failed. Please try again.')
+        return redirect(url_for('pages.connect_page'))
+
+    next_url = session.pop('oauth_next', '/')
+    step     = session.pop('oauth_step', '5')
+    return redirect(
+        f'/onboarding?connected=twitter&step={step}'
         if next_url == '/onboarding' else url_for('pages.home')
     )

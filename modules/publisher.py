@@ -49,6 +49,9 @@ ROUTING_RULES: Dict[str, list] = {
     'update': ['fb', 'li', 'tw', 'gb', 'web'],
 }
 
+# Twitter hard character limit
+TWITTER_MAX_CHARS = 280
+
 
 class UniversalPublisher:
 
@@ -72,20 +75,6 @@ class UniversalPublisher:
         web_data:      Optional[Dict]    = None,
         captions:      Optional[Dict]    = None,   # Option B: {platform_key: text}
     ) -> Dict:
-        """
-        Publish to all requested platforms.
-
-        Args:
-            caption:      Single caption string used for all platforms.
-                          Used as fallback when captions dict is missing a key.
-            captions:     Per-platform caption dict {platform_key: text}.
-                          When provided, each platform gets its own text.
-                          Falls back to caption string for any missing key.
-            content_type: Used for smart routing when platforms not specified.
-            platforms:    Dict {key: bool} or list of platform keys/names.
-                          If None, auto-selected from ROUTING_RULES.
-            (other args as before)
-        """
         # Normalise platforms → {short_key: bool} dict
         if platforms is None:
             auto      = ROUTING_RULES.get(content_type, ['fb', 'web'])
@@ -150,10 +139,6 @@ class UniversalPublisher:
         fallback: Optional[str],
         platform: str,
     ) -> str:
-        """
-        Return the per-platform caption if available, else fall back
-        to the master caption string.
-        """
         if captions and platform in captions:
             return captions[platform]
         return fallback or ''
@@ -260,7 +245,7 @@ class UniversalPublisher:
             return {'success': False, 'error': str(e)}
 
     # ------------------------------------------------------------------
-    # YouTube Shorts (reuses YouTubeClient, adds #Shorts tag)
+    # YouTube Shorts
     # ------------------------------------------------------------------
 
     def _handle_youtube_shorts(self, caption, video_url):
@@ -358,19 +343,98 @@ class UniversalPublisher:
         token = self.tokens.get('linkedin_token')
         if not token:
             return {'success': False, 'error': 'LinkedIn not connected — connect in Settings'}
-        # Full LinkedIn client coming in Phase 3
         return {'success': False, 'error': 'LinkedIn publishing not yet implemented — coming soon'}
 
     # ------------------------------------------------------------------
-    # Twitter / X (stub — OAuth client built in Phase 4)
+    # Twitter / X
     # ------------------------------------------------------------------
 
     def _publish_twitter(self, caption, image_url=None):
         token = self.tokens.get('twitter_token')
         if not token:
             return {'success': False, 'error': 'Twitter / X not connected — connect in Settings'}
-        # Full Twitter client coming in Phase 4
-        return {'success': False, 'error': 'Twitter publishing not yet implemented — coming soon'}
+
+        headers = {
+            'Authorization': f'Bearer {token}',
+            'Content-Type':  'application/json',
+        }
+
+        # Enforce 280-char hard limit
+        tweet_text = caption if len(caption) <= TWITTER_MAX_CHARS else caption[:277] + '…'
+
+        try:
+            media_id = None
+            if image_url:
+                # Upload image via v1.1 media/upload (INIT + APPEND + FINALIZE)
+                img_resp = requests.get(image_url, timeout=15)
+                img_resp.raise_for_status()
+                media_bytes  = img_resp.content
+                total_bytes  = len(media_bytes)
+                media_type   = img_resp.headers.get('Content-Type', 'image/jpeg')
+
+                # INIT
+                init = requests.post(
+                    'https://upload.twitter.com/1.1/media/upload.json',
+                    headers={'Authorization': f'Bearer {token}'},
+                    data={
+                        'command':      'INIT',
+                        'total_bytes':  total_bytes,
+                        'media_type':   media_type,
+                        'media_category': 'tweet_image',
+                    },
+                    timeout=10,
+                ).json()
+                media_id = init.get('media_id_string')
+                if not media_id:
+                    return {'success': False, 'error': f'Twitter media INIT failed: {init}'}
+
+                # APPEND
+                requests.post(
+                    'https://upload.twitter.com/1.1/media/upload.json',
+                    headers={'Authorization': f'Bearer {token}'},
+                    data={'command': 'APPEND', 'media_id': media_id, 'segment_index': 0},
+                    files={'media': media_bytes},
+                    timeout=30,
+                )
+
+                # FINALIZE
+                fin = requests.post(
+                    'https://upload.twitter.com/1.1/media/upload.json',
+                    headers={'Authorization': f'Bearer {token}'},
+                    data={'command': 'FINALIZE', 'media_id': media_id},
+                    timeout=10,
+                ).json()
+                if fin.get('error'):
+                    return {'success': False, 'error': f'Twitter media FINALIZE failed: {fin["error"]}'}
+
+            # Post the tweet
+            payload = {'text': tweet_text}
+            if media_id:
+                payload['media'] = {'media_ids': [media_id]}
+
+            r = requests.post(
+                'https://api.twitter.com/2/tweets',
+                json=payload,
+                headers=headers,
+                timeout=10,
+            )
+            d = r.json()
+            if r.status_code in (200, 201):
+                tweet_id = d.get('data', {}).get('id')
+                username = self.tokens.get('twitter_username', '')
+                return {
+                    'success':  True,
+                    'message':  'Tweet posted',
+                    'tweet_id': tweet_id,
+                    'url':      f'https://twitter.com/{username}/status/{tweet_id}' if username else None,
+                }
+            return {
+                'success': False,
+                'error':   d.get('detail') or d.get('title') or 'Tweet failed',
+                'raw':     d,
+            }
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
 
     # ------------------------------------------------------------------
     # Pinterest (stub — OAuth client built in Phase 5)
@@ -380,7 +444,6 @@ class UniversalPublisher:
         token = self.tokens.get('pinterest_token')
         if not token:
             return {'success': False, 'error': 'Pinterest not connected — connect in Settings'}
-        # Full Pinterest client coming in Phase 5
         return {'success': False, 'error': 'Pinterest publishing not yet implemented — coming soon'}
 
     # ------------------------------------------------------------------

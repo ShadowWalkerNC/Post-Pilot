@@ -9,9 +9,15 @@ import os
 
 # Set env before any app imports
 os.environ.setdefault('DATABASE_URL', '')
-os.environ.setdefault('DATABASE_PATH', ':memory:')
+os.environ.setdefault('DATABASE_PATH', 'test_postpilot.db')
+try:
+    if os.path.exists('test_postpilot.db'):
+        os.remove('test_postpilot.db')
+except Exception:
+    pass
 os.environ.setdefault('FLASK_SECRET_KEY', 'test-secret-key-for-ci-only')
-os.environ.setdefault('TOKEN_ENCRYPTION_KEY', 'dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktb25seQ==')
+os.environ.setdefault('TOKEN_ENCRYPTION_KEY', 'nZeXTE9lxj2Vt5nUWGvfeVacq9+sz5XPLBuiA9wqjy4=')
+
 os.environ.setdefault('FLASK_ENV', 'testing')
 os.environ.setdefault('OPENAI_API_KEY', 'dummy')
 os.environ.setdefault('STRIPE_SECRET_KEY', 'dummy')
@@ -36,6 +42,14 @@ def app():
     with flask_app.app.app_context():
         flask_app.init_db()
     yield flask_app.app
+    try:
+        import gc
+        gc.collect() # Force release of any open file handles
+        if os.path.exists('test_postpilot.db'):
+            os.remove('test_postpilot.db')
+    except Exception:
+        pass
+
 
 
 @pytest.fixture()

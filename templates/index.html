@@ -4,19 +4,30 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Post-Pilot — Automated Social Media for Food Trucks & Restaurants</title>
-  <meta name="description" content="Post-Pilot generates and schedules social media posts automatically for food trucks, restaurants, cafes, and hotels. AI-powered. Connects to 6 platforms via API." />
+  <meta name="description" content="Post-Pilot generates and publishes social media posts automatically for food trucks, restaurants, cafes, and hotels. 7 platforms. AI-powered. No design skills needed." />
   <meta name="keywords" content="social media automation, food truck marketing, restaurant social media, auto post facebook instagram tiktok" />
   <meta property="og:title" content="Post-Pilot — Automated Social Media" />
-  <meta property="og:description" content="Generate & schedule 7 days of posts in one click. Built for food trucks, restaurants, cafes & hotels." />
+  <meta property="og:description" content="Generate & publish 7 days of posts in one click. Built for food trucks, restaurants, cafes & hotels." />
   <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
           colors: {
-            brand: { 50:'#eef2ff', 100:'#e0e7ff', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca' },
-            flame: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' }
+            brand: {
+              50:  '#eef2ff', 100: '#e0e7ff',
+              400: '#818cf8', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca'
+            },
+            flame: {
+              400: '#fb923c', 500: '#f97316', 600: '#ea580c'
+            }
           },
           animation: {
             'fade-up':   'fadeUp .7s cubic-bezier(.16,1,.3,1) both',
@@ -25,10 +36,10 @@
             'pulse-dot': 'pulseDot 2s ease-in-out infinite',
           },
           keyframes: {
-            fadeUp:   { '0%': { opacity:0, transform:'translateY(32px)' }, '100%': { opacity:1, transform:'translateY(0)' } },
-            fadeIn:   { '0%': { opacity:0 }, '100%': { opacity:1 } },
-            float:    { '0%,100%': { transform:'translateY(0px)' }, '50%': { transform:'translateY(-12px)' } },
-            pulseDot: { '0%,100%': { opacity:1, transform:'scale(1)' }, '50%': { opacity:.5, transform:'scale(1.4)' } },
+            fadeUp:   { '0%': { opacity: 0, transform: 'translateY(32px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+            fadeIn:   { '0%': { opacity: 0 }, '100%': { opacity: 1 } },
+            float:    { '0%,100%': { transform: 'translateY(0px)' }, '50%': { transform: 'translateY(-12px)' } },
+            pulseDot: { '0%,100%': { opacity: 1, transform: 'scale(1)' }, '50%': { opacity: .5, transform: 'scale(1.4)' } },
           }
         }
       }
@@ -36,194 +47,204 @@
   </script>
   <style>
     html { scroll-behavior: smooth; }
+    body { font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif; }
+
+    /* ── Backgrounds ── */
     .hero-bg {
       background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.35) 0%, transparent 70%),
-                  radial-gradient(ellipse 50% 40% at 80% 60%, rgba(249,115,22,.12) 0%, transparent 60%), #07071a;
+                  radial-gradient(ellipse 50% 40% at 80% 60%, rgba(249,115,22,.12) 0%, transparent 60%),
+                  #07071a;
     }
     .section-alt { background: #0d0d24; }
-    .gradient-text { background:linear-gradient(100deg,#818cf8 0%,#c084fc 45%,#fb923c 100%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .gradient-text-warm { background:linear-gradient(90deg,#fb923c,#f472b6); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .gradient-text-green { background:linear-gradient(90deg,#10b981,#34d399); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    .card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); transition:transform .25s,box-shadow .25s,border-color .25s; }
-    .card:hover { transform:translateY(-5px); box-shadow:0 24px 48px rgba(99,102,241,.12); border-color:rgba(99,102,241,.3); }
-    .card-flame:hover { box-shadow:0 24px 48px rgba(249,115,22,.12); border-color:rgba(249,115,22,.3); }
-    .orb { position:absolute; border-radius:9999px; filter:blur(80px); pointer-events:none; }
-    .dash-sparkline { fill:none; stroke-width:2; }
-    @keyframes marquee { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-    .tier-popular { box-shadow:0 0 0 2px #6366f1,0 24px 48px rgba(99,102,241,.25); background:rgba(99,102,241,.08) !important; }
-    .faq-answer { max-height:0; overflow:hidden; transition:max-height .35s ease,padding .35s ease; }
-    .faq-open .faq-answer { max-height:400px; }
-    .faq-open .faq-chevron { transform:rotate(180deg); }
-    .faq-chevron { transition:transform .3s; }
-    body::before { content:''; position:fixed; inset:0; z-index:0; pointer-events:none; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); opacity:.4; }
-    .platform-tile { display:flex; flex-direction:column; align-items:center; gap:.45rem; padding:.9rem .75rem; border-radius:.875rem; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); transition:border-color .2s,background .2s; width:100%; }
-    .platform-tile:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); }
-    .platform-tile svg { width:1.75rem; height:1.75rem; flex-shrink:0; }
-    .platform-tile .pt-name { font-size:.72rem; font-weight:700; color:#94a3b8; text-align:center; line-height:1.2; }
-    .platform-tile .pt-how  { font-size:.6rem; color:#475569; letter-spacing:.03em; text-align:center; line-height:1.2; }
-    .hub-step { display:flex; gap:1rem; align-items:flex-start; }
-    .hub-step-num { flex-shrink:0; width:2rem; height:2rem; border-radius:9999px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:800; background:rgba(16,185,129,.15); border:1px solid rgba(16,185,129,.3); color:#34d399; }
-    .hub-connector { width:2rem; flex-shrink:0; display:flex; justify-content:center; }
-    .hub-connector-line { width:2px; background:linear-gradient(to bottom,rgba(16,185,129,.3),rgba(16,185,129,.05)); flex:1; margin:.25rem 0; }
-    .code-block { font-family:'Courier New',monospace; font-size:.72rem; line-height:1.6; background:rgba(0,0,0,.4); border:1px solid rgba(16,185,129,.15); border-radius:1rem; padding:1.25rem 1.5rem; color:#86efac; overflow-x:auto; }
-    .code-block .kw { color:#818cf8; } .code-block .at { color:#fb923c; } .code-block .val { color:#34d399; } .code-block .cm { color:#374151; } .code-block .tg { color:#c084fc; }
-    /* Mobile nav drawer */
-    #mobile-menu { transform:translateX(100%); transition:transform .3s cubic-bezier(.16,1,.3,1); }
-    #mobile-menu.open { transform:translateX(0); }
+
+    /* ── Typography ── */
+    .gradient-text {
+      background: linear-gradient(100deg, #818cf8 0%, #c084fc 45%, #fb923c 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .gradient-text-warm {
+      background: linear-gradient(90deg, #fb923c, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.07);
+      transition: transform .25s, box-shadow .25s, border-color .25s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 24px 48px rgba(99,102,241,.12);
+      border-color: rgba(99,102,241,.3);
+    }
+    .card-flame:hover {
+      box-shadow: 0 24px 48px rgba(249,115,22,.12);
+      border-color: rgba(249,115,22,.3);
+    }
+
+    /* ── Glow orbs ── */
+    .orb {
+      position: absolute; border-radius: 9999px;
+      filter: blur(80px); pointer-events: none;
+    }
+
+    /* ── Dashboard mockup ── */
+    .dash-bar { height: 6px; border-radius: 99px; }
+    .dash-sparkline { fill: none; stroke-width: 2; }
+
+    /* ── Platform marquee ── */
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .marquee-track { animation: marquee 28s linear infinite; }
+    .marquee-track:hover { animation-play-state: paused; }
+
+    /* ── Tier highlight ── */
+    .tier-popular {
+      box-shadow: 0 0 0 2px #6366f1, 0 24px 48px rgba(99,102,241,.25);
+      background: rgba(99,102,241,.08) !important;
+    }
+
+    /* ── FAQ ── */
+    .faq-answer { max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .35s ease; }
+    .faq-open .faq-answer { max-height: 400px; }
+    .faq-open .faq-chevron { transform: rotate(180deg); }
+    .faq-chevron { transition: transform .3s; }
+
+    /* ── Noise texture overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      opacity: .4;
+    }
   </style>
 </head>
 <body class="bg-[#07071a] text-white antialiased">
 
-<!-- NAV -->
+<!-- ═══════════════════════════ NAV ═══════════════════════════ -->
 <nav id="navbar" class="fixed top-0 inset-x-0 z-50 transition-all duration-300">
-  <div class="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+    <!-- Logo -->
     <a href="/" class="flex items-center gap-2.5 font-black text-lg tracking-tight">
-      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base font-bold"
+           style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
       <span>Post<span class="text-brand-400">-</span>Pilot</span>
     </a>
-
-    <!-- Desktop links -->
+    <!-- Links -->
     <div class="hidden md:flex items-center gap-8 text-sm text-gray-400">
-      <a href="#how"         class="hover:text-white transition-colors">How It Works</a>
-      <a href="#platforms"   class="hover:text-white transition-colors">Platforms</a>
-      <a href="#website-hub" class="hover:text-white transition-colors">Website Hub</a>
-      <a href="#pricing"     class="hover:text-white transition-colors">Pricing</a>
-      <a href="#faq"         class="hover:text-white transition-colors">FAQ</a>
+      <a href="#how"       class="hover:text-white transition-colors">How It Works</a>
+      <a href="#platforms" class="hover:text-white transition-colors">Platforms</a>
+      <a href="#pricing"   class="hover:text-white transition-colors">Pricing</a>
+      <a href="#faq"       class="hover:text-white transition-colors">FAQ</a>
     </div>
-
+    <!-- Actions -->
     <div class="flex items-center gap-3">
       <a href="/login"    class="text-sm text-gray-400 hover:text-white transition px-3 py-1.5 hidden sm:block">Sign In</a>
-      <a href="/register" class="text-sm px-4 py-2 rounded-lg font-semibold transition text-white hidden sm:block"
-         style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.4)">Start Free →</a>
-      <!-- Hamburger (mobile only) -->
-      <button id="nav-toggle" class="md:hidden flex flex-col justify-center items-center w-9 h-9 rounded-lg gap-1.5"
-              style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)" aria-label="Open menu" onclick="toggleMobileNav()">
-        <span class="ham-bar block w-5 h-0.5 bg-white rounded transition-all duration-300"></span>
-        <span class="ham-bar block w-5 h-0.5 bg-white rounded transition-all duration-300"></span>
-        <span class="ham-bar block w-5 h-0.5 bg-white rounded transition-all duration-300"></span>
-      </button>
+      <a href="/register" class="text-sm px-4 py-2 rounded-lg font-semibold transition text-white"
+         style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.4)">
+        Start Free →
+      </a>
     </div>
   </div>
 </nav>
 
-<!-- MOBILE DRAWER -->
-<div id="mobile-menu" class="fixed top-0 right-0 bottom-0 w-72 z-[60] flex flex-col pt-20 pb-8 px-6"
-     style="background:#0d0d24;border-left:1px solid rgba(255,255,255,.07)">
-  <button onclick="toggleMobileNav()" class="absolute top-4 right-5 text-gray-400 hover:text-white" aria-label="Close menu">
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-  </button>
-  <nav class="flex flex-col gap-1 flex-1">
-    <a href="#how"         onclick="toggleMobileNav()" class="px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition font-medium">How It Works</a>
-    <a href="#platforms"   onclick="toggleMobileNav()" class="px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition font-medium">Platforms</a>
-    <a href="#website-hub" onclick="toggleMobileNav()" class="px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition font-medium">Website Hub</a>
-    <a href="#pricing"     onclick="toggleMobileNav()" class="px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition font-medium">Pricing</a>
-    <a href="#faq"         onclick="toggleMobileNav()" class="px-4 py-3 rounded-xl text-gray-300 hover:text-white hover:bg-white/5 transition font-medium">FAQ</a>
-  </nav>
-  <div class="flex flex-col gap-3 mt-4">
-    <a href="/login"    class="text-center py-3 rounded-xl font-semibold text-sm text-gray-300 transition" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">Sign In</a>
-    <a href="/register" class="text-center py-3 rounded-xl font-bold text-sm text-white transition" style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.4)">Start Free →</a>
-  </div>
-</div>
-<!-- Backdrop -->
-<div id="mobile-backdrop" class="fixed inset-0 z-[55] bg-black/60 hidden" onclick="toggleMobileNav()"></div>
+<!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+<section class="hero-bg relative min-h-screen flex flex-col items-center justify-center text-center px-6 pt-28 pb-20 overflow-hidden">
 
-<!-- HERO -->
-<section class="hero-bg relative min-h-screen flex flex-col items-center justify-center text-center px-5 pt-24 pb-16 overflow-hidden">
+  <!-- Orb accents -->
   <div class="orb w-[700px] h-[700px] bg-brand-600/20 top-[-200px] left-1/2 -translate-x-1/2"></div>
   <div class="orb w-[400px] h-[400px] bg-flame-500/10 bottom-0 right-[-100px]"></div>
+
+  <!-- Food photo strip (decorative) -->
   <div class="absolute inset-0 overflow-hidden pointer-events-none opacity-[0.06]">
-    <img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1600&auto=format&fit=crop" alt="" class="w-full h-full object-cover scale-110" loading="lazy" />
+    <img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=1600&auto=format&fit=crop"
+         alt="" class="w-full h-full object-cover scale-110" loading="lazy" />
   </div>
-  <div class="relative z-10 max-w-4xl mx-auto w-full">
-    <div class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs sm:text-sm text-brand-300 mb-6 sm:mb-8 animate-fade-in"
+
+  <div class="relative z-10 max-w-4xl mx-auto">
+
+    <!-- Live badge -->
+    <div class="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-brand-300 mb-8 animate-fade-in"
          style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25)">
-      <span class="w-2 h-2 bg-green-400 rounded-full flex-shrink-0 animate-pulse-dot"></span>
-      <span>AI-powered · 6 platforms · Zero design skills</span>
+      <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse-dot"></span>
+      AI-powered &nbsp;·&nbsp; 6 platforms &nbsp;·&nbsp; Zero design skills needed
     </div>
-    <h1 class="text-4xl sm:text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mb-5 sm:mb-6 animate-fade-up">
+
+    <!-- Headline -->
+    <h1 class="text-5xl md:text-7xl font-black leading-[1.05] tracking-tight mb-6 animate-fade-up">
       Your restaurant's social media,<br/>
       <span class="gradient-text">on autopilot.</span>
     </h1>
-    <p class="text-base sm:text-xl text-gray-400 max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed animate-fade-up" style="animation-delay:.1s">
-      Post-Pilot writes and schedules content, then pushes it to Facebook, Instagram,
-      TikTok, YouTube, Google Business, and your existing website — via direct API connections.
+
+    <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed animate-fade-up" style="animation-delay:.1s">
+      Post-Pilot writes, schedules, and publishes across Facebook, Instagram,
+      TikTok, YouTube, Google Business &amp; your website — every single day.
     </p>
-    <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center animate-fade-up" style="animation-delay:.2s">
-      <a href="/register" class="px-8 py-4 rounded-xl font-bold text-base sm:text-lg transition text-white"
-         style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 28px rgba(99,102,241,.45)">Start for Free →</a>
-      <a href="#how" class="px-8 py-4 rounded-xl font-medium text-base sm:text-lg transition text-white"
-         style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">See How It Works</a>
+
+    <!-- CTAs -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style="animation-delay:.2s">
+      <a href="/register"
+         class="px-9 py-4 rounded-xl font-bold text-lg transition text-white"
+         style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 28px rgba(99,102,241,.45)">
+        Start for Free →
+      </a>
+      <a href="#how"
+         class="px-9 py-4 rounded-xl font-medium text-lg transition text-white"
+         style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">
+        See How It Works
+      </a>
     </div>
-    <p class="text-xs sm:text-sm text-gray-600 mt-4">No credit card required · Free plan forever · Setup in 2 minutes</p>
+    <p class="text-sm text-gray-600 mt-4">No credit card required &nbsp;·&nbsp; Free plan forever &nbsp;·&nbsp; Setup in 2 minutes</p>
 
-    <div class="mt-10 sm:mt-16 animate-fade-up" style="animation-delay:.35s">
-      <!-- MOBILE compact preview -->
-      <div class="md:hidden rounded-2xl overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,.6)]"
-           style="background:rgba(13,13,36,.95);border:1px solid rgba(255,255,255,.08)">
-        <div class="flex items-center gap-2 px-4 py-3 border-b border-white/5" style="background:rgba(255,255,255,.02)">
-          <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div>
-          <div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div>
-          <div class="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
-          <span class="ml-3 text-xs text-gray-500 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse"></span>app.postpilot.io/dashboard
-          </span>
-        </div>
-        <div class="p-4 grid grid-cols-3 gap-3 text-center">
-          <div class="rounded-xl p-3" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
-            <div class="text-2xl font-black">7</div>
-            <div class="text-xs text-gray-400 mt-0.5">Posts / week</div>
-            <div class="text-xs text-green-400 mt-1 font-semibold">● Live</div>
-          </div>
-          <div class="rounded-xl p-3" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.18)">
-            <div class="text-2xl font-black">6</div>
-            <div class="text-xs text-gray-400 mt-0.5">Platforms</div>
-            <div class="text-xs text-flame-400 mt-1 font-semibold">Connected</div>
-          </div>
-          <div class="rounded-xl p-3" style="background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.15)">
-            <div class="text-2xl font-black">2.8K</div>
-            <div class="text-xs text-gray-400 mt-0.5">Reach</div>
-            <div class="text-xs text-green-400 mt-1 font-semibold">↑ +34%</div>
-          </div>
-        </div>
-        <div class="px-4 pb-4">
-          <div class="rounded-xl p-3 text-left" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)">
-            <div class="text-xs text-gray-500 mb-1">Latest post · 2h ago</div>
-            <div class="text-xs text-white leading-relaxed">"🔥 Brisket Tacos are BACK this Friday! Come find us at Oak St. 11am–3pm…"</div>
-            <div class="flex gap-1.5 mt-2">
-              <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-600">FB</span>
-              <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-pink-600">IG</span>
-              <span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-700">TT</span>
-            </div>
-          </div>
-        </div>
-        <div class="px-4 py-2.5 border-t border-white/5 text-xs text-gray-600" style="background:rgba(255,255,255,.01)">Next post: Thu 12:00 PM · TikTok + Instagram</div>
-      </div>
-
-      <!-- DESKTOP full mock browser -->
-      <div class="hidden md:block rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)] animate-float"
+    <!-- ── Dashboard Mockup ── -->
+    <div class="mt-16 animate-fade-up animate-float" style="animation-delay:.35s">
+      <div class="rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)]"
            style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(20px)">
-        <div class="flex items-center gap-2 px-5 py-3.5 border-b border-white/5" style="background:rgba(255,255,255,.02)">
+
+        <!-- Window chrome -->
+        <div class="flex items-center gap-2 px-5 py-3.5 border-b border-white/5"
+             style="background:rgba(255,255,255,.02)">
           <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
           <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
           <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
           <span class="ml-4 text-xs text-gray-500 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-green-400 inline-block animate-pulse"></span>app.postpilot.io/dashboard
+            <span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+            app.postpilot.io/dashboard
           </span>
         </div>
+
+        <!-- Dashboard content -->
         <div class="p-6 grid md:grid-cols-3 gap-5 text-left">
+
+          <!-- Card 1: This week -->
           <div class="rounded-xl p-4" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)">
-            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">This Week</span><span class="text-xs text-green-400 font-semibold">● Live</span></div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-brand-400 uppercase tracking-wider">This Week</span>
+              <span class="text-xs text-green-400 font-semibold">● Live</span>
+            </div>
             <div class="text-3xl font-black mb-1">7</div>
             <div class="text-sm text-gray-400">Posts scheduled</div>
             <div class="mt-4 space-y-2">
               {% for day, pct, col in [('Mon','100','bg-brand-500'),('Tue','100','bg-brand-500'),('Wed','100','bg-brand-500'),('Thu','75','bg-flame-500'),('Fri','0','bg-gray-700')] %}
-              <div class="flex items-center gap-2 text-xs"><span class="w-6 text-gray-500">{{ day }}</span><div class="flex-1 h-1.5 rounded-full bg-gray-800"><div class="h-1.5 rounded-full {{ col }}" style="width:{{ pct }}%"></div></div></div>
+              <div class="flex items-center gap-2 text-xs">
+                <span class="w-6 text-gray-500">{{ day }}</span>
+                <div class="flex-1 h-1.5 rounded-full bg-gray-800">
+                  <div class="h-1.5 rounded-full {{ col }}" style="width:{{ pct }}%"></div>
+                </div>
+              </div>
               {% endfor %}
             </div>
           </div>
+
+          <!-- Card 2: Latest post -->
           <div class="rounded-xl p-4" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.18)">
-            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-flame-400 uppercase tracking-wider">Latest Post</span><span class="text-xs text-gray-500">2h ago</span></div>
-            <div class="text-sm font-semibold text-white mb-2 leading-snug">"🔥 Brisket Tacos are BACK this Friday! Come find us at Oak St. 11am–3pm…"</div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-flame-400 uppercase tracking-wider">Latest Post</span>
+              <span class="text-xs text-gray-500">2h ago</span>
+            </div>
+            <div class="text-sm font-semibold text-white mb-2 leading-snug">
+              "🔥 Brisket Tacos are BACK this Friday! Come find us at Oak St. 11am–3pm…"
+            </div>
             <div class="flex gap-1.5 flex-wrap mt-3">
               {% for p, c in [('FB','bg-blue-600'),('IG','bg-pink-600'),('TT','bg-gray-700')] %}
               <span class="text-xs px-2 py-0.5 rounded-full font-bold {{ c }}">{{ p }}</span>
@@ -231,21 +252,425 @@
             </div>
             <div class="mt-4 grid grid-cols-3 gap-2 text-center">
               {% for label, val in [('Reach','1,240'),('Likes','87'),('Comments','14')] %}
-              <div><div class="text-base font-black text-white">{{ val }}</div><div class="text-xs text-gray-500">{{ label }}</div></div>
+              <div>
+                <div class="text-base font-black text-white">{{ val }}</div>
+                <div class="text-xs text-gray-500">{{ label }}</div>
+              </div>
               {% endfor %}
             </div>
           </div>
+
+          <!-- Card 3: Analytics -->
           <div class="rounded-xl p-4" style="background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.15)">
-            <div class="flex items-center justify-between mb-3"><span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Growth</span><span class="text-xs text-green-400 font-semibold">↑ +34%</span></div>
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Growth</span>
+              <span class="text-xs text-green-400 font-semibold">↑ +34%</span>
+            </div>
             <div class="text-3xl font-black mb-1">2,847</div>
             <div class="text-sm text-gray-400">Total reach this week</div>
+            <!-- Mini sparkline SVG -->
             <svg class="w-full mt-4" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
-              <defs><linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c084fc" stop-opacity=".3"/><stop offset="100%" stop-color="#c084fc" stop-opacity="0"/></linearGradient></defs>
+              <defs>
+                <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#c084fc" stop-opacity=".3"/>
+                  <stop offset="100%" stop-color="#c084fc" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
               <path d="M0 35 L28 30 L56 28 L84 22 L112 18 L140 12 L168 8 L200 3" class="dash-sparkline" stroke="#c084fc"/>
               <path d="M0 35 L28 30 L56 28 L84 22 L112 18 L140 12 L168 8 L200 3 L200 40 L0 40Z" fill="url(#sg)"/>
             </svg>
-            <div class="flex justify-between text-xs text-gray-600 mt-1"><span>Mon</span><span>Wed</span><span>Fri</span><span>Today</span></div>
+            <div class="flex justify-between text-xs text-gray-600 mt-1">
+              <span>Mon</span><span>Wed</span><span>Fri</span><span>Today</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom status bar -->
+        <div class="px-6 py-3 border-t border-white/5 flex items-center justify-between text-xs text-gray-600"
+             style="background:rgba(255,255,255,.01)">
+          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>All platforms connected</span>
+          <span>Next post: Thu 12:00 PM · TikTok + Instagram</span>
+        </div>
+      </div>
+    </div>
+    <!-- End mockup -->
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════ PLATFORM STRIP ═══════════════════════════ -->
+<section id="platforms" class="py-14 overflow-hidden border-y" style="background:#0a0a20;border-color:rgba(255,255,255,.04)">
+  <p class="text-center text-xs font-semibold text-gray-600 uppercase tracking-widest mb-8">Publishes directly to</p>
+  <div class="flex overflow-hidden">
+    <div class="marquee-track flex gap-14 items-center whitespace-nowrap px-6">
+      {% for name, color, icon in [
+        ('Facebook',        '#1877F2', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/></svg>'),
+        ('Instagram',       'url(#ig)', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'),
+        ('TikTok',          '#010101', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/></svg>'),
+        ('YouTube',         '#FF0000', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>'),
+        ('Google Business', '#4285F4', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'),
+        ('Your Website',    '#10b981', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'),
+      ] %}
+      <div class="flex items-center gap-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-colors group">
+        <span class="w-6 h-6 opacity-70 group-hover:opacity-100 transition-opacity" style="color:{{ color }}">
+          {{ icon }}
+        </span>
+        {{ name }}
+      </div>
+      {% endfor %}
+      <!-- Duplicate for seamless loop -->
+      {% for name, color, icon in [
+        ('Facebook',        '#1877F2', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.41 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.04V9.41c0-3.03 1.8-4.7 4.54-4.7 1.31 0 2.68.24 2.68.24v2.97h-1.5c-1.5 0-1.96.93-1.96 1.89v2.26h3.32l-.53 3.5h-2.8V24C19.62 23.1 24 18.1 24 12.07z"/></svg>'),
+        ('Instagram',       '#E1306C', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'),
+        ('TikTok',          '#69C9D0', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.18 8.18 0 004.78 1.52V6.74a4.85 4.85 0 01-1.01-.05z"/></svg>'),
+        ('YouTube',         '#FF0000', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>'),
+        ('Google Business', '#4285F4', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>'),
+        ('Your Website',    '#10b981', '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>'),
+      ] %}
+      <div class="flex items-center gap-2.5 text-sm font-semibold text-gray-300 hover:text-white transition-colors group">
+        <span class="w-6 h-6 opacity-70 group-hover:opacity-100 transition-opacity" style="color:{{ color }}">
+          {{ icon }}
+        </span>
+        {{ name }}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ SOCIAL PROOF STATS ═══════════════════════════ -->
+<section class="py-20 px-6" style="background:#07071a">
+  <div class="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+    {% for val, label, sub in [
+      ('500+',  'Businesses',       'food trucks to hotel groups'),
+      ('6',     'Platforms',        'all major social channels'),
+      ('50K+',  'Posts Published',  'and counting'),
+      ('4.9★',  'Average Rating',   'from real business owners'),
+    ] %}
+    <div>
+      <div class="text-4xl md:text-5xl font-black gradient-text mb-1">{{ val }}</div>
+      <div class="text-white font-semibold text-sm">{{ label }}</div>
+      <div class="text-gray-600 text-xs mt-1">{{ sub }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+<section id="how" class="py-24 px-6 section-alt">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-xs font-semibold text-flame-400 uppercase tracking-widest mb-3">Simple process</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">Up and running in <span class="gradient-text">3 steps</span></h2>
+      <p class="text-gray-400 text-lg">No agency. No designer. No stress.</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      {% for num, emoji, title, desc in [
+        ('01', '🏪', 'Tell us about your business',
+         'Business type, name, location, brand voice, and which platforms you want. Takes 2 minutes.'),
+        ('02', '🤖', 'AI writes your posts',
+         '7 days of platform-specific captions, hashtags, and optimal posting times — generated instantly.'),
+        ('03', '🚀', 'Posts go live automatically',
+         'Facebook, Instagram, TikTok, YouTube, Google Business, and your website — all hands-free.'),
+      ] %}
+      <div class="card card-flame rounded-2xl p-8 relative overflow-hidden">
+        <div class="absolute top-4 right-5 text-6xl font-black opacity-5 select-none">{{ num }}</div>
+        <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mb-5"
+             style="background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.2)">{{ emoji }}</div>
+        <h3 class="text-lg font-bold mb-2">{{ title }}</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FEATURES ═══════════════════════════ -->
+<section class="py-24 px-6" style="background:#07071a">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-xs font-semibold text-brand-400 uppercase tracking-widest mb-3">Everything included</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">One tool. Every platform. <span class="gradient-text">Zero effort.</span></h2>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {% for icon, title, desc, accent in [
+        ('🤖', 'AI Caption Generator',   'Platform-specific captions with hashtags, emojis, and your brand voice — never generic.', 'brand'),
+        ('📅', 'Post Scheduler',          '7-day visual calendar. Schedule your whole week in one click, then forget about it.', 'flame'),
+        ('📊', 'Analytics Dashboard',    'Reach, engagement, and growth tracking across all platforms in one clean view.', 'purple'),
+        ('🌐', 'Free Business Website',  'Auto-generated site that syncs with your posts. Your menu, hours, and vibe — live 24/7.', 'green'),
+        ('📸', '6 Platforms at Once',     'One post, everywhere. Facebook, Instagram, TikTok, YouTube, Google Business & your site.', 'flame'),
+        ('🔔', 'Smart Notifications',    'Alerts when posts go live, engagement spikes, or a platform needs reconnecting.', 'brand'),
+        ('🏢', '5 Business Types',       'Food truck, restaurant, cafe, hotel, food company — each gets a tailored strategy.', 'flame'),
+        ('🔒', 'White-Label Agency',     'Manage up to 10 client accounts from one dashboard with your own branding.', 'purple'),
+        ('🔗', 'SRN API Access',         'Connect Post-Pilot to Discord bots, automation tools, and any app via the ShadowRealm API.', 'green'),
+      ] %}
+      <div class="card rounded-2xl p-6">
+        <div class="text-3xl mb-4">{{ icon }}</div>
+        <h3 class="font-bold mb-2">{{ title }}</h3>
+        <p class="text-sm text-gray-400 leading-relaxed">{{ desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ TESTIMONIALS ═══════════════════════════ -->
+<section class="py-24 px-6 section-alt">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-xs font-semibold text-flame-400 uppercase tracking-widest mb-3">Real owners. Real results.</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">Built for <span class="gradient-text-warm">real businesses</span></h2>
+      <p class="text-gray-400">From one truck to a full restaurant group.</p>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6">
+      {% for name, role, rating, quote, initials in [
+        ('Maria T.', 'Food Truck Owner', '4.9',
+         'I used to spend Sunday nights writing posts. Now Post-Pilot does it while I sleep. My reach went up 3x in the first month.',
+         'MT'),
+        ('James K.', 'Restaurant Manager', '5.0',
+         'We run 4 locations. Post-Pilot manages all of them from one screen. The scheduler alone is worth the price.',
+         'JK'),
+        ('Sofia R.', 'Cafe Owner', '4.8',
+         'The AI knows my vibe. Every caption sounds like me, not a robot. My Instagram engagement doubled in 6 weeks.',
+         'SR'),
+      ] %}
+      <div class="card rounded-2xl p-7 flex flex-col">
+        <div class="flex gap-0.5 mb-4">
+          {% for _ in range(5) %}<span class="text-yellow-400 text-sm">★</span>{% endfor %}
+          <span class="text-gray-500 text-xs ml-2 self-center">{{ rating }}</span>
+        </div>
+        <p class="text-gray-300 text-sm leading-relaxed italic flex-1 mb-6">"{{ quote }}"</p>
+        <div class="flex items-center gap-3 pt-4 border-t border-white/5">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+               style="background:linear-gradient(135deg,#6366f1,#f97316)">{{ initials }}</div>
+          <div>
+            <div class="font-semibold text-sm">{{ name }}</div>
+            <div class="text-xs text-gray-500">{{ role }}</div>
           </div>
         </div>
-        <div class="px-6 py-3 border-t border-white/5 flex items-center justify-between text-xs text-gray-600" style="background:rgba(255,255,255,.01)">
-          <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-gre
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ PRICING ═══════════════════════════ -->
+<section id="pricing" class="py-24 px-6" style="background:#07071a">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-6">
+      <p class="text-xs font-semibold text-brand-400 uppercase tracking-widest mb-3">Transparent pricing</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">Simple, <span class="gradient-text">honest pricing</span></h2>
+      <p class="text-gray-400">Start free. Scale when you're ready.</p>
+    </div>
+
+    <!-- Billing toggle -->
+    <div class="flex justify-center items-center gap-4 mb-12">
+      <span id="lblMonthly" class="text-sm font-semibold text-white">Monthly</span>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" id="billingToggle" class="sr-only" onchange="toggleBilling(this.checked)" />
+        <div class="w-11 h-6 bg-gray-700 rounded-full peer peer-checked:bg-brand-500 relative">
+          <div id="toggleThumb" class="absolute top-0.5 left-0.5 bg-white rounded-full h-5 w-5 transition-transform"></div>
+        </div>
+      </label>
+      <span id="lblAnnual" class="text-sm font-medium text-gray-400">
+        Annual <span class="text-green-400 font-bold text-xs ml-1 bg-green-400/10 px-2 py-0.5 rounded-full">SAVE 2 MONTHS</span>
+      </span>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+      {% for name, monthly, annual, features, popular, plan in [
+        ('Free',    '$0',   '$0',    ['1 platform','10 AI posts/mo','Post scheduler','Basic analytics'], False, 'free'),
+        ('Starter', '$29',  '$24',   ['3 platforms','100 AI posts/mo','Post scheduler','Analytics dashboard','Website hub'], False, 'starter'),
+        ('Growth',  '$59',  '$49',   ['6 platforms','Unlimited posts','Priority AI','Advanced analytics','Website hub','API access'], True, 'growth'),
+        ('Agency',  '$149', '$124',  ['All 6 platforms','Unlimited posts','10 client accounts','White-label','Custom domain','Full API'], False, 'agency'),
+      ] %}
+      <div class="rounded-2xl p-6 flex flex-col border
+                  {{ 'tier-popular border-brand-500/50' if popular else 'card border-white/5' }}">
+        {% if popular %}
+        <div class="text-xs font-bold px-3 py-1 rounded-full self-start mb-4 text-white"
+             style="background:linear-gradient(90deg,#6366f1,#c084fc)">MOST POPULAR</div>
+        {% endif %}
+        <div class="font-black text-xl mb-2">{{ name }}</div>
+        <div class="mb-5 flex items-end gap-1">
+          <span class="text-4xl font-black monthly-price">{{ monthly }}</span>
+          <span class="text-4xl font-black annual-price hidden">{{ annual }}</span>
+          <span class="text-gray-500 text-sm pb-1">/mo</span>
+        </div>
+        <ul class="space-y-2.5 flex-1 mb-6">
+          {% for f in features %}
+          <li class="flex items-center gap-2.5 text-sm text-gray-300">
+            <svg class="w-4 h-4 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+            </svg>
+            {{ f }}
+          </li>
+          {% endfor %}
+        </ul>
+        <a href="/register?plan={{ plan }}"
+           class="block text-center py-3 rounded-xl font-semibold text-sm transition"
+           {% if popular %}
+           style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:white;box-shadow:0 6px 20px rgba(99,102,241,.35)"
+           {% else %}
+           style="background:rgba(255,255,255,.05);color:white;border:1px solid rgba(255,255,255,.1)"
+           {% endif %}>
+          {{ 'Get Started Free' if monthly == '$0' else 'Start Free Trial' }}
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-center text-sm text-gray-600 mt-8">
+      All paid plans include a 14-day free trial &nbsp;·&nbsp; No credit card required &nbsp;·&nbsp; Cancel anytime
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FAQ ═══════════════════════════ -->
+<section id="faq" class="py-24 px-6 section-alt">
+  <div class="max-w-3xl mx-auto">
+    <div class="text-center mb-16">
+      <p class="text-xs font-semibold text-brand-400 uppercase tracking-widest mb-3">Got questions?</p>
+      <h2 class="text-4xl md:text-5xl font-black mb-4">Common <span class="gradient-text">questions</span></h2>
+    </div>
+    <div class="space-y-3">
+      {% for q, a in [
+        ('Do I need any design or marketing skills?',
+         'None at all. Post-Pilot handles writing, formatting, hashtags, and scheduling. You just tell it about your business and it takes care of the rest.'),
+        ('Which platforms does Post-Pilot support?',
+         'Facebook, Instagram, TikTok, YouTube, Google Business Profile, and your own Post-Pilot website. More platforms are on the roadmap.'),
+        ('Can I edit the AI-generated posts before they go live?',
+         'Absolutely. Every post can be previewed, edited, or deleted before publishing. You can also toggle auto-publishing on or off per platform.'),
+        ('What business types are supported?',
+         'Food trucks, restaurants, cafes, hotels, and food companies. Each type gets tailored caption styles, hashtag sets, and posting schedules.'),
+        ('Is there an API for developers or other apps?',
+         'Yes — Growth and Agency plans include full API access via the ShadowRealm Network (SRN) protocol. Call Post-Pilot from Discord bots, automation tools, or any app.'),
+        ('Can I manage multiple locations or clients?',
+         'The Agency plan supports up to 10 client accounts with white-label branding and a unified dashboard. Each client gets their own login and settings.'),
+        ('What happens to my posts if I cancel?',
+         'Your data is never deleted. You move to the Free plan automatically. Scheduled posts in the queue will still publish within your remaining billing period.'),
+      ] %}
+      <div class="faq-item rounded-2xl overflow-hidden" style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)">
+        <button class="w-full flex items-center justify-between p-5 text-left font-semibold text-sm hover:text-brand-300 transition-colors"
+                onclick="toggleFaq(this)">
+          <span>{{ q }}</span>
+          <svg class="faq-chevron w-5 h-5 text-gray-500 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+        <div class="faq-answer">
+          <p class="px-5 pb-5 text-sm text-gray-400 leading-relaxed">{{ a }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FINAL CTA ═══════════════════════════ -->
+<section class="py-28 px-6 text-center relative overflow-hidden" style="background:#07071a">
+  <div class="orb w-[600px] h-[600px] bg-brand-600/15 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></div>
+  <div class="orb w-[300px] h-[300px] bg-flame-500/10 bottom-0 right-[10%]"></div>
+  <div class="relative z-10 max-w-2xl mx-auto">
+    <p class="text-xs font-semibold text-flame-400 uppercase tracking-widest mb-4">Ready to grow?</p>
+    <h2 class="text-5xl md:text-6xl font-black mb-6 leading-tight">
+      Stop writing posts.<br/>
+      <span class="gradient-text">Start growing.</span>
+    </h2>
+    <p class="text-gray-400 mb-10 text-lg">
+      Join 500+ businesses that post every single day — without lifting a finger.
+    </p>
+    <a href="/register"
+       class="inline-block px-12 py-5 rounded-2xl font-black text-xl text-white transition"
+       style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 12px 40px rgba(99,102,241,.5)">
+      Start for Free →
+    </a>
+    <p class="text-sm text-gray-600 mt-5">No credit card &nbsp;·&nbsp; Free plan forever &nbsp;·&nbsp; Takes 2 minutes</p>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+<footer style="background:#050514;border-top:1px solid rgba(255,255,255,.04)" class="py-16 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-4 gap-10 mb-12">
+      <div>
+        <div class="flex items-center gap-2.5 font-black text-lg mb-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base"
+               style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+          Post-Pilot
+        </div>
+        <p class="text-sm text-gray-600 leading-relaxed">Automated social media for food trucks, restaurants, cafes &amp; hotels.</p>
+        <div class="flex items-center gap-1.5 mt-4">
+          <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+          <span class="text-xs text-gray-600">All systems operational</span>
+        </div>
+      </div>
+      {% for col, links in [
+        ('Product',  [('Dashboard','/dashboard'),('Pricing','#pricing'),('API Docs','/v1/manifest'),('Changelog','#')]),
+        ('Company',  [('About','#'),('Blog','#'),('Privacy','#'),('Terms','#')]),
+        ('Connect',  [('Facebook','#'),('Instagram','#'),('TikTok','#'),('Discord','#')]),
+      ] %}
+      <div>
+        <h4 class="font-semibold text-sm mb-4 text-gray-300">{{ col }}</h4>
+        <ul class="space-y-2.5">
+          {% for label, href in links %}
+          <li><a href="{{ href }}" class="text-sm text-gray-600 hover:text-white transition-colors">{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-4"
+         style="border-color:rgba(255,255,255,.04)">
+      <p class="text-xs text-gray-700">&copy; 2026 Post-Pilot. All rights reserved.</p>
+      <p class="text-xs text-gray-700">Part of the <span class="text-brand-400">ShadowRealm Network</span></p>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+<script>
+// ── Nav scroll ──
+window.addEventListener('scroll', () => {
+  const nav = document.getElementById('navbar');
+  if (window.scrollY > 50) {
+    nav.style.cssText = 'background:rgba(5,5,20,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.05)';
+  } else {
+    nav.style.cssText = '';
+  }
+});
+
+// ── Billing toggle ──
+function toggleBilling(annual) {
+  document.querySelectorAll('.monthly-price').forEach(el => el.classList.toggle('hidden', annual));
+  document.querySelectorAll('.annual-price').forEach(el => el.classList.toggle('hidden', !annual));
+  document.getElementById('lblMonthly').className = annual ? 'text-sm font-medium text-gray-400' : 'text-sm font-semibold text-white';
+  document.getElementById('lblAnnual').className  = annual ? 'text-sm font-semibold text-white'  : 'text-sm font-medium text-gray-400';
+  document.getElementById('toggleThumb').style.transform = annual ? 'translateX(20px)' : 'translateX(0)';
+}
+
+// ── FAQ accordion ──
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  const isOpen = item.classList.contains('faq-open');
+  document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('faq-open'));
+  if (!isOpen) item.classList.add('faq-open');
+}
+
+// ── Fade-up on scroll (intersection observer) ──
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = 1;
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('section > div > div, section > div').forEach(el => {
+  if (!el.closest('#navbar')) {
+    el.style.transition = 'opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1)';
+  }
+});
+</script>
+</body>
+</html>

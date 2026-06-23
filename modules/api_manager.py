@@ -22,10 +22,12 @@ APP_VERSION = '1.0.0'
 
 def _get_api_key_row(token: str):
     """Look up an API key row by its token value."""
+    import hashlib
+    key_hash = hashlib.sha256(token.encode()).hexdigest()
     db = get_db()
     return db.execute(
-        'SELECT * FROM api_keys WHERE key_value = ? AND active = 1',
-        (token,)
+        'SELECT * FROM api_keys WHERE key_hash = ? AND is_active = 1',
+        (key_hash,)
     ).fetchone()
 
 def _get_srn_key():
@@ -79,6 +81,7 @@ def require_api_key(f):
         g.api_key_row = dict(row)
         return f(*args, **kwargs)
     return decorated
+
 
 
 def _ok(data=None, **kwargs):
@@ -388,14 +391,18 @@ def create_api_key():
         token      = 'pp_live_' + secrets.token_urlsafe(32)
         expires_at = int(time.time()) + ttl * 86400 if ttl else None
 
+        import hashlib
+        key_hash = hashlib.sha256(token.encode()).hexdigest()
+        preview  = token[:12] + '...'
+
         db = get_db()
         db.execute(
             '''
             INSERT INTO api_keys
-              (user_id, label, key_value, active, created_at, expires_at, call_count)
-            VALUES (?, ?, ?, 1, ?, ?, 0)
+              (user_id, label, key_hash, key_preview, is_active, created_at, expires_at, call_count)
+            VALUES (?, ?, ?, ?, 1, ?, ?, 0)
             ''',
-            (current_user.id, label, token, int(time.time()), expires_at)
+            (current_user.id, label, key_hash, preview, int(time.time()), expires_at)
         )
         db.commit()
         return _ok({'key': token, 'label': label, 'expires_at': expires_at})
@@ -414,15 +421,21 @@ def list_api_keys():
         db   = get_db()
         rows = db.execute(
             '''
-            SELECT id, label, active, created_at, expires_at, last_used_at, call_count,
-                   substr(key_value,1,12) || '...' AS key_preview
+            SELECT id, label, is_active, created_at, expires_at, last_used_at, call_count,
+                   key_preview
             FROM   api_keys
             WHERE  user_id = ?
             ORDER  BY created_at DESC
             ''',
             (current_user.id,)
         ).fetchall()
-        return _ok({'keys': [dict(r) for r in rows]})
+        # Rename is_active to active in output for frontend compatibility
+        res_keys = []
+        for r in rows:
+            d = dict(r)
+            d['active'] = d.pop('is_active', 1)
+            res_keys.append(d)
+        return _ok({'keys': res_keys})
     except Exception as e:
         return _err(str(e), 'KEY_LIST_ERROR', 500)
 
@@ -442,7 +455,7 @@ def revoke_api_key():
 
         db = get_db()
         db.execute(
-            'UPDATE api_keys SET active = 0 WHERE id = ? AND user_id = ?',
+            'UPDATE api_keys SET is_active = 0 WHERE id = ? AND user_id = ?',
             (key_id, current_user.id)
         )
         db.commit()
@@ -458,11 +471,13 @@ CREATE TABLE IF NOT EXISTS api_keys (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id      TEXT    NOT NULL,
     label        TEXT    NOT NULL DEFAULT 'My Key',
-    key_value    TEXT    NOT NULL UNIQUE,
-    active       INTEGER NOT NULL DEFAULT 1,
-    created_at   INTEGER,
+    key_hash     TEXT    NOT NULL UNIQUE,
+    key_preview  TEXT    NOT NULL,
+    is_active    INTEGER NOT NULL DEFAULT 1,
+    created_at   INTEGER NOT NULL,
     expires_at   INTEGER,
     last_used_at INTEGER,
     call_count   INTEGER NOT NULL DEFAULT 0
 );
 '''
+

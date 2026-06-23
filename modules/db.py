@@ -60,13 +60,60 @@ else:
 placeholder = '%s' if USE_POSTGRES else '?'
 
 
+from flask import has_request_context
+
+class DBConnectionWrapper:
+    """
+    Wrapper around sqlite3 or psycopg2 connection to provide a unified API.
+    Enables calling connection.execute(...) directly on PostgreSQL and SQLite,
+    and automatically translates placeholders (?) to (%s) for PostgreSQL.
+    """
+    def __init__(self, conn):
+        self.conn = conn
+
+    def cursor(self):
+        if USE_POSTGRES:
+            import psycopg2.extras
+            return self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        return self.conn.cursor()
+
+    def execute(self, sql: str, params: tuple = ()):
+        # Auto-translate SQLite syntax to Postgres compatible syntax
+        sql_adapted = adapt_schema(sql)
+        if USE_POSTGRES:
+            sql_adapted = sql_adapted.replace('?', '%s')
+            cur = self.cursor()
+            cur.execute(sql_adapted, params)
+            return cur
+        else:
+            # For SQLite, ensure it uses standard sqlite Row/cursor execution
+            return self.conn.execute(sql_adapted, params)
+
+    def commit(self):
+        self.conn.commit()
+
+    def rollback(self):
+        try:
+            self.conn.rollback()
+        except Exception:
+            pass
+
+    def close(self):
+        if getattr(self, 'request_scoped', False):
+            return
+        self.conn.close()
+
+
+
 def get_connection():
-    """Return a new DB connection. Caller is responsible for closing it."""
+    """Return a unified DB connection wrapper. Caller is responsible for closing it."""
     if USE_POSTGRES:
-        return psycopg2.connect(DATABASE_URL)
-    conn = sqlite3.connect(SQLITE_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+        conn = psycopg2.connect(DATABASE_URL)
+    else:
+        conn = sqlite3.connect(SQLITE_PATH)
+        conn.row_factory = sqlite3.Row
+        conn.execute('PRAGMA foreign_keys = ON')
+    return DBConnectionWrapper(conn)
 
 
 def row_to_dict(row) -> dict:
@@ -88,12 +135,16 @@ def adapt_schema(sql: str) -> str:
     """
     if not USE_POSTGRES:
         return sql
+    # Replace primary key syntax
     sql = sql.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+    # Replace default epoch syntax
     sql = sql.replace("DEFAULT (strftime('%s','now'))",
                       'DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT)')
     # Postgres uses EXCLUDED (uppercase) and requires ON CONFLICT (...) with space
     sql = sql.replace('ON CONFLICT(user_id, platform) DO UPDATE SET',
                       'ON CONFLICT (user_id, platform) DO UPDATE SET')
+    sql = sql.replace('ON CONFLICT(user_id) DO UPDATE SET',
+                      'ON CONFLICT (user_id) DO UPDATE SET')
     return sql
 
 
@@ -101,15 +152,12 @@ def execute_one(sql: str, params: tuple = (), commit: bool = False):
     """Run a single statement, optionally commit. Returns cursor.fetchone()."""
     conn = get_connection()
     try:
-        if USE_POSTGRES:
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        else:
-            cur = conn.cursor()
-        cur.execute(sql, params)
+        cur = conn.execute(sql, params)
         if commit:
             conn.commit()
         try:
-            return cur.fetchone()
+            row = cur.fetchone()
+            return row_to_dict(row) if row else None
         except Exception:
             return None
     finally:
@@ -120,11 +168,9 @@ def execute_all(sql: str, params: tuple = ()) -> list:
     """Run a SELECT and return all rows as a list."""
     conn = get_connection()
     try:
-        if USE_POSTGRES:
-            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        else:
-            cur = conn.cursor()
-        cur.execute(sql, params)
-        return cur.fetchall()
+        cur = conn.execute(sql, params)
+        rows = cur.fetchall()
+        return [row_to_dict(r) for r in rows]
     finally:
         conn.close()
+

@@ -88,14 +88,15 @@ class User(UserMixin):
         return f'<User {self.email} [{self.subscription_tier}]>'
 
 
+from modules.database import get_db
+
 # ---------------------------------------------------------------------------
 # DB connection
 # ---------------------------------------------------------------------------
-def _get_conn() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute('PRAGMA foreign_keys = ON')
-    return conn
+def _get_conn():
+    return get_db()
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -157,28 +158,35 @@ def init_db():
         CREATE TABLE IF NOT EXISTS api_keys (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id      TEXT    NOT NULL REFERENCES users(id),
+            label        TEXT    NOT NULL DEFAULT 'My Key',
             key_hash     TEXT    NOT NULL UNIQUE,
-            label        TEXT    DEFAULT 'Default key',
+            key_preview  TEXT    NOT NULL,
             is_active    INTEGER NOT NULL DEFAULT 1,
-            last_used_at TEXT,
-            created_at   TEXT    NOT NULL
+            created_at   INTEGER NOT NULL,
+            expires_at   INTEGER,
+            last_used_at INTEGER,
+            call_count   INTEGER NOT NULL DEFAULT 0
         )
+
     ''')
+
 
     # ── post_history ───────────────────────────────────────────────────────
     conn.execute('''
         CREATE TABLE IF NOT EXISTS post_history (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id      TEXT    NOT NULL REFERENCES users(id),
-            caption      TEXT    NOT NULL,
+            caption      TEXT,
             content_type TEXT    DEFAULT 'text',
             image_url    TEXT,
             video_url    TEXT,
             platforms    TEXT,
             results      TEXT,
             scheduled_at TEXT,
-            posted_at    TEXT    NOT NULL,
-            status       TEXT    DEFAULT 'published'
+            posted_at    TEXT,
+            status       TEXT    DEFAULT 'published',
+            post_url     TEXT,
+            created_at   TEXT    DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
         )
     ''')
 
@@ -390,6 +398,7 @@ class UserManager:
         results:      dict = None,
         scheduled_at: str = None,
         status:       str = 'published',
+        post_url:     str = None,
     ) -> int:
         """
         Save a post to history.  Returns the new row id.
@@ -397,20 +406,23 @@ class UserManager:
         """
         import json
         conn = _get_conn()
+        now  = datetime.utcnow().isoformat()
         cur  = conn.execute(
             '''
             INSERT INTO post_history
                 (user_id, caption, content_type, image_url, video_url,
-                 platforms, results, scheduled_at, posted_at, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 platforms, results, scheduled_at, posted_at, status, post_url, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 user_id, caption, content_type, image_url, video_url,
                 json.dumps(platforms) if platforms else None,
                 json.dumps(results)   if results   else None,
                 scheduled_at,
-                datetime.utcnow().isoformat(),
+                now,
                 status,
+                post_url,
+                now,
             ),
         )
         conn.commit()
@@ -471,13 +483,15 @@ class UserManager:
         Returns:
             The raw key string (e.g. 'pp_live_abc123...').
         """
+        import time
         raw_key  = 'pp_live_' + secrets.token_hex(32)
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
-        now      = datetime.utcnow().isoformat()
+        preview  = raw_key[:12] + '...'
+        now      = int(time.time())
         conn     = _get_conn()
         conn.execute(
-            'INSERT INTO api_keys (user_id, key_hash, label, created_at) VALUES (?, ?, ?, ?)',
-            (user_id, key_hash, label, now),
+            'INSERT INTO api_keys (user_id, key_hash, key_preview, label, created_at) VALUES (?, ?, ?, ?, ?)',
+            (user_id, key_hash, preview, label, now),
         )
         conn.commit()
         conn.close()
@@ -491,6 +505,7 @@ class UserManager:
         Used by the /v1/* API routes (Session 12).
         Updates last_used_at on hit.
         """
+        import time
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
         conn     = _get_conn()
         row      = conn.execute(
@@ -500,11 +515,12 @@ class UserManager:
         if row:
             conn.execute(
                 'UPDATE api_keys SET last_used_at = ? WHERE key_hash = ?',
-                (datetime.utcnow().isoformat(), key_hash),
+                (int(time.time()), key_hash),
             )
             conn.commit()
         conn.close()
         return UserManager.get_user(row['user_id']) if row else None
+
 
 
 # ---------------------------------------------------------------------------

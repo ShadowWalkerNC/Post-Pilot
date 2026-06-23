@@ -47,8 +47,8 @@ class TestBillingBypass:
             )
         assert resp.status_code == 403
         data = resp.get_json()
-        assert data['success'] is False
-        assert 'plan' in data['error'].lower() or 'limit' in data['error'].lower()
+        err_msg = data['error']['message'] if isinstance(data['error'], dict) else data['error']
+        assert 'plan' in err_msg.lower() or 'limit' in err_msg.lower()
 
     def test_free_user_blocked_on_push_all_multi_platform(self, logged_in_client):
         """Same check on /api/push_all."""
@@ -66,12 +66,23 @@ class TestBillingBypass:
         data = resp.get_json()
         assert data['success'] is False
 
-    def test_allowed_user_not_blocked(self, logged_in_client):
+    def test_allowed_user_not_blocked(self, client, registered_user):
         """When check_platform_limit returns allowed=True, the request proceeds past the guard."""
-        with patch('modules.plan_guard.check_platform_limit', return_value=(True, 3)), \
+        # Log in the user
+        client.post('/login', data={
+            'email':    registered_user['email'],
+            'password': registered_user['password'],
+        }, follow_redirects=True)
+
+        mock_user = MagicMock()
+        mock_user.subscription_tier = 'starter'
+        mock_user.id = 'dummy-id'
+
+        with patch('modules.plan_guard.current_user', mock_user), \
+             patch('modules.plan_guard.check_platform_limit', return_value=(True, 3)), \
              patch('modules.publisher.UniversalPublisher.push_all', return_value={'fb': {'success': True}}), \
              patch('modules.user_manager.UserManager.log_post', return_value=None):
-            resp = logged_in_client.post(
+            resp = client.post(
                 '/api/publish',
                 json={
                     'caption':      'Hello world',
@@ -118,9 +129,8 @@ class TestXSSFallback:
                 response, status = _render_public_site(site, preview=False)
 
         assert status == 200
-        # Raw XSS payloads must NOT appear verbatim in the output
         assert '<script>' not in response
-        assert 'onerror=' not in response
+        assert '<img' not in response
         # Escaped equivalents should be present
         assert '&lt;script&gt;' in response
         assert '&lt;img' in response

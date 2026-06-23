@@ -4,11 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Post-Pilot — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
+          fontFamily: {
+            sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
           colors: {
             brand:  { 300:'#a5b4fc', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca' },
             flame:  { 300:'#fdba74', 400:'#fb923c', 500:'#f97316', 600:'#ea580c' },
@@ -19,7 +25,8 @@
   </script>
   <style>
     html, body { height:100%; overflow:hidden; }
-    body { background:#07071a; color:#f1f5f9; font-family:ui-sans-serif,system-ui,sans-serif; }
+    body { background:#07071a; color:#f1f5f9; font-family:'Outfit', ui-sans-serif, system-ui, sans-serif; }
+
 
     ::-webkit-scrollbar { width:4px; height:4px; }
     ::-webkit-scrollbar-track { background:transparent; }

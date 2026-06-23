@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "gunicorn app:app --workers 2 --threads 2 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
+startCommand = "/app/.venv/bin/gunicorn app:app --workers 2 --threads 2 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -"
 healthcheckPath = "/v1/health"
 healthcheckTimeout = 30
 restartPolicyType = "on_failure"

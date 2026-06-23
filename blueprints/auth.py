@@ -1,7 +1,7 @@
 """
 blueprints/auth.py
 Authentication routes: login, register, logout.
-OAuth flows: Facebook, Google, TikTok.
+OAuth flows: Facebook, Google, TikTok, LinkedIn.
 """
 
 import os
@@ -84,7 +84,8 @@ def auth_disconnect(pid):
     uid = _uid()
     platform_map = {
         'fb': 'facebook', 'ig': 'instagram',
-        'tt': 'tiktok',   'yt': 'youtube', 'gb': 'google',
+        'tt': 'tiktok',   'yt': 'youtube',
+        'gb': 'google',   'li': 'linkedin',
     }
     platform = platform_map.get(pid)
     if platform:
@@ -285,5 +286,91 @@ def auth_tiktok_callback():
     step     = session.pop('oauth_step', '4')
     return redirect(
         f'/onboarding?connected=tiktok&step={step}'
+        if next_url == '/onboarding' else url_for('pages.home')
+    )
+
+
+# ---------------------------------------------------------------------------
+# OAuth: LinkedIn
+# ---------------------------------------------------------------------------
+# Required app permissions in LinkedIn Developer Portal:
+#   openid, profile, email, w_member_social
+# Redirect URI to register: https://<your-domain>/auth/linkedin/callback
+# ---------------------------------------------------------------------------
+
+@auth_bp.route('/auth/linkedin')
+@login_required
+def auth_linkedin():
+    state = secrets.token_urlsafe(32)
+    session['oauth_state_linkedin'] = state
+    session['oauth_next']           = request.args.get('next', '/')
+    session['oauth_step']           = request.args.get('step', '5')
+    client_id = os.getenv('LINKEDIN_CLIENT_ID')
+    redir     = os.getenv('LINKEDIN_REDIRECT_URI', 'http://localhost:5000/auth/linkedin/callback')
+    scope     = 'openid profile email w_member_social'
+    return redirect(
+        f'https://www.linkedin.com/oauth/v2/authorization'
+        f'?response_type=code&client_id={client_id}'
+        f'&redirect_uri={redir}&scope={scope}&state={state}'
+    )
+
+
+@auth_bp.route('/auth/linkedin/callback')
+@login_required
+def auth_linkedin_callback():
+    from flask import current_app
+    if request.args.get('state') != session.pop('oauth_state_linkedin', None):
+        flash('OAuth state mismatch. Please try connecting again.')
+        return redirect(url_for('pages.connect_page'))
+    if request.args.get('error'):
+        flash('LinkedIn connection was cancelled or denied.')
+        return redirect(url_for('pages.connect_page'))
+    code   = request.args.get('code')
+    cid    = os.getenv('LINKEDIN_CLIENT_ID')
+    csec   = os.getenv('LINKEDIN_CLIENT_SECRET')
+    redir  = os.getenv('LINKEDIN_REDIRECT_URI', 'http://localhost:5000/auth/linkedin/callback')
+    try:
+        # Exchange code for access token
+        token_resp = requests.post(
+            'https://www.linkedin.com/oauth/v2/accessToken',
+            data={
+                'grant_type':    'authorization_code',
+                'code':          code,
+                'redirect_uri':  redir,
+                'client_id':     cid,
+                'client_secret': csec,
+            },
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            timeout=10,
+        ).json()
+        access_token  = token_resp.get('access_token')
+        expires_in    = token_resp.get('expires_in', 5183999)  # ~60 days default
+        refresh_token = token_resp.get('refresh_token')        # only if r_token scope granted
+
+        # Fetch member URN via OpenID userinfo endpoint
+        userinfo = requests.get(
+            'https://api.linkedin.com/v2/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10,
+        ).json()
+        member_id = userinfo.get('sub')  # e.g. "urn:li:person:AbCdEf123"
+
+        save_token(
+            'linkedin',
+            access_token,
+            refresh_token=refresh_token,
+            expires_at=datetime.utcnow() + timedelta(seconds=expires_in),
+            meta={'member_id': member_id},
+            user_id=_uid(),
+        )
+    except Exception:
+        current_app.logger.exception('LinkedIn OAuth callback failed')
+        flash('LinkedIn connection failed. Please try again.')
+        return redirect(url_for('pages.connect_page'))
+
+    next_url = session.pop('oauth_next', '/')
+    step     = session.pop('oauth_step', '5')
+    return redirect(
+        f'/onboarding?connected=linkedin&step={step}'
         if next_url == '/onboarding' else url_for('pages.home')
     )

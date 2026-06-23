@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 def _enforce_platform_limit(tier, platforms):
-    """Returns (ok, error_response_or_None)."""
     if not platforms:
         return True, None
     allowed, limit = check_platform_limit(tier, platforms)
@@ -51,7 +50,6 @@ def _enforce_platform_limit(tier, platforms):
 
 
 def _validate_or_400(data: dict):
-    """Run validate_post_input() and return a 400 response tuple if invalid, else None."""
     ok, errors = validate_post_input(
         caption      = data.get('caption', ''),
         content_type = data.get('content_type', 'text'),
@@ -66,7 +64,6 @@ def _validate_or_400(data: dict):
 
 
 def _get_business_profile() -> dict:
-    """Load business profile from current_user, always returns a dict."""
     profile = getattr(current_user, 'business_profile', None)
     if isinstance(profile, str):
         try:
@@ -77,11 +74,6 @@ def _get_business_profile() -> dict:
 
 
 def _get_enabled_platforms(uid: str) -> dict:
-    """
-    Read platform toggle settings for the user from platform_settings table.
-    Returns dict {platform_key: bool}. Defaults all platforms to True if no
-    settings row exists yet (opt-in by default once connected).
-    """
     try:
         from app import get_db
         db   = get_db()
@@ -89,50 +81,28 @@ def _get_enabled_platforms(uid: str) -> dict:
             'SELECT platform, enabled FROM platform_settings WHERE user_id = ?', (uid,)
         ).fetchall()
         if not rows:
-            return {}   # empty = all enabled (publisher default)
+            return {}
         return {row['platform']: bool(row['enabled']) for row in rows}
     except Exception:
-        return {}   # table not yet created -- treat as all enabled
+        return {}
 
 
 # ---------------------------------------------------------------------------
-# Generate (NEW — Option B)
+# Generate (Option B)
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/generate', methods=['POST'])
 @login_required
 @require_plan('starter')
 def api_generate():
-    """
-    Generate a master caption and per-platform adapted versions.
-
-    Request body:
-        topic        (str)  -- what to post about
-        tone         (str)  -- hype | friendly | urgent | funny | community
-        content_type (str)  -- daily_special | location | general
-        platforms    (list) -- platform keys to adapt for; defaults to all enabled
-        keywords     (list) -- extra keywords to include
-
-    Response:
-        {
-            success: true,
-            master:  "<neutral master caption>",
-            adapted: { fb: "...", ig: "...", tt: "...", ... }
-        }
-    """
     data         = request.json or {}
     uid          = _uid()
     tone         = data.get('tone', 'friendly')
     content_type = data.get('content_type', 'general')
     keywords     = data.get('keywords', [])
     profile      = _get_business_profile()
-
-    # Determine which platforms to adapt for
-    enabled   = _get_enabled_platforms(uid)
-    platforms = data.get('platforms') or [
-        p for p, on in enabled.items() if on
-    ] or None   # None → adapt_all uses ALL_PLATFORMS default
-
+    enabled      = _get_enabled_platforms(uid)
+    platforms    = data.get('platforms') or [p for p, on in enabled.items() if on] or None
     try:
         from modules.ai_generator import generate_with_adaptations
         result = generate_with_adaptations(
@@ -156,29 +126,17 @@ def api_generate():
 @login_required
 @require_plan('starter')
 def api_push_all():
-    """
-    Publish to multiple platforms.
-
-    Accepts either:
-      { caption: "...", platforms: [...] }          -- single caption (old)
-      { captions: {fb: "...", ig: "..."}, platforms: [...] }  -- Option B
-    """
-    data = request.json or {}
-    uid  = _uid()
-
-    # Use master caption for validation when captions dict present
+    data     = request.json or {}
+    uid      = _uid()
     caption  = data.get('caption') or next(iter(data.get('captions', {}).values()), '')
-    captions = data.get('captions')   # Option B dict, may be None
-
-    err = _validate_or_400({**data, 'caption': caption})
+    captions = data.get('captions')
+    err      = _validate_or_400({**data, 'caption': caption})
     if err:
         return err
-
     platforms = data.get('platforms') or []
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
     if not ok:
         return limit_err
-
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
@@ -215,16 +173,13 @@ def api_publish():
     uid      = _uid()
     caption  = data.get('caption') or next(iter(data.get('captions', {}).values()), '')
     captions = data.get('captions')
-
-    err = _validate_or_400({**data, 'caption': caption})
+    err      = _validate_or_400({**data, 'caption': caption})
     if err:
         return err
-
     platforms = data.get('platforms') or []
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
     if not ok:
         return limit_err
-
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
@@ -255,13 +210,8 @@ def api_publish():
 @api_bp.route('/api/platform_settings', methods=['GET'])
 @login_required
 def api_get_platform_settings():
-    """
-    Get the user's platform toggle settings.
-    Response: { success: true, settings: {fb: true, ig: true, tt: false, ...} }
-    """
     uid      = _uid()
     settings = _get_enabled_platforms(uid)
-    # If no settings yet, return all known platforms as enabled
     if not settings:
         from modules.publisher import KEY_MAP
         settings = {v: True for v in set(KEY_MAP.values())}
@@ -271,27 +221,18 @@ def api_get_platform_settings():
 @api_bp.route('/api/platform_settings', methods=['POST'])
 @login_required
 def api_save_platform_settings():
-    """
-    Save the user's platform toggle settings.
-    Request body: { settings: {fb: true, ig: true, tt: false, ...} }
-    """
     data     = request.json or {}
     uid      = _uid()
     settings = data.get('settings', {})
-
     if not isinstance(settings, dict):
         return jsonify({'success': False, 'error': 'settings must be an object'}), 400
-
     try:
         from app import get_db
         db = get_db()
         for platform, enabled in settings.items():
             db.execute(
-                '''
-                INSERT INTO platform_settings (user_id, platform, enabled)
-                VALUES (?, ?, ?)
-                ON CONFLICT(user_id, platform) DO UPDATE SET enabled = excluded.enabled
-                ''',
+                'INSERT INTO platform_settings (user_id, platform, enabled) VALUES (?, ?, ?) '
+                'ON CONFLICT(user_id, platform) DO UPDATE SET enabled = excluded.enabled',
                 (uid, str(platform), 1 if enabled else 0)
             )
         db.commit()
@@ -313,7 +254,7 @@ def api_connection_status():
         'fb':  bool(tokens.get('facebook_token') and tokens.get('facebook_page_id')),
         'ig':  bool(tokens.get('instagram_token') and tokens.get('instagram_id')),
         'yt':  bool(tokens.get('youtube_token')),
-        'yts': bool(tokens.get('youtube_token')),   # same token as yt
+        'yts': bool(tokens.get('youtube_token')),
         'tt':  bool(tokens.get('tiktok_token')),
         'gb':  bool(tokens.get('google_token')),
         'li':  bool(tokens.get('linkedin_token')),
@@ -362,7 +303,7 @@ def api_onboarding_setup():
 
 
 # ---------------------------------------------------------------------------
-# Token setup (manual / power-user)
+# Token setup
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/setup_tokens', methods=['POST'])
@@ -380,19 +321,15 @@ def api_setup_tokens():
         save_token('google', incoming['google_token'],
                    meta={'location_id': incoming.get('google_location_id', '')},
                    user_id=uid)
-    if incoming.get('tiktok_token'):
-        save_token('tiktok', incoming['tiktok_token'], user_id=uid)
-    if incoming.get('linkedin_token'):
-        save_token('linkedin', incoming['linkedin_token'], user_id=uid)
-    if incoming.get('twitter_token'):
-        save_token('twitter', incoming['twitter_token'], user_id=uid)
-    if incoming.get('pinterest_token'):
-        save_token('pinterest', incoming['pinterest_token'], user_id=uid)
+    if incoming.get('tiktok_token'):   save_token('tiktok',    incoming['tiktok_token'],    user_id=uid)
+    if incoming.get('linkedin_token'): save_token('linkedin',  incoming['linkedin_token'],  user_id=uid)
+    if incoming.get('twitter_token'):  save_token('twitter',   incoming['twitter_token'],   user_id=uid)
+    if incoming.get('pinterest_token'):save_token('pinterest', incoming['pinterest_token'], user_id=uid)
     return jsonify({'success': True})
 
 
 # ---------------------------------------------------------------------------
-# Generate (legacy template-based)
+# Generate (legacy)
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/generate_weekly', methods=['POST'])
@@ -532,19 +469,44 @@ def api_delete_post():
 
 
 # ---------------------------------------------------------------------------
-# Analytics
+# Analytics  (Facebook + Instagram real data)
 # ---------------------------------------------------------------------------
 
-@api_bp.route('/api/analytics', methods=['POST'])
+@api_bp.route('/api/analytics', methods=['GET', 'POST'])
 @login_required
-@require_plan('pro')
+@require_plan('starter')
 def api_analytics():
-    uid     = _uid()
-    data    = request.json or {}
-    tokens  = _get_tokens(uid)
+    """
+    Combined Facebook + Instagram analytics.
+    GET  /api/analytics?days=30
+    POST /api/analytics  { days: 30 }
+    """
+    uid    = _uid()
+    data   = request.json or {}
+    tokens = _get_tokens(uid)
+
+    try:
+        days = int(request.args.get('days') or data.get('days') or 30)
+        days = max(1, min(days, 90))
+    except (ValueError, TypeError):
+        days = 30
+
     token   = tokens.get('facebook_token') or data.get('access_token')
     page_id = tokens.get('facebook_page_id') or data.get('page_id')
+    ig_id   = tokens.get('instagram_id') or data.get('ig_id')
+
     if not token or not page_id:
-        return jsonify({'success': False, 'error': 'Facebook not connected',
-                        'posts': [], 'total_posts': 0})
-    return jsonify(Analytics(token, page_id).get_weekly_summary())
+        return jsonify({
+            'success': False,
+            'error':   'Facebook not connected — visit Settings to connect',
+            'kpis':    {'posts': 0, 'reach': 0, 'likes': 0, 'engaged': 0, 'eng_rate': 0.0},
+            'chart':   {'labels': [], 'reach': [], 'engaged': []},
+            'ig':      {},
+            'posts':   [],
+        })
+
+    try:
+        return jsonify(Analytics(token, page_id, ig_id=ig_id).get_combined_summary(days=days))
+    except Exception:
+        logger.exception('api_analytics failed for user %s', uid)
+        return jsonify({'success': False, 'error': 'Analytics fetch failed'}), 500

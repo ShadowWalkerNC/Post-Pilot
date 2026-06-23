@@ -1,10 +1,20 @@
 """
 blueprints/api.py
 All /api/* endpoints: publish, generate, schedule, history,
-analytics, business profile, connection status, token setup.
+analytics, business profile, connection status, token setup,
+platform settings (toggles).
+
+Option B flow:
+    POST /api/generate
+        → returns { master, adapted: {fb, ig, tt, ...} }
+    Dashboard pre-fills per-platform editable textareas.
+    User edits any/all, clicks Publish.
+    POST /api/push_all  { captions: {fb: '...', ig: '...'}, platforms: [...] }
+        → each platform receives its own adapted text.
 """
 
 import json
+import logging
 
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
@@ -20,6 +30,7 @@ from modules.validator         import validate_post_input
 from blueprints.utils          import _uid, _get_tokens
 
 api_bp = Blueprint('api', __name__)
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +38,6 @@ api_bp = Blueprint('api', __name__)
 # ---------------------------------------------------------------------------
 
 def _enforce_platform_limit(tier, platforms):
-    """Returns (ok, error_response_or_None)."""
     if not platforms:
         return True, None
     allowed, limit = check_platform_limit(tier, platforms)
@@ -40,7 +50,6 @@ def _enforce_platform_limit(tier, platforms):
 
 
 def _validate_or_400(data: dict):
-    """Run validate_post_input() and return a 400 response tuple if invalid, else None."""
     ok, errors = validate_post_input(
         caption      = data.get('caption', ''),
         content_type = data.get('content_type', 'text'),
@@ -54,6 +63,61 @@ def _validate_or_400(data: dict):
     return None
 
 
+def _get_business_profile() -> dict:
+    profile = getattr(current_user, 'business_profile', None)
+    if isinstance(profile, str):
+        try:
+            return json.loads(profile)
+        except Exception:
+            return {}
+    return profile or {}
+
+
+def _get_enabled_platforms(uid: str) -> dict:
+    try:
+        from app import get_db
+        db   = get_db()
+        rows = db.execute(
+            'SELECT platform, enabled FROM platform_settings WHERE user_id = ?', (uid,)
+        ).fetchall()
+        if not rows:
+            return {}
+        return {row['platform']: bool(row['enabled']) for row in rows}
+    except Exception:
+        return {}
+
+
+# ---------------------------------------------------------------------------
+# Generate (Option B)
+# ---------------------------------------------------------------------------
+
+@api_bp.route('/api/generate', methods=['POST'])
+@login_required
+@require_plan('starter')
+def api_generate():
+    data         = request.json or {}
+    uid          = _uid()
+    tone         = data.get('tone', 'friendly')
+    content_type = data.get('content_type', 'general')
+    keywords     = data.get('keywords', [])
+    profile      = _get_business_profile()
+    enabled      = _get_enabled_platforms(uid)
+    platforms    = data.get('platforms') or [p for p, on in enabled.items() if on] or None
+    try:
+        from modules.ai_generator import generate_with_adaptations
+        result = generate_with_adaptations(
+            business_info = profile,
+            content_type  = content_type,
+            tone          = tone,
+            keywords      = keywords,
+            platforms     = platforms,
+        )
+        return jsonify({'success': True, **result})
+    except Exception:
+        logger.exception('api_generate failed for user %s', uid)
+        return jsonify({'success': False, 'error': 'Caption generation failed'}), 500
+
+
 # ---------------------------------------------------------------------------
 # Publish
 # ---------------------------------------------------------------------------
@@ -62,23 +126,22 @@ def _validate_or_400(data: dict):
 @login_required
 @require_plan('starter')
 def api_push_all():
-    data = request.json or {}
-    uid  = _uid()
-
-    # Validate input before touching any external API
-    err = _validate_or_400(data)
+    data     = request.json or {}
+    uid      = _uid()
+    caption  = data.get('caption') or next(iter(data.get('captions', {}).values()), '')
+    captions = data.get('captions')
+    err      = _validate_or_400({**data, 'caption': caption})
     if err:
         return err
-
     platforms = data.get('platforms') or []
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
     if not ok:
         return limit_err
-
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
-        caption       = data.get('caption', ''),
+        caption       = caption,
+        captions      = captions,
         content_type  = data.get('content_type', 'text'),
         image_url     = data.get('image_url'),
         video_url     = data.get('video_url'),
@@ -89,7 +152,7 @@ def api_push_all():
     )
     UserManager.log_post(
         user_id      = uid,
-        caption      = data.get('caption', ''),
+        caption      = caption,
         content_type = data.get('content_type', 'text'),
         image_url    = data.get('image_url'),
         video_url    = data.get('video_url'),
@@ -106,23 +169,22 @@ def api_push_all():
 @login_required
 @require_plan('starter')
 def api_publish():
-    data = request.json or {}
-    uid  = _uid()
-
-    # Validate input before touching any external API
-    err = _validate_or_400(data)
+    data     = request.json or {}
+    uid      = _uid()
+    caption  = data.get('caption') or next(iter(data.get('captions', {}).values()), '')
+    captions = data.get('captions')
+    err      = _validate_or_400({**data, 'caption': caption})
     if err:
         return err
-
     platforms = data.get('platforms') or []
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
     if not ok:
         return limit_err
-
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
-        caption      = data.get('caption', ''),
+        caption      = caption,
+        captions     = captions,
         content_type = data.get('content_type', 'text'),
         image_url    = data.get('image_url'),
         video_url    = data.get('video_url'),
@@ -131,7 +193,7 @@ def api_publish():
     )
     UserManager.log_post(
         user_id      = uid,
-        caption      = data.get('caption', ''),
+        caption      = caption,
         content_type = data.get('content_type', 'text'),
         image_url    = data.get('image_url'),
         video_url    = data.get('video_url'),
@@ -139,6 +201,45 @@ def api_publish():
         results      = results,
     )
     return jsonify({'success': True, 'results': results})
+
+
+# ---------------------------------------------------------------------------
+# Platform toggle settings
+# ---------------------------------------------------------------------------
+
+@api_bp.route('/api/platform_settings', methods=['GET'])
+@login_required
+def api_get_platform_settings():
+    uid      = _uid()
+    settings = _get_enabled_platforms(uid)
+    if not settings:
+        from modules.publisher import KEY_MAP
+        settings = {v: True for v in set(KEY_MAP.values())}
+    return jsonify({'success': True, 'settings': settings})
+
+
+@api_bp.route('/api/platform_settings', methods=['POST'])
+@login_required
+def api_save_platform_settings():
+    data     = request.json or {}
+    uid      = _uid()
+    settings = data.get('settings', {})
+    if not isinstance(settings, dict):
+        return jsonify({'success': False, 'error': 'settings must be an object'}), 400
+    try:
+        from app import get_db
+        db = get_db()
+        for platform, enabled in settings.items():
+            db.execute(
+                'INSERT INTO platform_settings (user_id, platform, enabled) VALUES (?, ?, ?) '
+                'ON CONFLICT(user_id, platform) DO UPDATE SET enabled = excluded.enabled',
+                (uid, str(platform), 1 if enabled else 0)
+            )
+        db.commit()
+        return jsonify({'success': True})
+    except Exception:
+        logger.exception('api_save_platform_settings failed for user %s', uid)
+        return jsonify({'success': False, 'error': 'Failed to save settings'}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +254,12 @@ def api_connection_status():
         'fb':  bool(tokens.get('facebook_token') and tokens.get('facebook_page_id')),
         'ig':  bool(tokens.get('instagram_token') and tokens.get('instagram_id')),
         'yt':  bool(tokens.get('youtube_token')),
+        'yts': bool(tokens.get('youtube_token')),
         'tt':  bool(tokens.get('tiktok_token')),
         'gb':  bool(tokens.get('google_token')),
+        'li':  bool(tokens.get('linkedin_token')),
+        'tw':  bool(tokens.get('twitter_token')),
+        'pi':  bool(tokens.get('pinterest_token')),
         'web': True,
     }
     return jsonify({'success': True, 'platforms': status, 'connections': status})
@@ -179,13 +284,7 @@ def api_setup_business():
 @api_bp.route('/api/get_business', methods=['GET'])
 @login_required
 def api_get_business():
-    profile = getattr(current_user, 'business_profile', None)
-    if isinstance(profile, str):
-        try:
-            profile = json.loads(profile)
-        except Exception:
-            profile = {}
-    return jsonify({'success': True, 'business_info': profile or {}})
+    return jsonify({'success': True, 'business_info': _get_business_profile()})
 
 
 @api_bp.route('/api/onboarding/setup', methods=['POST'])
@@ -204,7 +303,7 @@ def api_onboarding_setup():
 
 
 # ---------------------------------------------------------------------------
-# Token setup (manual / power-user)
+# Token setup
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/setup_tokens', methods=['POST'])
@@ -222,13 +321,15 @@ def api_setup_tokens():
         save_token('google', incoming['google_token'],
                    meta={'location_id': incoming.get('google_location_id', '')},
                    user_id=uid)
-    if incoming.get('tiktok_token'):
-        save_token('tiktok', incoming['tiktok_token'], user_id=uid)
+    if incoming.get('tiktok_token'):   save_token('tiktok',    incoming['tiktok_token'],    user_id=uid)
+    if incoming.get('linkedin_token'): save_token('linkedin',  incoming['linkedin_token'],  user_id=uid)
+    if incoming.get('twitter_token'):  save_token('twitter',   incoming['twitter_token'],   user_id=uid)
+    if incoming.get('pinterest_token'):save_token('pinterest', incoming['pinterest_token'], user_id=uid)
     return jsonify({'success': True})
 
 
 # ---------------------------------------------------------------------------
-# Generate
+# Generate (legacy)
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/generate_weekly', methods=['POST'])
@@ -236,12 +337,7 @@ def api_setup_tokens():
 @login_required
 @require_plan('starter')
 def api_generate_weekly():
-    profile = getattr(current_user, 'business_profile', None)
-    if isinstance(profile, str):
-        try:
-            profile = json.loads(profile)
-        except Exception:
-            profile = {}
+    profile = _get_business_profile()
     gen = SocialMediaPostGenerator()
     if profile:
         gen.setup_business(profile)
@@ -262,7 +358,7 @@ def api_generate_post():
         post = gen.generate_post(template)
         return jsonify({'success': True, 'post': post})
     except Exception:
-        current_app.logger.exception('generate_post failed for template %s', template)
+        logger.exception('generate_post failed for template %s', template)
         return jsonify({'success': False, 'error': 'Post generation failed'})
 
 
@@ -297,7 +393,7 @@ def api_scheduled_posts():
             'time':           '',
         } for row in rows]
     except Exception:
-        current_app.logger.exception('api_scheduled_posts failed for user %s', uid)
+        logger.exception('api_scheduled_posts failed for user %s', uid)
         posts = []
     return jsonify({'success': True, 'posts': posts})
 
@@ -329,7 +425,7 @@ def api_post_history():
             'results':      json.loads(row['results'] or '{}'),
         } for row in rows]
     except Exception:
-        current_app.logger.exception('api_post_history failed for user %s', uid)
+        logger.exception('api_post_history failed for user %s', uid)
         return jsonify({'success': False, 'error': 'Could not load history', 'posts': []})
     return jsonify({'success': True, 'posts': posts, 'count': len(posts)})
 
@@ -367,25 +463,70 @@ def api_delete_post():
             db.execute('DELETE FROM post_history WHERE id = ? AND user_id = ?', (post_id, uid))
             db.commit()
         except Exception:
-            current_app.logger.exception('api_delete_post failed for post %s user %s', post_id, uid)
+            logger.exception('api_delete_post failed for post %s user %s', post_id, uid)
             return jsonify({'success': False, 'error': 'Delete failed'})
     return jsonify({'success': True})
 
 
 # ---------------------------------------------------------------------------
-# Analytics
+# Analytics  (Facebook + Instagram + Google Business + YouTube)
 # ---------------------------------------------------------------------------
 
-@api_bp.route('/api/analytics', methods=['POST'])
+@api_bp.route('/api/analytics', methods=['GET', 'POST'])
 @login_required
-@require_plan('pro')
+@require_plan('starter')
 def api_analytics():
-    uid     = _uid()
-    data    = request.json or {}
-    tokens  = _get_tokens(uid)
+    """
+    Combined Facebook + Instagram + Google Business + YouTube analytics.
+    GET  /api/analytics?days=30
+    POST /api/analytics  { days: 30 }
+    """
+    uid    = _uid()
+    data   = request.json or {}
+    tokens = _get_tokens(uid)
+
+    try:
+        days = int(request.args.get('days') or data.get('days') or 30)
+        days = max(1, min(days, 90))
+    except (ValueError, TypeError):
+        days = 30
+
     token   = tokens.get('facebook_token') or data.get('access_token')
     page_id = tokens.get('facebook_page_id') or data.get('page_id')
+    ig_id   = tokens.get('instagram_id') or data.get('ig_id')
+
+    # ── Facebook / Instagram ──────────────────────────────────────────
     if not token or not page_id:
-        return jsonify({'success': False, 'error': 'Facebook not connected',
-                        'posts': [], 'total_posts': 0})
-    return jsonify(Analytics(token, page_id).get_weekly_summary())
+        fb_result = {
+            'success': False,
+            'error':   'Facebook not connected — visit Settings to connect',
+            'kpis':    {'posts': 0, 'reach': 0, 'likes': 0, 'engaged': 0, 'eng_rate': 0.0},
+            'chart':   {'labels': [], 'reach': [], 'engaged': []},
+            'ig':      {},
+            'posts':   [],
+        }
+    else:
+        try:
+            fb_result = Analytics(token, page_id, ig_id=ig_id).get_combined_summary(days=days)
+        except Exception:
+            logger.exception('api_analytics FB failed for user %s', uid)
+            fb_result = {
+                'success': False, 'error': 'Analytics fetch failed',
+                'kpis': {'posts': 0, 'reach': 0, 'likes': 0, 'engaged': 0, 'eng_rate': 0.0},
+                'chart': {'labels': [], 'reach': [], 'engaged': []},
+                'ig': {}, 'posts': [],
+            }
+
+    # ── Google Business + YouTube ─────────────────────────────────────
+    google_result = {}
+    if tokens.get('google_token'):
+        try:
+            google_result = Analytics.get_google_youtube_summary(
+                user_id     = uid,
+                location_id = tokens.get('google_location_id', ''),
+                days        = days,
+            )
+        except Exception:
+            logger.exception('api_analytics Google/YT failed for user %s', uid)
+
+    return jsonify({**fb_result, 'google': google_result})

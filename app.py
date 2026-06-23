@@ -76,7 +76,6 @@ login_manager.login_message = 'Please sign in to access Post-Pilot.'
 
 @login_manager.user_loader
 def load_user(user_id: str):
-    print("\n[APP.PY LOAD_USER CALLED] user_id:", user_id)
     return UserManager.get_user(user_id)
 
 # ---------------------------------------------------------------------------
@@ -88,37 +87,41 @@ register_blueprints(app, csrf)
 # ---------------------------------------------------------------------------
 # Database helpers (imported by blueprints via `from app import get_db`)
 # ---------------------------------------------------------------------------
-from modules.database import get_db
+DATABASE = os.getenv('DATABASE_PATH', 'postpilot.db')
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
 @app.teardown_appcontext
 def close_db(exc):
-    db = getattr(g, 'db', None)
+    db = getattr(g, '_database', None)
     if db is not None:
-        db.request_scoped = False
         db.close()
-
 
 def init_db():
     with app.app_context():
-        db = get_db()
-
+        db = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
         db.execute(CREATE_API_KEYS_TABLE)
         db.execute(WebsiteManager.create_table_sql())
         db.execute('''
             CREATE TABLE IF NOT EXISTS post_history (
                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id      TEXT    NOT NULL REFERENCES users(id),
+                user_id      TEXT    NOT NULL,
                 caption      TEXT,
                 content_type TEXT    DEFAULT 'text',
                 image_url    TEXT,
                 video_url    TEXT,
                 platforms    TEXT,
                 results      TEXT,
-                scheduled_at TEXT,
-                posted_at    TEXT,
                 status       TEXT    DEFAULT 'published',
                 post_url     TEXT,
-                created_at   TEXT    DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
+                scheduled_at INTEGER,
+                created_at   INTEGER DEFAULT (strftime('%s','now'))
             );
         ''')
         db.execute('''
@@ -133,8 +136,8 @@ def init_db():
                 last_login_at      INTEGER
             );
         ''')
-        # NOTE: OAuth tokens live in `platform_tokens` (auth_manager.py).
-        # Business profile lives in `business_profiles` (user_manager.py).
+        # OAuth tokens live in platform_tokens (auth_manager.py).
+        # Business profile lives in business_profiles (user_manager.py).
         # Do NOT add platform_tokens TEXT or business_profile TEXT here.
         db.commit()
         db.close()

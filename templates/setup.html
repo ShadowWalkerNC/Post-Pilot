@@ -27,6 +27,14 @@
     .status-dot { width:.5rem; height:.5rem; border-radius:9999px; flex-shrink:0; }
     .toast { position:fixed; bottom:1.5rem; right:1.5rem; z-index:99; background:#0d0d24; border:1px solid rgba(99,102,241,.3); border-radius:.875rem; padding:.875rem 1.25rem; display:flex; align-items:center; gap:.75rem; font-size:.875rem; box-shadow:0 8px 32px rgba(0,0,0,.4); transform:translateY(100px); opacity:0; transition:.4s cubic-bezier(.16,1,.3,1); }
     .toast.show { transform:translateY(0); opacity:1; }
+    /* Platform toggle switch */
+    .ptgl-track { width:2.5rem; height:1.25rem; background:#374151; border-radius:9999px; position:relative; transition:background .2s; flex-shrink:0; cursor:pointer; }
+    .ptgl-track.on { background:#6366f1; }
+    .ptgl-thumb { position:absolute; top:.125rem; left:.125rem; width:1rem; height:1rem; background:#fff; border-radius:9999px; transition:transform .2s; }
+    .ptgl-track.on .ptgl-thumb { transform:translateX(1.25rem); }
+    .ptgl-row { background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.05); border-radius:.875rem; transition:border-color .2s; }
+    .ptgl-row:hover { border-color:rgba(99,102,241,.25); }
+    .ptgl-row.disabled-row { opacity:.45; }
   </style>
 </head>
 <body class="text-white antialiased min-h-screen flex">
@@ -63,7 +71,7 @@
   <header class="border-b border-white/5 px-6 py-4 flex items-center justify-between" style="background:rgba(10,10,32,.8);backdrop-filter:blur(12px)">
     <div>
       <h1 class="text-lg font-black">⚙️ Settings</h1>
-      <p class="text-xs text-gray-500 mt-0.5">Manage your business profile, brand voice & connections</p>
+      <p class="text-xs text-gray-500 mt-0.5">Manage your business profile, brand voice &amp; connections</p>
     </div>
     <button onclick="saveAll()" class="text-sm px-5 py-2.5 rounded-xl font-semibold text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 14px rgba(99,102,241,.35)">Save Changes</button>
   </header>
@@ -72,8 +80,17 @@
 
     <!-- Section tabs -->
     <div class="flex gap-2 mb-6 flex-wrap">
-      {% for sid, label in [('business','🏪 Business Profile'),('brand','🎨 Brand Voice'),('schedule','📅 Schedule'),('notifications','🔔 Notifications'),('connections','🔗 Connections')] %}
-      <button onclick="showSection('{{ sid }}', this)" class="section-tab text-sm px-4 py-2 rounded-xl border border-white/10 text-gray-400 {{ 'active' if sid == 'business' else '' }}" data-section="{{ sid }}">{{ label }}</button>
+      {% for sid, label in [
+        ('business','🏪 Business Profile'),
+        ('brand','🎨 Brand Voice'),
+        ('schedule','📅 Schedule'),
+        ('platforms','📲 Platforms'),
+        ('notifications','🔔 Notifications'),
+        ('connections','🔗 Connections')
+      ] %}
+      <button onclick="showSection('{{ sid }}', this)"
+        class="section-tab text-sm px-4 py-2 rounded-xl border border-white/10 text-gray-400 {{ 'active' if sid == 'business' else '' }}"
+        data-section="{{ sid }}">{{ label }}</button>
       {% endfor %}
     </div>
 
@@ -102,7 +119,7 @@
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1.5">Location / Address</label>
-            <input type="text" id="location" class="input-base" placeholder="e.g. Downtown, 12th & Main" />
+            <input type="text" id="location" class="input-base" placeholder="e.g. Downtown, 12th &amp; Main" />
           </div>
           <div>
             <label class="block text-xs text-gray-500 mb-1.5">City</label>
@@ -165,7 +182,7 @@
     <div id="sec-schedule" class="hidden">
       <div class="card rounded-2xl p-6">
         <h2 class="font-bold mb-2">Default Posting Schedule</h2>
-        <p class="text-sm text-gray-500 mb-5">These defaults are used when you hit "Generate 7 Posts" — you can override per-post at any time.</p>
+        <p class="text-sm text-gray-500 mb-5">These defaults are used when you hit “Generate 7 Posts” — you can override per-post at any time.</p>
         <div class="grid md:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs text-gray-500 mb-1.5">Preferred posting time</label>
@@ -203,6 +220,18 @@
       </div>
     </div>
 
+    <!-- ─── PLATFORMS (new) ─── -->
+    <div id="sec-platforms" class="hidden">
+      <div class="card rounded-2xl p-6">
+        <h2 class="font-bold mb-1">📲 Active Platforms</h2>
+        <p class="text-sm text-gray-500 mb-5">Enable or disable platforms for AI generation and publishing. Disabled platforms are skipped even if connected.</p>
+        <div id="platformRows" class="space-y-2">
+          <!-- populated by renderPlatformRows() -->
+        </div>
+        <p class="text-xs text-gray-700 mt-5">Changes save automatically. Connect accounts under the <button onclick="showSection('connections', document.querySelector('[data-section=connections]'))" class="underline text-gray-500 hover:text-gray-300">Connections</button> tab.</p>
+      </div>
+    </div>
+
     <!-- ─── NOTIFICATIONS ─── -->
     <div id="sec-notifications" class="hidden">
       <div class="card rounded-2xl p-6">
@@ -236,15 +265,15 @@
     <div id="sec-connections" class="hidden">
       <div class="card rounded-2xl p-6">
         <h2 class="font-bold mb-2">Platform Connections</h2>
-        <p class="text-sm text-gray-500 mb-5">Connect your accounts via OAuth. Post-Pilot never stores your passwords — revoke access anytime from each platform's settings.</p>
+        <p class="text-sm text-gray-500 mb-5">Connect your accounts via OAuth. Post-Pilot never stores your passwords — revoke access anytime from each platform’s settings.</p>
         <div class="space-y-3">
           {% for pid, name, color, auth_url, icon in [
-            ('fb',  'Facebook',         '#1877F2', '/auth/facebook',       '📘'),
-            ('ig',  'Instagram',        '#E1306C', '/auth/instagram',      '📸'),
-            ('tt',  'TikTok',           '#69C9D0', '/auth/tiktok',         '🎵'),
-            ('yt',  'YouTube',          '#FF0000', '/auth/youtube',        '▶️'),
-            ('gb',  'Google Business',  '#4285F4', '/auth/google',         '📍'),
-            ('web', 'Website Hub',      '#10b981', '/website_hub',         '🌐'),
+            ('fb',  'Facebook',         '#1877F2', '/auth/facebook',  '📘'),
+            ('ig',  'Instagram',        '#E1306C', '/auth/instagram', '📸'),
+            ('tt',  'TikTok',           '#69C9D0', '/auth/tiktok',    '🎵'),
+            ('yt',  'YouTube',          '#FF0000', '/auth/youtube',   '▶️'),
+            ('gb',  'Google Business',  '#4285F4', '/auth/google',    '📍'),
+            ('web', 'Website Hub',      '#10b981', '/website_hub',    '🌐'),
           ] %}
           <div class="connect-card p-4 flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -279,20 +308,93 @@
 </div>
 
 <script>
-function showSection(id, btn) {
-  document.querySelectorAll('[id^="sec-"]').forEach(el => el.classList.add('hidden'));
-  document.getElementById('sec-'+id).classList.remove('hidden');
-  document.querySelectorAll('.section-tab').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+// ── Platform metadata (mirrors generate.html) ────────────────────────────
+const PLATFORMS = [
+  { pid:'fb',  label:'Facebook',        icon:'🟦', color:'#1877F2' },
+  { pid:'ig',  label:'Instagram',       icon:'📷', color:'#E1306C' },
+  { pid:'tt',  label:'TikTok',          icon:'🎵', color:'#69C9D0' },
+  { pid:'yt',  label:'YouTube',         icon:'▶️',  color:'#FF0000' },
+  { pid:'yts', label:'YouTube Shorts',  icon:'📱', color:'#FF0000' },
+  { pid:'li',  label:'LinkedIn',        icon:'💼', color:'#0A66C2' },
+  { pid:'tw',  label:'Twitter / X',     icon:'🐦', color:'#1DA1F2' },
+  { pid:'pi',  label:'Pinterest',       icon:'📌', color:'#E60023' },
+  { pid:'gb',  label:'Google Business', icon:'🗺️',  color:'#4285F4' },
+  { pid:'web', label:'Website Hub',     icon:'🌐', color:'#10b981' },
+];
+
+// State
+let platformSettings  = {}; // {pid: bool}
+let connectionStatus  = {}; // {pid: 'connected'|'disconnected'}
+let ptglSaveTimer     = null;
+
+// ── Render platform toggle rows ───────────────────────────────────────────
+function renderPlatformRows() {
+  const container = document.getElementById('platformRows');
+  container.innerHTML = PLATFORMS.map(p => {
+    const enabled    = platformSettings[p.pid] !== false;
+    const connected  = connectionStatus[p.pid] === 'connected';
+    const trackCls   = 'ptgl-track' + (enabled ? ' on' : '');
+    const rowCls     = 'ptgl-row p-4 flex items-center justify-between' + (!connected ? ' disabled-row' : '');
+    const badge      = connected
+      ? `<span class="text-xs px-2 py-0.5 rounded-full font-semibold" style="background:rgba(110,231,183,.1);color:#6ee7b7;border:1px solid rgba(110,231,183,.2)">connected</span>`
+      : `<span class="text-xs px-2 py-0.5 rounded-full font-semibold text-gray-600" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07)">not connected</span>`;
+    return `
+    <div class="${rowCls}" id="ptrow_${p.pid}">
+      <div class="flex items-center gap-3">
+        <span class="text-lg">${p.icon}</span>
+        <div>
+          <div class="text-sm font-semibold">${p.label}</div>
+          <div class="mt-0.5">${badge}</div>
+        </div>
+      </div>
+      <div class="${trackCls}" id="ptgl_${p.pid}" onclick="togglePlatform('${p.pid}')" title="${enabled?'Disable':'Enable'} ${p.label}">
+        <div class="ptgl-thumb"></div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// Sync toggle thumbs
-document.querySelectorAll('input[type=checkbox]').forEach(cb => {
-  function sync() { cb.nextElementSibling?.querySelector('.notif-thumb')?.style && (cb.nextElementSibling.querySelector('.notif-thumb').style.transform = cb.checked ? 'translateX(20px)' : ''); }
-  cb.addEventListener('change', sync); sync();
-});
+function togglePlatform(pid) {
+  platformSettings[pid] = !platformSettings[pid];
+  // Update UI immediately
+  const track = document.getElementById('ptgl_' + pid);
+  if (track) track.classList.toggle('on', platformSettings[pid]);
+  // Debounced save
+  clearTimeout(ptglSaveTimer);
+  ptglSaveTimer = setTimeout(savePlatformSettings, 300);
+}
 
-// Toast
+async function savePlatformSettings() {
+  try {
+    const res  = await fetch('/api/platform_settings', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ settings: platformSettings })
+    });
+    const data = await res.json();
+    if (data.success) showToast('Platform settings saved ✓');
+  } catch(e) { showToast('⚠️ Could not save platform settings'); }
+}
+
+// ── Section switching ───────────────────────────────────────────────────────────
+function showSection(id, btn) {
+  document.querySelectorAll('[id^="sec-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('sec-' + id).classList.remove('hidden');
+  document.querySelectorAll('.section-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ── Notification toggle thumbs ──────────────────────────────────────────────────
+function syncNotifThumbs() {
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    const thumb = cb.nextElementSibling?.querySelector('.notif-thumb');
+    if (thumb) thumb.style.transform = cb.checked ? 'translateX(20px)' : '';
+    cb.addEventListener('change', () => {
+      if (thumb) thumb.style.transform = cb.checked ? 'translateX(20px)' : '';
+    });
+  });
+}
+
+// ── Toast ───────────────────────────────────────────────────────────────────────────
 function showToast(msg) {
   const t = document.getElementById('toast');
   document.getElementById('toastMsg').textContent = msg;
@@ -300,64 +402,84 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Load existing settings
+// ── Load all settings on page load ────────────────────────────────────────────
 async function loadSettings() {
+  // 1. Business profile
   try {
-    const res = await fetch('/api/get_business?user_id=default');
+    const res  = await fetch('/api/get_business?user_id=default');
     const data = await res.json();
     if (data.business_info) {
       const b = data.business_info;
       ['businessType','businessName','location','city','hours','specialItem'].forEach(id => {
-        const el = document.getElementById(id);
-        const key = id.replace(/([A-Z])/g, m => '_'+m.toLowerCase());
+        const el  = document.getElementById(id);
+        const key = id.replace(/([A-Z])/g, m => '_' + m.toLowerCase());
         if (el && b[key] !== undefined) el.value = b[key];
       });
-      if (b.hashtags) document.getElementById('hashtags').value = b.hashtags.join(' ');
-      if (b.description) document.getElementById('bizDescription').value = b.description;
-      if (b.tone) { const r = document.getElementById('tone_'+b.tone); if(r) r.checked = true; }
+      if (b.hashtags)     document.getElementById('hashtags').value     = b.hashtags.join(' ');
+      if (b.description)  document.getElementById('bizDescription').value = b.description;
+      if (b.tone) { const r = document.getElementById('tone_' + b.tone); if (r) r.checked = true; }
+      if (b.brand_phrases) document.getElementById('brandPhrases').value = b.brand_phrases;
+      if (b.avoid_words)   document.getElementById('avoidWords').value   = b.avoid_words;
     }
-  } catch(e) { console.warn('Could not load settings', e); }
+  } catch(e) { console.warn('Could not load business settings', e); }
 
-  // Load connection statuses
+  // 2. Connection statuses
   try {
-    const res = await fetch('/api/connection_status?user_id=default');
+    const res  = await fetch('/api/connection_status?user_id=default');
     const data = await res.json();
-    Object.entries(data.connections||{}).forEach(([pid, status]) => {
-      const dot = document.getElementById('dot_'+pid);
-      const lbl = document.getElementById('status_'+pid);
-      const btn = document.getElementById('btn_'+pid);
+    connectionStatus = {};
+    Object.entries(data.connections || {}).forEach(([pid, status]) => {
+      connectionStatus[pid] = status;
+      const dot = document.getElementById('dot_'    + pid);
+      const lbl = document.getElementById('status_' + pid);
+      const btn = document.getElementById('btn_'    + pid);
       if (!dot) return;
       if (status === 'connected') {
-        dot.className = 'status-dot bg-green-400';
+        dot.className  = 'status-dot bg-green-400';
         lbl.textContent = 'Connected ✓';
-        lbl.className = 'text-xs text-green-400';
+        lbl.className   = 'text-xs text-green-400';
         btn.textContent = 'Disconnect';
         btn.style.cssText = 'color:#f87171;border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08);font-size:.75rem;padding:.35rem .9rem;border-radius:.75rem;border-width:1px;font-weight:600;transition:.15s';
         btn.href = `/auth/disconnect/${pid}`;
       }
     });
   } catch(e) { console.warn('Could not load connection status', e); }
+
+  // 3. Platform enable/disable settings
+  try {
+    const res  = await fetch('/api/platform_settings');
+    const data = await res.json();
+    platformSettings = data.settings || {};
+    // Default unset platforms to true
+    PLATFORMS.forEach(p => { if (platformSettings[p.pid] === undefined) platformSettings[p.pid] = true; });
+  } catch(e) {
+    platformSettings = Object.fromEntries(PLATFORMS.map(p => [p.pid, true]));
+  }
+
+  renderPlatformRows();
+  syncNotifThumbs();
 }
 
+// ── Save all (business profile + schedule + notifications) ───────────────────
 async function saveAll() {
-  const raw = document.getElementById('hashtags').value;
+  const raw  = document.getElementById('hashtags').value;
   const tone = document.querySelector('input[name=tone]:checked')?.value || 'energetic';
   const info = {
-    business_type: document.getElementById('businessType').value,
-    business_name: document.getElementById('businessName').value,
-    location:      document.getElementById('location').value,
-    city:          document.getElementById('city').value,
-    hours:         document.getElementById('hours').value,
-    special_item:  document.getElementById('specialItem').value,
-    description:   document.getElementById('bizDescription').value,
-    hashtags:      raw ? raw.split(/\s+/).filter(h=>h.startsWith('#')) : [],
+    business_type:  document.getElementById('businessType').value,
+    business_name:  document.getElementById('businessName').value,
+    location:       document.getElementById('location').value,
+    city:           document.getElementById('city').value,
+    hours:          document.getElementById('hours').value,
+    special_item:   document.getElementById('specialItem').value,
+    description:    document.getElementById('bizDescription').value,
+    hashtags:       raw ? raw.split(/\s+/).filter(h => h.startsWith('#')) : [],
     tone,
-    brand_phrases: document.getElementById('brandPhrases').value,
-    avoid_words:   document.getElementById('avoidWords').value,
-    default_time:  document.getElementById('defaultTime').value,
-    posts_per_week:document.getElementById('postsPerWeek').value,
-    auto_publish:  document.getElementById('autoPublish').value,
-    timezone:      document.getElementById('timezone').value,
+    brand_phrases:  document.getElementById('brandPhrases').value,
+    avoid_words:    document.getElementById('avoidWords').value,
+    default_time:   document.getElementById('defaultTime').value,
+    posts_per_week: document.getElementById('postsPerWeek').value,
+    auto_publish:   document.getElementById('autoPublish').value,
+    timezone:       document.getElementById('timezone').value,
     notifications: {
       publish:    document.getElementById('notif_publish').checked,
       engagement: document.getElementById('notif_engagement').checked,
@@ -367,13 +489,13 @@ async function saveAll() {
     }
   };
   try {
-    const res = await fetch('/api/setup_business', {
+    const res  = await fetch('/api/setup_business', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ user_id:'default', business_info: info })
     });
     const data = await res.json();
     if (data.success) showToast('Settings saved ✓');
-    else showToast('⚠️ ' + (data.message||'Save failed'));
+    else showToast('⚠️ ' + (data.message || 'Save failed'));
   } catch(e) { showToast('⚠️ Network error'); }
 }
 

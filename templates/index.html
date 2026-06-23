@@ -127,20 +127,107 @@
       <a href="#how" class="px-8 py-4 rounded-xl font-medium text-lg text-white" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1)">See How It Works</a>
     </div>
     <p class="text-xs text-gray-600 mt-4">No credit card required · Free plan forever · Setup in 2 minutes</p>
+
     <div class="mt-10 sm:mt-16 animate-fade-up" style="animation-delay:.35s">
-      <!-- Mobile preview -->
-      <div class="md:hidden rounded-2xl overflow-hidden" style="background:rgba(13,13,36,.95);border:1px solid rgba(255,255,255,.08)">
-        <div class="flex items-center gap-2 px-4 py-3 border-b border-white/5">
-          <div class="w-2.5 h-2.5 rounded-full bg-red-500/80"></div><div class="w-2.5 h-2.5 rounded-full bg-yellow-500/80"></div><div class="w-2.5 h-2.5 rounded-full bg-green-500/80"></div>
-          <span class="ml-2 text-xs text-gray-500"><span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block animate-pulse mr-1"></span>dashboard</span>
+
+      <!-- ===== MOBILE DASHBOARD PREVIEW ===== -->
+      <div class="md:hidden mx-auto max-w-sm">
+        <!-- Phone frame -->
+        <div class="rounded-3xl overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,.7)]" style="background:#0d0d24;border:1px solid rgba(255,255,255,.1)">
+          <!-- Status bar -->
+          <div class="flex items-center justify-between px-5 pt-4 pb-2">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              <span class="text-[10px] font-semibold text-green-400 tracking-wide">LIVE</span>
+            </div>
+            <span class="text-[10px] text-gray-500 font-medium">Post-Pilot Dashboard</span>
+            <span class="text-[10px] text-gray-600">now</span>
+          </div>
+
+          <!-- Stats row -->
+          <div class="grid grid-cols-3 gap-2.5 px-4 pb-4">
+            <div class="rounded-2xl p-4 text-center" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2)">
+              <div class="text-3xl font-black text-white">7</div>
+              <div class="text-[11px] text-gray-400 mt-0.5 leading-tight">Posts<br/>this week</div>
+            </div>
+            <div class="rounded-2xl p-4 text-center" style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2)">
+              <div class="text-3xl font-black text-white">6</div>
+              <div class="text-[11px] text-gray-400 mt-0.5 leading-tight">Platforms<br/>connected</div>
+            </div>
+            <div class="rounded-2xl p-4 text-center" style="background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.2)">
+              <div class="text-2xl font-black text-white">2.8K</div>
+              <div class="text-[11px] text-green-400 font-semibold mt-0.5">↑ +34%</div>
+              <div class="text-[10px] text-gray-500">reach</div>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="mx-4 border-t border-white/5"></div>
+
+          <!-- Latest post card -->
+          <div class="px-4 py-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-bold uppercase tracking-widest text-orange-400">Latest Post</span>
+              <span class="text-[10px] text-gray-600">2h ago</span>
+            </div>
+            <div class="rounded-2xl p-4" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.15)">
+              <p class="text-sm text-white font-medium leading-snug mb-3">"🔥 Brisket Tacos are BACK this Friday! Come find us at Oak St. 11am–3pm…"</p>
+              <div class="flex items-center gap-2">
+                <span class="text-xs px-2.5 py-1 rounded-full font-bold" style="background:#1877f2">FB</span>
+                <span class="text-xs px-2.5 py-1 rounded-full font-bold" style="background:linear-gradient(135deg,#f09433,#bc1888)">IG</span>
+                <span class="text-xs px-2.5 py-1 rounded-full font-bold bg-gray-700">TT</span>
+                <span class="ml-auto text-[10px] text-green-400 font-semibold">✓ Published</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule preview -->
+          <div class="px-4 pb-5">
+            <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">This Week</div>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-500 w-7">Mon</span>
+                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
+                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-500 w-7">Tue</span>
+                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
+                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-500 w-7">Wed</span>
+                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
+                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-500 w-7">Thu</span>
+                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
+                  <div class="h-2 rounded-full w-3/4" style="background:linear-gradient(90deg,#f97316,#fb923c)"></div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-500 w-7">Fri</span>
+                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom bar -->
+          <div class="px-4 py-3 flex items-center justify-between" style="background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.05)">
+            <span class="text-[10px] text-gray-500">Next: Thu 12:00 PM</span>
+            <span class="flex items-center gap-1 text-[10px] text-green-400 font-semibold">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse inline-block"></span>
+              All systems live
+            </span>
+          </div>
         </div>
-        <div class="p-4 grid grid-cols-3 gap-3 text-center">
-          <div class="rounded-xl p-3" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2)"><div class="text-2xl font-black">7</div><div class="text-xs text-gray-400">Posts/week</div><div class="text-xs text-green-400 font-semibold">● Live</div></div>
-          <div class="rounded-xl p-3" style="background:rgba(249,115,22,.06);border:1px solid rgba(249,115,22,.18)"><div class="text-2xl font-black">6</div><div class="text-xs text-gray-400">Platforms</div><div class="text-xs text-orange-400 font-semibold">Connected</div></div>
-          <div class="rounded-xl p-3" style="background:rgba(192,132,252,.06);border:1px solid rgba(192,132,252,.15)"><div class="text-2xl font-black">2.8K</div><div class="text-xs text-gray-400">Reach</div><div class="text-xs text-green-400 font-semibold">↑+34%</div></div>
-        </div>
-        <div class="px-4 pb-4"><div class="rounded-xl p-3" style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div class="text-xs text-gray-500 mb-1">Latest post · 2h ago</div><div class="text-xs text-white">"🔥 Brisket Tacos are BACK this Friday! Oak St. 11am–3pm…"</div><div class="flex gap-1.5 mt-2"><span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-600">FB</span><span class="text-xs px-2 py-0.5 rounded-full font-bold bg-pink-600">IG</span><span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-700">TT</span></div></div></div>
       </div>
+      <!-- ===== END MOBILE PREVIEW ===== -->
+
       <!-- Desktop preview -->
       <div class="hidden md:block rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,.6)] animate-float" style="background:rgba(13,13,36,.9);border:1px solid rgba(255,255,255,.08)">
         <div class="flex items-center gap-2 px-5 py-3.5 border-b border-white/5" style="background:rgba(255,255,255,.02)">
@@ -357,91 +444,4 @@
     </div>
     <div class="space-y-3">
       <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Do I need a social media manager?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">No. Post-Pilot replaces the need for a dedicated social media manager for most small food businesses. The AI handles writing, scheduling, and publishing automatically.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Will my posts look generic?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">No. You provide your business name, cuisine type, tone, and weekly specials. Every post is generated specifically for your business and never reused across accounts.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">What happens if I don't approve posts?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">On auto-pilot mode, posts go live without approval. On review mode, you get a daily digest to approve or edit before anything publishes.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Can I connect multiple locations?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Yes — the Pro plan supports multi-location with separate content streams and platform connections per location.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Is my account data safe?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Yes. All platform connections use official OAuth APIs. We never store your social media passwords. Your data is encrypted at rest and in transit.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Can I cancel any time?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Yes — no contracts, no cancellation fees. Cancel, downgrade, or pause from billing settings at any time.</div></div></div>
-    </div>
-  </div>
-</section>
-
-<!-- CTA -->
-<section class="relative py-20 px-5 overflow-hidden" style="background:#07071a">
-  <div class="orb w-[600px] h-[300px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" style="background:rgba(99,102,241,.15)"></div>
-  <div class="max-w-3xl mx-auto text-center relative z-10">
-    <h2 class="text-3xl sm:text-5xl font-black tracking-tight mb-5">Ready to put your social media <span class="gradient-text">on autopilot?</span></h2>
-    <p class="text-gray-400 mb-8 text-lg">Join food businesses already saving hours every week.</p>
-    <a href="/register" class="inline-block px-10 py-4 rounded-xl font-bold text-lg text-white" style="background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 8px 32px rgba(99,102,241,.5)">Start for Free →</a>
-    <p class="text-xs text-gray-600 mt-4">No credit card required · Free plan forever · Setup in 2 minutes</p>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer class="border-t border-white/5 py-12 px-5" style="background:#07071a">
-  <div class="max-w-6xl mx-auto">
-    <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-      <div>
-        <a href="/" class="flex items-center gap-2 font-black text-base mb-3"><div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>Post-Pilot</a>
-        <p class="text-gray-500 text-sm leading-relaxed">AI-powered social media automation for food trucks, restaurants, cafes, and hotels.</p>
-      </div>
-      <div>
-        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Product</h4>
-        <ul class="space-y-2 text-sm text-gray-500">
-          <li><a href="#how" class="hover:text-white transition">How It Works</a></li>
-          <li><a href="#platforms" class="hover:text-white transition">Platforms</a></li>
-          <li><a href="#website-hub" class="hover:text-white transition">Website Hub</a></li>
-          <li><a href="#pricing" class="hover:text-white transition">Pricing</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Account</h4>
-        <ul class="space-y-2 text-sm text-gray-500">
-          <li><a href="/register" class="hover:text-white transition">Sign Up Free</a></li>
-          <li><a href="/login" class="hover:text-white transition">Sign In</a></li>
-          <li><a href="/dashboard" class="hover:text-white transition">Dashboard</a></li>
-        </ul>
-      </div>
-      <div>
-        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Legal</h4>
-        <ul class="space-y-2 text-sm text-gray-500">
-          <li><a href="/legal/privacy" class="hover:text-white transition">Privacy Policy</a></li>
-          <li><a href="/legal/terms" class="hover:text-white transition">Terms of Service</a></li>
-        </ul>
-      </div>
-    </div>
-    <div class="border-t border-white/5 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
-      <span>&copy; 2026 Post-Pilot. All rights reserved.</span>
-      <span>Built for the food &amp; hospitality industry.</span>
-    </div>
-  </div>
-</footer>
-
-<script>
-  const navbar = document.getElementById('navbar');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 20) {
-      navbar.style.background = 'rgba(7,7,26,0.95)';
-      navbar.style.backdropFilter = 'blur(20px)';
-      navbar.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
-    } else {
-      navbar.style.background = '';
-      navbar.style.backdropFilter = '';
-      navbar.style.borderBottom = '';
-    }
-  });
-  function toggleMobileNav() {
-    const menu = document.getElementById('mobile-menu');
-    const backdrop = document.getElementById('mobile-backdrop');
-    menu.classList.toggle('open');
-    backdrop.classList.toggle('hidden');
-    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
-  }
-  function toggleFaq(el) {
-    const isOpen = el.classList.contains('faq-open');
-    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('faq-open'));
-    if (!isOpen) el.classList.add('faq-open');
-  }
-</script>
-</body>
-</html>
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Will my posts look generic?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="

@@ -1,10 +1,11 @@
 """
 modules/analytics_client.py
 Meta Insights API client -- Facebook Pages + Instagram Business.
+Also exposes get_google_youtube_summary() for Google Business + YouTube.
 
 Main entry point: Analytics.get_combined_summary(days)
-Returns a single dict with KPIs, chart series, IG metrics, and post table
-ready for the analytics dashboard to render directly.
+Returns a single dict with KPIs, chart series, IG metrics, post table,
+and google/youtube section ready for the analytics dashboard.
 """
 
 import requests
@@ -112,6 +113,110 @@ class Analytics:
             }
         except Exception:
             return {}
+
+    # ------------------------------------------------------------------
+    # Google Business + YouTube summary
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def get_google_youtube_summary(user_id: str, location_id: str = '', days: int = 30) -> Dict:
+        """
+        Pull Google Business recent posts and YouTube channel stats + recent
+        video analytics.  Returns a dict under the 'google' key in the
+        /api/analytics response.
+
+        Args:
+            user_id:     Post-Pilot user ID (for token lookup).
+            location_id: GMB location resource name. Falls back to token meta.
+            days:        Lookback window (used for display labels only;
+                         GMB posts are capped at 10 by default).
+
+        Returns:
+            {
+              'gmb': {
+                'posts': [ { title, summary, create_time, url } ... ]
+              },
+              'youtube': {
+                'subscribers': int,
+                'total_views': int,
+                'video_count': int,
+                'recent_videos': [ { id, title, views, likes, comments } ... ]
+              }
+            }
+            On partial failure the affected sub-key will be {}.
+        """
+        from modules.google_client import GoogleBusinessClient, YouTubeClient
+        from modules.auth_manager  import get_token
+
+        result: Dict = {'gmb': {}, 'youtube': {}}
+
+        # ── Resolve location_id from token meta if not passed in ──────
+        if not location_id:
+            try:
+                tok_row = get_token('google', user_id)
+                if tok_row:
+                    meta        = tok_row.get('meta') or {}
+                    location_id = meta.get('location_id', '')
+            except Exception:
+                pass
+
+        # ── Google Business posts ─────────────────────────────────────
+        if location_id:
+            try:
+                gbc   = GoogleBusinessClient(location_id, user_id=user_id)
+                raw   = gbc.get_posts(page_size=10)
+                posts = []
+                for p in raw.get('localPosts', []):
+                    posts.append({
+                        'title':       p.get('event', {}).get('title', '') or p.get('topicType', 'Post'),
+                        'summary':     (p.get('summary', '') or '')[:120],
+                        'create_time': p.get('createTime', ''),
+                        'url':         p.get('searchUrl', ''),
+                    })
+                result['gmb'] = {'posts': posts}
+            except Exception:
+                result['gmb'] = {}
+
+        # ── YouTube channel stats + recent video analytics ────────────
+        try:
+            ytc   = YouTubeClient(user_id=user_id)
+            stats = ytc.get_channel_stats()
+            if 'error' not in stats:
+                # fetch up to 5 recent video IDs
+                from modules.auth_manager import get_valid_google_token
+                token = get_valid_google_token(user_id)
+                recent_videos = []
+                if token:
+                    vid_resp = requests.get(
+                        'https://www.googleapis.com/youtube/v3/search',
+                        headers={'Authorization': f'Bearer {token}'},
+                        params={
+                            'part':       'snippet',
+                            'forMine':    'true',
+                            'type':       'video',
+                            'order':      'date',
+                            'maxResults': 5,
+                        },
+                        timeout=10,
+                    ).json()
+                    for item in vid_resp.get('items', []):
+                        vid_id    = item.get('id', {}).get('videoId', '')
+                        title     = item.get('snippet', {}).get('title', '')
+                        analytics = ytc.get_video_analytics(vid_id) if vid_id else {}
+                        recent_videos.append({
+                            'id':       vid_id,
+                            'title':    title,
+                            'views':    analytics.get('views',    0),
+                            'likes':    analytics.get('likes',    0),
+                            'comments': analytics.get('comments', 0),
+                        })
+                result['youtube'] = {**stats, 'recent_videos': recent_videos}
+            else:
+                result['youtube'] = {}
+        except Exception:
+            result['youtube'] = {}
+
+        return result
 
     # ------------------------------------------------------------------
     # Legacy public methods (backwards compat)

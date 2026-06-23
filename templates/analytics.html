@@ -250,7 +250,69 @@
       </div>
     </div>
 
-    <!-- Post table -->
+    <!-- Google Business + YouTube row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4" id="google-row">
+
+      <!-- Google Business panel -->
+      <div class="card p-5" id="gmb-panel">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#4285F4">
+            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/></svg>
+          </div>
+          <div>
+            <div class="font-bold text-sm text-white">Google Business</div>
+            <div class="text-xs text-gray-600">Recent local posts</div>
+          </div>
+        </div>
+        <div id="gmb-posts" class="space-y-2"></div>
+        <div id="gmb-empty" class="hidden empty">
+          <p class="text-xs">No recent Google Business posts found.</p>
+        </div>
+        <div id="gmb-disconnected" class="hidden empty">
+          <p class="text-xs">Connect Google in <a href="/setup" class="text-brand-400 hover:underline">Settings</a> to see posts.</p>
+        </div>
+      </div>
+
+      <!-- YouTube panel -->
+      <div class="card p-5" id="yt-panel">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:#FF0000">
+            <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M23.495 6.205a3.007 3.007 0 00-2.088-2.088c-1.87-.501-9.396-.501-9.396-.501s-7.507-.01-9.396.501A3.007 3.007 0 00.527 6.205a31.247 31.247 0 00-.522 5.805 31.247 31.247 0 00.522 5.783 3.007 3.007 0 002.088 2.088c1.868.502 9.396.502 9.396.502s7.506 0 9.396-.502a3.007 3.007 0 002.088-2.088 31.247 31.247 0 00.5-5.783 31.247 31.247 0 00-.5-5.805zM9.609 15.601V8.408l6.264 3.602z"/></svg>
+          </div>
+          <div>
+            <div class="font-bold text-sm text-white">YouTube</div>
+            <div class="text-xs text-gray-600">Channel &amp; recent videos</div>
+          </div>
+        </div>
+        <!-- Channel KPIs -->
+        <div id="yt-stats" class="grid grid-cols-3 gap-2 mb-4">
+          <div class="text-center p-2 rounded-lg" style="background:rgba(255,0,0,.06);border:1px solid rgba(255,0,0,.12)">
+            <div class="text-lg font-black text-white" id="yt-subs">&mdash;</div>
+            <div class="text-xs text-gray-500 mt-0.5">Subscribers</div>
+          </div>
+          <div class="text-center p-2 rounded-lg" style="background:rgba(255,0,0,.06);border:1px solid rgba(255,0,0,.12)">
+            <div class="text-lg font-black text-white" id="yt-views">&mdash;</div>
+            <div class="text-xs text-gray-500 mt-0.5">Total Views</div>
+          </div>
+          <div class="text-center p-2 rounded-lg" style="background:rgba(255,0,0,.06);border:1px solid rgba(255,0,0,.12)">
+            <div class="text-lg font-black text-white" id="yt-count">&mdash;</div>
+            <div class="text-xs text-gray-500 mt-0.5">Videos</div>
+          </div>
+        </div>
+        <!-- Recent videos table -->
+        <div id="yt-video-wrap" class="overflow-x-auto">
+          <table class="data-table">
+            <thead><tr><th>Video</th><th>Views</th><th>Likes</th><th>Comments</th></tr></thead>
+            <tbody id="yt-video-tbody"></tbody>
+          </table>
+        </div>
+        <div id="yt-disconnected" class="hidden empty">
+          <p class="text-xs">Connect Google in <a href="/setup" class="text-brand-400 hover:underline">Settings</a> to see YouTube stats.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Facebook Post table -->
     <div class="card p-5">
       <div class="flex items-center justify-between mb-4">
         <div>
@@ -270,13 +332,7 @@
       <div id="table-wrap" class="overflow-x-auto">
         <table class="data-table">
           <thead>
-            <tr>
-              <th>Post</th>
-              <th>Date</th>
-              <th>Reach</th>
-              <th>Likes</th>
-              <th>Engaged</th>
-            </tr>
+            <tr><th>Post</th><th>Date</th><th>Reach</th><th>Likes</th><th>Engaged</th></tr>
           </thead>
           <tbody id="posts-tbody"></tbody>
         </table>
@@ -322,22 +378,22 @@ function renderChart(labels, reach, engaged) {
     data: {
       labels,
       datasets: [
-        { label:'Reach',    data: reach,   borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:true,  tension:.4, pointRadius:2 },
-        { label:'Engaged',  data: engaged, borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.06)', fill:false, tension:.4, pointRadius:2 },
+        { label:'Reach',   data:reach,   borderColor:'#6366f1', backgroundColor:'rgba(99,102,241,.08)', fill:true,  tension:.4, pointRadius:2 },
+        { label:'Engaged', data:engaged, borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.06)', fill:false, tension:.4, pointRadius:2 },
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color:'#64748b', font:{size:11} } } },
-      scales: {
-        x: { ticks:{ color:'#475569', maxTicksLimit:8, font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
-        y: { ticks:{ color:'#475569', font:{size:10} },                  grid:{ color:'rgba(255,255,255,.04)' } },
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:'#64748b', font:{size:11} } } },
+      scales:{
+        x:{ ticks:{ color:'#475569', maxTicksLimit:8, font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{ ticks:{ color:'#475569', font:{size:10} },                  grid:{ color:'rgba(255,255,255,.04)' } },
       }
     }
   });
 }
 
-// ── populate KPI cards ───────────────────────────────────────────────────
+// ── KPI cards ────────────────────────────────────────────────────────────
 function renderKpis(kpis, days) {
   document.getElementById('kpi-posts').textContent = kpis.posts ?? '—';
   document.getElementById('kpi-reach').textContent = fmt(kpis.reach);
@@ -349,7 +405,7 @@ function renderKpis(kpis, days) {
   document.getElementById('kpi-eng-sub').textContent   = 'engaged / reach';
 }
 
-// ── populate IG panel ────────────────────────────────────────────────────
+// ── Instagram panel ──────────────────────────────────────────────────────
 function renderIG(ig) {
   const hasIG = ig && Object.keys(ig).length > 0;
   document.getElementById('ig-stats').classList.toggle('hidden', !hasIG);
@@ -361,7 +417,65 @@ function renderIG(ig) {
   document.getElementById('ig-profile-views').textContent = fmt(ig.profile_views);
 }
 
-// ── populate post table ──────────────────────────────────────────────────
+// ── Google Business panel ────────────────────────────────────────────────
+function renderGMB(gmb) {
+  const container    = document.getElementById('gmb-posts');
+  const emptyEl      = document.getElementById('gmb-empty');
+  const disconnected = document.getElementById('gmb-disconnected');
+  if (!gmb || gmb.posts === undefined) {
+    container.innerHTML = '';
+    emptyEl.classList.add('hidden');
+    disconnected.classList.remove('hidden');
+    return;
+  }
+  disconnected.classList.add('hidden');
+  const posts = gmb.posts || [];
+  emptyEl.classList.toggle('hidden', posts.length > 0);
+  container.innerHTML = posts.map(p => `
+    <div class="flex items-start gap-2 py-2" style="border-bottom:1px solid rgba(255,255,255,.05)">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-semibold text-white truncate">${p.title || 'Post'}</div>
+        <div class="text-xs text-gray-500 truncate mt-0.5">${p.summary || ''}</div>
+      </div>
+      <div class="text-xs text-gray-600 flex-shrink-0">${fmtD(p.create_time)}</div>
+    </div>
+  `).join('');
+}
+
+// ── YouTube panel ────────────────────────────────────────────────────────
+function renderYouTube(yt) {
+  const disconnected = document.getElementById('yt-disconnected');
+  const statsEl      = document.getElementById('yt-stats');
+  const wrapEl       = document.getElementById('yt-video-wrap');
+  if (!yt || yt.subscribers === undefined) {
+    statsEl.classList.add('hidden');
+    wrapEl.classList.add('hidden');
+    disconnected.classList.remove('hidden');
+    return;
+  }
+  disconnected.classList.add('hidden');
+  statsEl.classList.remove('hidden');
+  document.getElementById('yt-subs').textContent  = fmt(yt.subscribers);
+  document.getElementById('yt-views').textContent = fmt(yt.total_views);
+  document.getElementById('yt-count').textContent = fmt(yt.video_count);
+
+  const videos = yt.recent_videos || [];
+  const tbody  = document.getElementById('yt-video-tbody');
+  tbody.innerHTML = '';
+  wrapEl.classList.toggle('hidden', videos.length === 0);
+  videos.forEach(v => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td title="${(v.title||'').replace(/"/g,'&quot;')}">${v.title || '(no title)'}</td>
+      <td>${fmt(v.views)}</td>
+      <td>${fmt(v.likes)}</td>
+      <td>${fmt(v.comments)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Facebook post table ──────────────────────────────────────────────────
 function renderTable(posts) {
   const tbody = document.getElementById('posts-tbody');
   tbody.innerHTML = '';
@@ -382,13 +496,12 @@ function renderTable(posts) {
 
 // ── main load ────────────────────────────────────────────────────────────
 async function loadAnalytics() {
-  // loading states
   document.getElementById('chart-loading').classList.remove('hidden');
   document.getElementById('table-loading').classList.remove('hidden');
   document.getElementById('table-error').classList.add('hidden');
 
   try {
-    const res  = await fetch(`/api/analytics?days=${currentDays}`, { method:'GET' });
+    const res  = await fetch(`/api/analytics?days=${currentDays}`);
     const data = await res.json();
 
     document.getElementById('chart-loading').classList.add('hidden');
@@ -401,13 +514,17 @@ async function loadAnalytics() {
       document.getElementById('table-empty').classList.add('hidden');
       renderChart([], [], []);
       renderIG({});
-      return;
+    } else {
+      renderKpis(data.kpis, currentDays);
+      renderChart(data.chart.labels, data.chart.reach, data.chart.engaged);
+      renderIG(data.ig);
+      renderTable(data.posts);
     }
 
-    renderKpis(data.kpis, currentDays);
-    renderChart(data.chart.labels, data.chart.reach, data.chart.engaged);
-    renderIG(data.ig);
-    renderTable(data.posts);
+    // Google/YouTube always rendered regardless of FB status
+    const g = data.google || {};
+    renderGMB(g.gmb);
+    renderYouTube(g.youtube);
 
   } catch(e) {
     document.getElementById('chart-loading').classList.add('hidden');
@@ -428,11 +545,11 @@ async function loadConnectionStatus() {
       const dot   = document.getElementById(`status-${pid}`);
       const label = document.getElementById(`statuslabel-${pid}`);
       if (!dot) return;
-      dot.style.opacity   = connected ? '1' : '.3';
-      dot.title           = connected ? 'Connected' : 'Not connected';
+      dot.style.opacity = connected ? '1' : '.3';
+      dot.title         = connected ? 'Connected' : 'Not connected';
       if (label) {
-        label.textContent   = connected ? 'On' : '—';
-        label.style.color   = connected ? '#4ade80' : 'rgba(255,255,255,.15)';
+        label.textContent = connected ? 'On' : '—';
+        label.style.color = connected ? '#4ade80' : 'rgba(255,255,255,.15)';
       }
     });
   } catch(e) { /* silent */ }

@@ -469,7 +469,7 @@ def api_delete_post():
 
 
 # ---------------------------------------------------------------------------
-# Analytics  (Facebook + Instagram real data)
+# Analytics  (Facebook + Instagram + Google Business + YouTube)
 # ---------------------------------------------------------------------------
 
 @api_bp.route('/api/analytics', methods=['GET', 'POST'])
@@ -477,7 +477,7 @@ def api_delete_post():
 @require_plan('starter')
 def api_analytics():
     """
-    Combined Facebook + Instagram analytics.
+    Combined Facebook + Instagram + Google Business + YouTube analytics.
     GET  /api/analytics?days=30
     POST /api/analytics  { days: 30 }
     """
@@ -495,18 +495,38 @@ def api_analytics():
     page_id = tokens.get('facebook_page_id') or data.get('page_id')
     ig_id   = tokens.get('instagram_id') or data.get('ig_id')
 
+    # ── Facebook / Instagram ──────────────────────────────────────────
     if not token or not page_id:
-        return jsonify({
+        fb_result = {
             'success': False,
             'error':   'Facebook not connected — visit Settings to connect',
             'kpis':    {'posts': 0, 'reach': 0, 'likes': 0, 'engaged': 0, 'eng_rate': 0.0},
             'chart':   {'labels': [], 'reach': [], 'engaged': []},
             'ig':      {},
             'posts':   [],
-        })
+        }
+    else:
+        try:
+            fb_result = Analytics(token, page_id, ig_id=ig_id).get_combined_summary(days=days)
+        except Exception:
+            logger.exception('api_analytics FB failed for user %s', uid)
+            fb_result = {
+                'success': False, 'error': 'Analytics fetch failed',
+                'kpis': {'posts': 0, 'reach': 0, 'likes': 0, 'engaged': 0, 'eng_rate': 0.0},
+                'chart': {'labels': [], 'reach': [], 'engaged': []},
+                'ig': {}, 'posts': [],
+            }
 
-    try:
-        return jsonify(Analytics(token, page_id, ig_id=ig_id).get_combined_summary(days=days))
-    except Exception:
-        logger.exception('api_analytics failed for user %s', uid)
-        return jsonify({'success': False, 'error': 'Analytics fetch failed'}), 500
+    # ── Google Business + YouTube ─────────────────────────────────────
+    google_result = {}
+    if tokens.get('google_token'):
+        try:
+            google_result = Analytics.get_google_youtube_summary(
+                user_id     = uid,
+                location_id = tokens.get('google_location_id', ''),
+                days        = days,
+            )
+        except Exception:
+            logger.exception('api_analytics Google/YT failed for user %s', uid)
+
+    return jsonify({**fb_result, 'google': google_result})

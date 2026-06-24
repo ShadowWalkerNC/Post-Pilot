@@ -5,6 +5,11 @@ All queries use `?` placeholders; db.py's DBConnectionWrapper auto-converts
 them to `%s` for PostgreSQL.  search_path=pp is set on every connection so
 bare table names resolve correctly.
 
+Key fix: Supabase stores id/user_id as uuid type. Passing a plain Python
+string via psycopg2 sends it as `text`, causing:
+  "operator does not exist: uuid = text"
+Fix: cast every uuid parameter with ::uuid in the SQL.
+
 Live pp schema columns used:
   users:        id, email, password_hash, full_name, business_name, plan,
                 stripe_customer_id, stripe_sub_id, is_active, is_verified,
@@ -12,12 +17,6 @@ Live pp schema columns used:
   post_queue:   id, user_id, platform, content, media_urls, status,
                 scheduled_at, published_at, platform_post_id, created_at
   api_keys:     id, user_id, key_hash, label, last_used, is_active, created_at
-
-Usage:
-    from modules.user_manager import UserManager, User
-    user = UserManager.create_user('hi@example.com', 'password123')
-    user = UserManager.get_user_by_email('hi@example.com')
-    UserManager.verify_password(user, 'password123')  # -> True
 """
 
 import hashlib
@@ -119,7 +118,7 @@ class UserManager:
                 '''
                 INSERT INTO users
                     (id, email, password_hash, full_name, business_name, plan)
-                VALUES (?, ?, ?, ?, ?, ?)
+                VALUES (?::uuid, ?, ?, ?, ?, ?)
                 ''',
                 (uid, email, phash, full_name, business_name, plan),
             )
@@ -133,22 +132,33 @@ class UserManager:
     # -- Read ---------------------------------------------------------------
     @staticmethod
     def get_user(user_id: str) -> Optional[User]:
-        """Load a user by UUID."""
-        conn = _get_conn()
-        cur  = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,))
-        row  = cur.fetchone()
-        return User(dict(row)) if row else None
+        """Load a user by UUID. Called by Flask-Login on every request."""
+        try:
+            conn = _get_conn()
+            cur  = conn.execute(
+                'SELECT * FROM users WHERE id = ?::uuid',
+                (str(user_id),),
+            )
+            row = cur.fetchone()
+            return User(dict(row)) if row else None
+        except Exception as exc:
+            logger.error('get_user(%s) failed: %s', user_id, exc)
+            return None
 
     @staticmethod
     def get_user_by_email(email: str) -> Optional[User]:
         """Load a user by email (case-insensitive)."""
-        conn = _get_conn()
-        cur  = conn.execute(
-            'SELECT * FROM users WHERE LOWER(email) = ?',
-            (email.strip().lower(),),
-        )
-        row = cur.fetchone()
-        return User(dict(row)) if row else None
+        try:
+            conn = _get_conn()
+            cur  = conn.execute(
+                'SELECT * FROM users WHERE LOWER(email) = ?',
+                (email.strip().lower(),),
+            )
+            row = cur.fetchone()
+            return User(dict(row)) if row else None
+        except Exception as exc:
+            logger.error('get_user_by_email(%s) failed: %s', email, exc)
+            return None
 
     @staticmethod
     def verify_password(user: User, password: str) -> bool:
@@ -157,13 +167,16 @@ class UserManager:
 
     @staticmethod
     def touch_login(user_id: str):
-        """Bump updated_at on successful login."""
-        conn = _get_conn()
-        conn.execute(
-            'UPDATE users SET updated_at = NOW() WHERE id = ?',
-            (user_id,),
-        )
-        conn.commit()
+        """Bump updated_at on successful login. Non-fatal — never raises."""
+        try:
+            conn = _get_conn()
+            conn.execute(
+                'UPDATE users SET updated_at = NOW() WHERE id = ?::uuid',
+                (str(user_id),),
+            )
+            conn.commit()
+        except Exception as exc:
+            logger.warning('touch_login(%s) failed (non-fatal): %s', user_id, exc)
 
     # -- Update -------------------------------------------------------------
     @staticmethod
@@ -171,15 +184,17 @@ class UserManager:
         """Update full_name / business_name."""
         fields, values = [], []
         if full_name is not None:
-            fields.append('full_name = ?');      values.append(full_name)
+            fields.append('full_name = ?')
+            values.append(full_name)
         if business_name is not None:
-            fields.append('business_name = ?'); values.append(business_name)
+            fields.append('business_name = ?')
+            values.append(business_name)
         if not fields:
             return
-        values.append(user_id)
+        values.append(str(user_id))
         conn = _get_conn()
         conn.execute(
-            f"UPDATE users SET {', '.join(fields)}, updated_at = NOW() WHERE id = ?",
+            f"UPDATE users SET {', '.join(fields)}, updated_at = NOW() WHERE id = ?::uuid",
             values,
         )
         conn.commit()
@@ -200,9 +215,9 @@ class UserManager:
                 stripe_customer_id = COALESCE(?, stripe_customer_id),
                 stripe_sub_id      = COALESCE(?, stripe_sub_id),
                 updated_at         = NOW()
-            WHERE id = ?
+            WHERE id = ?::uuid
             ''',
-            (plan, stripe_customer_id, stripe_sub_id, user_id),
+            (plan, stripe_customer_id, stripe_sub_id, str(user_id)),
         )
         conn.commit()
         logger.info('Subscription updated: user=%s plan=%s', user_id, plan)
@@ -218,8 +233,8 @@ class UserManager:
         expiry = datetime.utcnow() + timedelta(hours=2)
         conn   = _get_conn()
         conn.execute(
-            'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?',
-            (token, expiry, user.id),
+            'UPDATE users SET reset_token = ?, reset_token_expiry = ? WHERE id = ?::uuid',
+            (token, expiry, str(user.id)),
         )
         conn.commit()
         return token
@@ -235,18 +250,21 @@ class UserManager:
         row = cur.fetchone()
         if not row:
             return False
-        row = dict(row)
+        row    = dict(row)
         expiry = row.get('reset_token_expiry')
         if expiry:
-            # Handle both naive and tz-aware datetimes
             if hasattr(expiry, 'tzinfo') and expiry.tzinfo:
                 expiry = expiry.replace(tzinfo=None)
             if datetime.utcnow() > expiry:
                 return False
         phash = generate_password_hash(new_password)
         conn.execute(
-            'UPDATE users SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL WHERE id = ?',
-            (phash, row['id']),
+            '''
+            UPDATE users
+            SET password_hash = ?, reset_token = NULL, reset_token_expiry = NULL
+            WHERE id = ?::uuid
+            ''',
+            (phash, str(row['id'])),
         )
         conn.commit()
         return True
@@ -271,10 +289,10 @@ class UserManager:
             INSERT INTO post_queue
                 (id, user_id, platform, content, media_urls, status,
                  scheduled_at, platform_post_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?::uuid, ?::uuid, ?, ?, ?, ?, ?, ?)
             ''',
             (
-                row_id, user_id, platform, content,
+                row_id, str(user_id), platform, content,
                 json.dumps(media_urls or []),
                 status, scheduled_at, platform_post_id,
             ),
@@ -292,8 +310,8 @@ class UserManager:
         """Fetch post history from pp.post_queue, newest first."""
         import json
         conn   = _get_conn()
-        where  = 'WHERE user_id = ?'
-        params = [user_id]
+        where  = 'WHERE user_id = ?::uuid'
+        params = [str(user_id)]
         if status:
             where  += ' AND status = ?'
             params.append(status)
@@ -321,8 +339,8 @@ class UserManager:
         key_hash = hashlib.sha256(raw_key.encode()).hexdigest()
         conn     = _get_conn()
         conn.execute(
-            'INSERT INTO api_keys (id, user_id, key_hash, label) VALUES (?, ?, ?, ?)',
-            (str(uuid.uuid4()), user_id, key_hash, label),
+            'INSERT INTO api_keys (id, user_id, key_hash, label) VALUES (?::uuid, ?::uuid, ?, ?)',
+            (str(uuid.uuid4()), str(user_id), key_hash, label),
         )
         conn.commit()
         logger.info('API key created for user=%s', user_id)
@@ -344,4 +362,4 @@ class UserManager:
                 (key_hash,),
             )
             conn.commit()
-        return UserManager.get_user(dict(row)['user_id']) if row else None
+        return UserManager.get_user(str(dict(row)['user_id'])) if row else None

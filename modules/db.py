@@ -1,15 +1,12 @@
 """
 db.py — Unified database abstraction for Post-Pilot.
 
-Supports SQLite (local dev) and PostgreSQL (production via Supabase).
+Supports SQLite (local dev) and PostgreSQL (production).
 Detects DATABASE_URL: if it starts with 'postgres', uses psycopg2.
 Otherwise falls back to sqlite3.
 
-All Post-Pilot tables live in the 'pp' schema on Supabase.
-The connection sets search_path=pp automatically so bare table names work.
-
 Usage:
-    from modules.db import get_connection, placeholder
+    from modules.db import get_connection, placeholder, adapt_schema
 
     conn = get_connection()
     cur  = conn.cursor()
@@ -20,8 +17,15 @@ Usage:
 
 Notes:
     - Always call conn.close() or use a context manager.
-    - Use `placeholder` (%s for Postgres, ? for SQLite) in all queries.
+    - Use `placeholder` (? for SQLite, %s for Postgres) in all queries.
     - Use row_to_dict() for portable row access across both backends.
+
+To migrate from SQLite to Postgres on Railway:
+    1. Add the Railway PostgreSQL plugin to your project.
+    2. Railway auto-sets DATABASE_URL in your environment.
+    3. Redeploy — db.py detects it and switches automatically.
+    4. Run: python -c "from modules.db import init_core_tables; init_core_tables()"
+       to create all tables in the new database.
 """
 
 import os
@@ -56,25 +60,25 @@ else:
 placeholder = '%s' if USE_POSTGRES else '?'
 
 
+from flask import has_request_context
+
 class DBConnectionWrapper:
     """
     Wrapper around sqlite3 or psycopg2 connection to provide a unified API.
-    Sets search_path=pp on Postgres so bare table names resolve to pp schema.
+    Enables calling connection.execute(...) directly on PostgreSQL and SQLite,
+    and automatically translates placeholders (?) to (%s) for PostgreSQL.
     """
     def __init__(self, conn):
         self.conn = conn
-        if USE_POSTGRES:
-            # All Post-Pilot tables live in the 'pp' schema
-            with self.conn.cursor() as cur:
-                cur.execute('SET search_path TO pp, public')
-            self.conn.commit()
 
     def cursor(self):
         if USE_POSTGRES:
+            import psycopg2.extras
             return self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         return self.conn.cursor()
 
     def execute(self, sql: str, params: tuple = ()):
+        # Auto-translate SQLite syntax to Postgres compatible syntax
         sql_adapted = adapt_schema(sql)
         if USE_POSTGRES:
             sql_adapted = sql_adapted.replace('?', '%s')
@@ -82,6 +86,7 @@ class DBConnectionWrapper:
             cur.execute(sql_adapted, params)
             return cur
         else:
+            # For SQLite, ensure it uses standard sqlite Row/cursor execution
             return self.conn.execute(sql_adapted, params)
 
     def commit(self):
@@ -97,6 +102,7 @@ class DBConnectionWrapper:
         if getattr(self, 'request_scoped', False):
             return
         self.conn.close()
+
 
 
 def get_connection():
@@ -118,18 +124,23 @@ def row_to_dict(row) -> dict:
         return dict(row)
     if isinstance(row, dict):
         return row
+    # psycopg2 tuple row — caller should use RealDictCursor instead
     return dict(enumerate(row))
 
 
 def adapt_schema(sql: str) -> str:
     """
     Translate SQLite-flavoured DDL to PostgreSQL-compatible DDL.
+    Called at table creation time in each module's init_db().
     """
     if not USE_POSTGRES:
         return sql
+    # Replace primary key syntax
     sql = sql.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+    # Replace default epoch syntax
     sql = sql.replace("DEFAULT (strftime('%s','now'))",
                       'DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT)')
+    # Postgres uses EXCLUDED (uppercase) and requires ON CONFLICT (...) with space
     sql = sql.replace('ON CONFLICT(user_id, platform) DO UPDATE SET',
                       'ON CONFLICT (user_id, platform) DO UPDATE SET')
     sql = sql.replace('ON CONFLICT(user_id) DO UPDATE SET',

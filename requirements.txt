@@ -12,6 +12,7 @@ limits>=3.7.0
 # PostgreSQL / Supabase
 psycopg2-binary>=2.9.9
 sqlalchemy>=2.0.0
+supabase>=2.4.0
 # Migrations
 alembic>=1.13.0
 # Error tracking

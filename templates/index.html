@@ -132,9 +132,7 @@
 
       <!-- ===== MOBILE DASHBOARD PREVIEW ===== -->
       <div class="md:hidden mx-auto max-w-sm">
-        <!-- Phone frame -->
         <div class="rounded-3xl overflow-hidden shadow-[0_32px_64px_rgba(0,0,0,.7)]" style="background:#0d0d24;border:1px solid rgba(255,255,255,.1)">
-          <!-- Status bar -->
           <div class="flex items-center justify-between px-5 pt-4 pb-2">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
@@ -143,8 +141,6 @@
             <span class="text-[10px] text-gray-500 font-medium">Post-Pilot Dashboard</span>
             <span class="text-[10px] text-gray-600">now</span>
           </div>
-
-          <!-- Stats row -->
           <div class="grid grid-cols-3 gap-2.5 px-4 pb-4">
             <div class="rounded-2xl p-4 text-center" style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2)">
               <div class="text-3xl font-black text-white">7</div>
@@ -160,11 +156,7 @@
               <div class="text-[10px] text-gray-500">reach</div>
             </div>
           </div>
-
-          <!-- Divider -->
           <div class="mx-4 border-t border-white/5"></div>
-
-          <!-- Latest post card -->
           <div class="px-4 py-4">
             <div class="flex items-center justify-between mb-2">
               <span class="text-[10px] font-bold uppercase tracking-widest text-orange-400">Latest Post</span>
@@ -180,43 +172,16 @@
               </div>
             </div>
           </div>
-
-          <!-- Schedule preview -->
           <div class="px-4 pb-5">
             <div class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">This Week</div>
             <div class="space-y-1.5">
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-gray-500 w-7">Mon</span>
-                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
-                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-gray-500 w-7">Tue</span>
-                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
-                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-gray-500 w-7">Wed</span>
-                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
-                  <div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-gray-500 w-7">Thu</span>
-                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)">
-                  <div class="h-2 rounded-full w-3/4" style="background:linear-gradient(90deg,#f97316,#fb923c)"></div>
-                </div>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-gray-500 w-7">Fri</span>
-                <div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"></div>
-              </div>
+              <div class="flex items-center gap-2"><span class="text-[11px] text-gray-500 w-7">Mon</span><div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"><div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div></div>
+              <div class="flex items-center gap-2"><span class="text-[11px] text-gray-500 w-7">Tue</span><div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"><div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div></div>
+              <div class="flex items-center gap-2"><span class="text-[11px] text-gray-500 w-7">Wed</span><div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"><div class="h-2 rounded-full w-full" style="background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div></div>
+              <div class="flex items-center gap-2"><span class="text-[11px] text-gray-500 w-7">Thu</span><div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"><div class="h-2 rounded-full w-3/4" style="background:linear-gradient(90deg,#f97316,#fb923c)"></div></div></div>
+              <div class="flex items-center gap-2"><span class="text-[11px] text-gray-500 w-7">Fri</span><div class="flex-1 h-2 rounded-full" style="background:rgba(255,255,255,.06)"></div></div>
             </div>
           </div>
-
-          <!-- Bottom bar -->
           <div class="px-4 py-3 flex items-center justify-between" style="background:rgba(255,255,255,.02);border-top:1px solid rgba(255,255,255,.05)">
             <span class="text-[10px] text-gray-500">Next: Thu 12:00 PM</span>
             <span class="flex items-center gap-1 text-[10px] text-green-400 font-semibold">
@@ -443,5 +408,46 @@
       <h2 class="text-3xl sm:text-4xl font-black tracking-tight">Common questions.</h2>
     </div>
     <div class="space-y-3">
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Do I need a social media manager?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div><div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">No. Post-Pilot replaces the need for a dedicated social media manager for most small food businesses. The AI handles writing, scheduling, and publishing automatically.</div></div></div>
-      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)"><div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Will my posts look generic?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Do I need a social media manager?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+        <div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">No. Post-Pilot replaces the need for a dedicated social media manager for most small food businesses. The AI handles writing, scheduling, and publishing automatically.</div></div>
+      </div>
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Will my posts look generic?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+        <div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">No. Posts are generated using your business name, cuisine type, location, tone of voice, and weekly specials. Every post is unique to your brand.</div></div>
+      </div>
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Which platforms are supported?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+        <div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Facebook, Instagram, TikTok, YouTube, Google Business Profile, and your own website via an embed widget. All connections use official APIs.</div></div>
+      </div>
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Can I edit posts before they go live?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+        <div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Yes. You can review and edit every post in the dashboard before it publishes, or enable fully automatic mode to let it run hands-free.</div></div>
+      </div>
+      <div class="faq-item card rounded-xl cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex items-center justify-between p-5"><span class="font-semibold text-sm sm:text-base">Is there a free plan?</span><svg class="faq-chevron w-5 h-5 text-gray-400 flex-shrink-0 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg></div>
+        <div class="faq-answer px-5 text-gray-400 text-sm leading-relaxed"><div class="pb-5">Yes — the Starter plan is free forever. It includes 7 posts per week across 3 platforms and the website embed widget. No credit card required.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="py-12 px-5 border-t border-white/5" style="background:#07071a">
+  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <a href="/" class="flex items-center gap-2 font-black text-base tracking-tight">
+      <div class="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold" style="background:linear-gradient(135deg,#6366f1,#f97316)">✈️</div>
+      <span>Post<span class="text-brand-400">-</span>Pilot</span>
+    </a>
+    <p class="text-xs text-gray-600">© 2025 Post-Pilot. All rights reserved.</p>
+    <div class="flex gap-5 text-xs text-gray-600">
+      <a href="/privacy" class="hover:text-gray-400 transition">Privacy</a>
+      <a href="/terms" class="hover:text-gray-400 transition">Terms</a>
+      <a href="mailto:hello@postpilot.io" class="hover:text-gray-400 transition">Contact</a>
+    </div>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+</body>
+</html>

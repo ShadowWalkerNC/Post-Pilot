@@ -20,20 +20,21 @@ Token storage note:
 """
 
 import os
-import sqlite3
 import multiprocessing
 from flask import Flask, g, jsonify, redirect, url_for, flash, request
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_cors import CORS
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from modules.user_manager    import UserManager
 from modules.auth_manager    import init_db as auth_init_db
 from modules.api_manager     import CREATE_API_KEYS_TABLE
 from modules.website_manager import WebsiteManager
-from modules.scheduler_worker import init_scheduler
 
 load_dotenv()
 
@@ -43,9 +44,29 @@ load_dotenv()
 _secret = os.getenv('FLASK_SECRET_KEY')
 if not _secret:
     import sys
-    if os.getenv('FLASK_ENV') == 'production' or os.getenv('RAILWAY_ENVIRONMENT'):
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV'):
         sys.exit('FATAL: FLASK_SECRET_KEY is not set. Refusing to start in production.')
     _secret = 'dev-only-insecure-key'
+
+# ---------------------------------------------------------------------------
+# Database (PostgreSQL via Supabase)
+# ---------------------------------------------------------------------------
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    raise RuntimeError('DATABASE_URL is not set. Add it to your .env file.')
+
+engine       = create_engine(DATABASE_URL, pool_pre_ping=True)
+SessionLocal = scoped_session(sessionmaker(bind=engine))
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = SessionLocal()
+    return db
+
+@property
+def _db_execute(self):
+    return self.execute
 
 # ---------------------------------------------------------------------------
 # App
@@ -55,11 +76,19 @@ app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 
 # ---------------------------------------------------------------------------
+# CORS -- allow Cheezies Gourmet frontend
+# ---------------------------------------------------------------------------
+CORS(app, origins=[
+    'https://cheezies-gourmet.vercel.app',
+    'http://localhost:5173',  # local dev
+    'http://localhost:3000',
+])
+
+# ---------------------------------------------------------------------------
 # Extensions
 # ---------------------------------------------------------------------------
 csrf = CSRFProtect(app)
 
-# NOTE: Set REDIS_URL in production so rate limits are shared across workers.
 limiter = Limiter(
     get_remote_address,
     app=app,
@@ -81,78 +110,22 @@ def load_user(user_id: str):
 # ---------------------------------------------------------------------------
 # Blueprints
 # ---------------------------------------------------------------------------
-from blueprints import register_blueprints  # noqa: E402 (must come after app creation)
+from blueprints import register_blueprints  # noqa: E402
 register_blueprints(app, csrf)
 
 # ---------------------------------------------------------------------------
-# Database helpers (imported by blueprints via `from app import get_db`)
+# Teardown
 # ---------------------------------------------------------------------------
-DATABASE = os.getenv('DATABASE_PATH', 'postpilot.db')
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
-
 @app.teardown_appcontext
 def close_db(exc):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
-
-def init_db():
-    with app.app_context():
-        db = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-        db.execute(CREATE_API_KEYS_TABLE)
-        db.execute(WebsiteManager.create_table_sql())
-        db.execute('''
-            CREATE TABLE IF NOT EXISTS post_history (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id      TEXT    NOT NULL,
-                caption      TEXT,
-                content_type TEXT    DEFAULT 'text',
-                image_url    TEXT,
-                video_url    TEXT,
-                platforms    TEXT,
-                results      TEXT,
-                status       TEXT    DEFAULT 'published',
-                post_url     TEXT,
-                scheduled_at INTEGER,
-                created_at   INTEGER DEFAULT (strftime('%s','now'))
-            );
-        ''')
-        db.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id                 TEXT PRIMARY KEY,
-                email              TEXT UNIQUE NOT NULL,
-                password_hash      TEXT NOT NULL,
-                display_name       TEXT,
-                subscription_tier  TEXT DEFAULT 'free',
-                stripe_customer_id TEXT,
-                created_at         INTEGER,
-                last_login_at      INTEGER
-            );
-        ''')
-        # OAuth tokens live in platform_tokens (auth_manager.py).
-        # Business profile lives in business_profiles (user_manager.py).
-        # Do NOT add platform_tokens TEXT or business_profile TEXT here.
-        db.commit()
-        db.close()
-        print('DB initialised')
-    auth_init_db()
-
-try:
-    init_db()
-except Exception as _init_err:
-    print(f'[WARN] init_db on startup failed: {_init_err}')
+    SessionLocal.remove()
 
 # ---------------------------------------------------------------------------
 # Error handlers
 # ---------------------------------------------------------------------------
-
 @app.errorhandler(404)
 def not_found(e):
     from flask import render_template
@@ -171,18 +144,8 @@ def rate_limited(e):
     return redirect(url_for('auth.login')), 429
 
 # ---------------------------------------------------------------------------
-# Scheduler -- only in main process (not gunicorn workers or pytest imports)
-# ---------------------------------------------------------------------------
-if __name__ == '__main__' or (
-    os.getenv('RAILWAY_ENVIRONMENT')
-    and multiprocessing.current_process().name == 'MainProcess'
-):
-    init_scheduler()
-
-# ---------------------------------------------------------------------------
 # Entrypoint
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
-    init_db()
     print('Post-Pilot running at http://localhost:5000')
     app.run(debug=True, port=5000)

@@ -2,20 +2,18 @@ flask>=3.0.0
 flask-login>=0.6.3
 flask-wtf>=1.2.1
 flask-limiter>=3.5.0
-gunicorn>=21.2.0
+flask-cors>=4.0.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 openai>=1.12.0
 stripe>=8.0.0
 cryptography>=42.0.0
 limits>=3.7.0
-# PostgreSQL (production) -- detected automatically via DATABASE_URL
+# PostgreSQL / Supabase
 psycopg2-binary>=2.9.9
-# Background scheduler for executing scheduled posts
-APScheduler>=3.10.4
+sqlalchemy>=2.0.0
 # Migrations
 alembic>=1.13.0
-sqlalchemy>=2.0.0
 # Error tracking
 sentry-sdk[flask]>=1.45.0
 # Testing

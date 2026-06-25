@@ -44,14 +44,17 @@ def _get_supabase():
 def _send_magic_link(email: str, redirect_to: str = None) -> bool:
     """Send a Supabase magic-link OTP. Returns True on success."""
     sb = _get_supabase()
-    opts = {}
-    if redirect_to:
-        opts['email_redirect_to'] = redirect_to
     try:
-        sb.auth.sign_in_with_otp({'email': email, 'options': opts})
+        # supabase-py v2: OtpOptions uses email_redirect_to at top level
+        from gotrue.types import OtpType
+        params = {'email': email}
+        if redirect_to:
+            params['options'] = {'email_redirect_to': redirect_to}
+        sb.auth.sign_in_with_otp(params)
+        current_app.logger.info('Magic link sent to %s', email)
         return True
     except Exception as exc:
-        current_app.logger.error('magic link send failed for %s: %s', email, exc)
+        current_app.logger.error('magic link send failed for %s: %s', email, exc, exc_info=True)
         return False
 
 
@@ -70,14 +73,12 @@ def register():
         if not email:
             flash('Email is required.')
             return render_template('register.html', plan=plan)
-        # Store name + plan in session so we can use them after confirm
         session['pending_display_name'] = display_name
         session['pending_plan']         = plan
         confirm_url = f"{APP_URL}/auth/confirm"
         if _send_magic_link(email, redirect_to=confirm_url):
-            flash('Check your email for a magic sign-in link!', 'success')
             return render_template('magic_link_sent.html', email=email)
-        flash('Could not send magic link. Please try again.')
+        flash('Could not send magic link — please try again or contact support.')
     return render_template('register.html', plan=plan)
 
 
@@ -96,9 +97,8 @@ def login():
             return render_template('login.html')
         confirm_url = f"{APP_URL}/auth/confirm"
         if _send_magic_link(email, redirect_to=confirm_url):
-            flash('Check your email for a magic sign-in link!', 'success')
             return render_template('magic_link_sent.html', email=email)
-        flash('Could not send magic link. Please try again.')
+        flash('Could not send magic link — please try again or contact support.')
     return render_template('login.html')
 
 
@@ -108,10 +108,6 @@ def login():
 
 @auth_bp.route('/auth/confirm')
 def auth_confirm():
-    """
-    Supabase redirects here with ?token_hash=...&type=magiclink
-    We exchange it for a session, sync pp.users, then log in.
-    """
     token_hash = request.args.get('token_hash')
     link_type  = request.args.get('type', 'magiclink')
 
@@ -124,7 +120,7 @@ def auth_confirm():
         result  = sb.auth.verify_otp({'token_hash': token_hash, 'type': link_type})
         sb_user = result.user
     except Exception as exc:
-        current_app.logger.error('OTP verify failed: %s', exc)
+        current_app.logger.error('OTP verify failed: %s', exc, exc_info=True)
         flash('Magic link expired or already used. Request a new one.')
         return redirect(url_for('auth.login'))
 
@@ -133,11 +129,10 @@ def auth_confirm():
         return redirect(url_for('auth.login'))
 
     email        = sb_user.email
-    uid          = str(sb_user.id)   # auth.users uuid
+    uid          = str(sb_user.id)
     display_name = session.pop('pending_display_name', '')
     plan         = session.pop('pending_plan', 'free')
 
-    # Sync into pp.users (upsert — works for both new and returning users)
     user = UserManager.get_user(uid)
     if not user:
         user = UserManager.upsert_user(uid, email, full_name=display_name, plan=plan)
@@ -149,12 +144,8 @@ def auth_confirm():
     login_user(user, remember=True)
     UserManager.touch_login(uid)
 
-    next_url = request.args.get('next') or session.pop('oauth_next', None)
     if plan and plan not in ('', 'free'):
         return redirect(url_for('billing.billing_checkout', plan=plan))
-    if next_url:
-        return redirect(next_url)
-    # New user (no existing dashboard data) → onboarding; returning → home
     return redirect(url_for('pages.onboarding') if display_name else url_for('pages.home'))
 
 

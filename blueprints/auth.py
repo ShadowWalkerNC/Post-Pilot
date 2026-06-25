@@ -54,6 +54,28 @@ def _send_magic_link(email: str, redirect_to: str = None) -> bool:
 # Disabled automatically when DEV_LOGIN_KEY is not set.
 # ---------------------------------------------------------------------------
 
+def _get_supabase_uid_for_email(email: str):
+    """Look up the real Supabase auth UUID for an email via the admin API."""
+    sb_url = os.getenv('SUPABASE_URL', '').rstrip('/')
+    sb_key = os.getenv('SUPABASE_SERVICE_ROLE_KEY', '')
+    if not sb_url or not sb_key:
+        return None
+    try:
+        resp = requests.get(
+            f'{sb_url}/auth/v1/admin/users',
+            headers={'apikey': sb_key, 'Authorization': f'Bearer {sb_key}'},
+            params={'filter': email},
+            timeout=10,
+        ).json()
+        users = resp.get('users', [])
+        for u in users:
+            if u.get('email', '').lower() == email.lower():
+                return u.get('id')
+    except Exception as exc:
+        current_app.logger.error('_get_supabase_uid_for_email failed: %s', exc)
+    return None
+
+
 @auth_bp.route('/dev-login')
 def dev_login():
     dev_key = os.getenv('DEV_LOGIN_KEY', '')
@@ -64,14 +86,24 @@ def dev_login():
     email = request.args.get('email', '').strip().lower()
     if not email:
         return 'email param required.', 400
+
+    # Try to load existing pp.users row first
     user = UserManager.get_user_by_email(email)
+
     if not user:
-        # Auto-create the user row if it doesn't exist yet
-        import uuid
-        fake_uid = str(uuid.uuid5(uuid.NAMESPACE_DNS, email))
-        user = UserManager.upsert_user(fake_uid, email, full_name='Dev User')
+        # Need the real Supabase auth UUID — never generate a fake one
+        uid = _get_supabase_uid_for_email(email)
+        if not uid:
+            return (
+                f'No Supabase auth user found for {email}. '
+                'Create the user first at Supabase Dashboard → Authentication → Users.',
+                404,
+            )
+        user = UserManager.upsert_user(uid, email, full_name='Dev User')
+
     if not user:
-        return 'Could not create user.', 500
+        return 'Could not sync user row into pp.users. Check Vercel logs.', 500
+
     login_user(user, remember=True)
     UserManager.touch_login(user.id)
     flash('Dev login successful.', 'success')

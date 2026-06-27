@@ -48,58 +48,53 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 - [ ] Redeploy — Flask-Limiter will pick it up automatically
 
 ### INFRA-3 · Dual-database architecture
-- [x] **Resolved — `database.py` is a safe proxy to `db.py`**, not a duplicate
+- [x] Resolved — `database.py` is a safe proxy to `db.py`
 - [x] Architecture documented in `app.py` module docstring
-- [ ] Confirm no direct SQLite file path references remain in code (search: `sqlite:///`, `postpilot.db`)
+- [ ] Confirm no direct SQLite references remain (search: `sqlite:///`, `postpilot.db`)
 
 ### INFRA-4 · Duplicate module ambiguity
-- [x] **Resolved — all modules have distinct roles**, documented in `app.py` docstring:
-  - `generator.py` — static template posts (no AI)
-  - `ai_generator.py` — OpenAI caption generation
-  - `post_generator.py` — orchestrator (template vs AI routing)
-  - `analytics.py` — tombstone shim re-exporting from `analytics_client.py`
-  - `meta_api.py` — low-level Graph API calls
-  - `meta_client.py` — higher-level Meta client
+- [x] Resolved — all modules have distinct roles, documented in `app.py` docstring
 
 ### INFRA-5 · Consolidate deployment configuration
-- [ ] Confirm Vercel is the chosen deployment platform
 - [ ] Delete unused configs: `railway.toml`, `render.yaml`, `nixpacks.toml`, `Procfile`
-- [ ] Create `DEPLOY.md` documenting the deployment target and process
+- [ ] Create `DEPLOY.md` documenting Vercel as the deployment target
 
-### INFRA-6 · Resolve scheduler worker for serverless
-**Decision needed:** Vercel Cron Jobs vs external worker (Railway / Render)
-- [ ] **If Vercel Cron:** Add `crons` config to `vercel.json` + `/api/cron/publish` endpoint
-- [ ] **If external worker:** Set up Railway/Render service, document in `DEPLOY.md`
+### INFRA-6 · Scheduler worker for serverless
+- [x] **Resolved — Vercel Cron implemented**
+- [x] `blueprints/cron.py` — `/api/cron/publish` endpoint with `CRON_SECRET` auth
+- [x] `vercel.json` updated — cron runs every minute (`* * * * *`)
+- [x] Endpoint calls `_publish_scheduled_posts()` directly (no APScheduler needed)
+- [x] Constant-time HMAC comparison for auth header (timing attack safe)
+- [ ] **Add `CRON_SECRET` to Vercel environment variables:**
+  ```bash
+  python -c "import secrets; print(secrets.token_urlsafe(32))"
+  ```
+- [ ] **Register the cron blueprint** — add to `blueprints/__init__.py`:
+  ```python
+  from blueprints.cron import cron_bp
+  app.register_blueprint(cron_bp)
+  ```
+- [ ] Redeploy and confirm Vercel Cron tab shows the `/api/cron/publish` job
 
 ---
 
 ## 🟡 MEDIUM PRIORITY
 
 ### DEV-1 · CI pipeline
-- [x] `.github/workflows/ci.yml` exists
-- [x] **Hardened:** now uses `secrets.CI_TOKEN_ENCRYPTION_KEY` instead of hardcoded value
-- [x] **Added:** `ruff` lint step alongside `flake8`
-- [x] **Added:** coverage reporting (`--cov` flags)
-- [x] **Added:** all missing dummy env vars (Twitter, Supabase, Stripe webhook)
-- [ ] **Add GitHub Actions secret:** Settings → Secrets → Actions → `CI_TOKEN_ENCRYPTION_KEY`
-  ```bash
-  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-  ```
+- [x] `.github/workflows/ci.yml` hardened with `ruff`, GitHub secret, coverage
+- [ ] Add `CI_TOKEN_ENCRYPTION_KEY` to GitHub Actions secrets
 
 ### DEV-2 · Error monitoring (Sentry)
-- [x] `sentry-sdk[flask]` already in `requirements.txt`
-- [x] **Sentry wired in `app.py`** — initializes when `SENTRY_DSN` env var is set
-- [x] `send_default_pii=False` — user PII never sent to Sentry
-- [x] 20% performance tracing sample rate
-- [ ] **Sign up at https://sentry.io** (free tier)
-- [ ] **Add `SENTRY_DSN` to Vercel environment variables**
+- [x] `sentry-sdk[flask]` in `requirements.txt`
+- [x] Sentry wired in `app.py` (activates when `SENTRY_DSN` is set)
+- [ ] Sign up at https://sentry.io, add `SENTRY_DSN` to Vercel environment variables
 
 ### DEV-3 · CORS
-- [x] Localhost origins are dev-environment-only in `app.py`
+- [x] Localhost origins are dev-environment-only
 
 ### DB-1 · Clean up pp.users schema
 - [ ] Write migration to drop `password_hash` column from `pp.users`
-- [ ] Apply via Supabase SQL editor or migration tool
+- [ ] Apply via Supabase SQL editor
 - [ ] Verify no code references `password_hash`
 
 ---
@@ -126,20 +121,21 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 
 ## ✅ COMPLETED
 
-- [x] Sentry wired in `app.py` (activates when `SENTRY_DSN` is set)
-- [x] CI hardened: `ruff` lint, GitHub Actions secret, coverage, all dummy env vars
+- [x] INFRA-6: Vercel Cron implemented (`blueprints/cron.py` + `vercel.json`)
+- [x] Sentry wired in `app.py`
+- [x] CI hardened: `ruff`, GitHub Actions secret, coverage reporting
 - [x] Module architecture documented in `app.py` docstring
-- [x] Dual-DB confusion resolved: `database.py` confirmed as safe proxy
+- [x] Dual-DB confusion resolved
 - [x] `.gitignore` created
-- [x] `.env` sanitized — all real secrets replaced with placeholders
+- [x] `.env` sanitized
 - [x] CORS — localhost origins dev-only
-- [x] `/dev-login` gated behind `DEV_LOGIN_KEY` env var
-- [x] `DATABASE_URL` switched to Supabase pooler (fixes IPv6 on Vercel)
-- [x] `pp.users` row created for `shadowwalkernc@gmail.com`
+- [x] `/dev-login` gated behind `DEV_LOGIN_KEY`
+- [x] `DATABASE_URL` switched to Supabase pooler
+- [x] `pp.users` row created
 - [x] `password_hash` made nullable
 - [x] `init_scheduler()` guarded to main process only
 - [x] `@require_plan` applied to all premium routes
-- [x] `check_platform_limit` enforced on `/api/push_all` and `/api/publish`
+- [x] `check_platform_limit` enforced
 - [x] XSS in fallback site renderer fixed
 - [x] OAuth state keys namespaced per-platform
 - [x] `?limit=abc` ValueError fixed

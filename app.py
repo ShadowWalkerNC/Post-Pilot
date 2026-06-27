@@ -55,7 +55,7 @@ app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 
 # ---------------------------------------------------------------------------
-# Supabase client (used for Auth — magic links)
+# Supabase client (used for Auth -- magic links)
 # ---------------------------------------------------------------------------
 _sb_url = os.getenv('SUPABASE_URL')
 _sb_key = os.getenv('SUPABASE_ANON_KEY')
@@ -63,7 +63,7 @@ if not _sb_url or not _sb_key:
     import sys
     if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV'):
         sys.exit('FATAL: SUPABASE_URL and SUPABASE_ANON_KEY must be set.')
-    # Dev fallback — auth routes will fail but app still starts
+    # Dev fallback -- auth routes will fail but app still starts
     _sb_url = _sb_url or 'https://placeholder.supabase.co'
     _sb_key = _sb_key or 'placeholder'
 
@@ -71,14 +71,22 @@ supabase: Client = create_client(_sb_url, _sb_key)
 app.extensions['supabase'] = supabase
 
 # ---------------------------------------------------------------------------
-# CORS
+# CORS -- production origins only; localhost added in development
 # ---------------------------------------------------------------------------
-CORS(app, origins=[
+_is_dev = os.getenv('FLASK_ENV') == 'development' or os.getenv('APP_ENV') == 'development'
+
+_cors_origins = [
     'https://cheezies-gourmet.vercel.app',
     'https://post-pilot-opal.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:3000',
-])
+]
+if _is_dev:
+    _cors_origins += [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:5000',
+    ]
+
+CORS(app, origins=_cors_origins)
 
 # ---------------------------------------------------------------------------
 # Extensions

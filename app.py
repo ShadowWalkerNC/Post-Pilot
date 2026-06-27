@@ -18,9 +18,23 @@ Token storage note:
   OAuth tokens are stored EXCLUSIVELY in the `platform_tokens` table owned
   by modules/auth_manager.py (Fernet-encrypted). There is NO second copy
   anywhere in the `users` table.
+
+Module architecture note:
+  modules/database.py  -- thin proxy; routes get_db() through Flask g to db.py
+  modules/db.py        -- real connection layer (PostgreSQL via Supabase pooler)
+  modules/generator.py        -- static template-based post generator (no AI)
+  modules/ai_generator.py     -- OpenAI-powered caption generator
+  modules/post_generator.py   -- orchestrator: decides template vs AI path
+  modules/analytics.py        -- tombstone shim; re-exports from analytics_client
+  modules/analytics_client.py -- full analytics implementation
+  modules/meta_api.py         -- low-level Meta Graph API calls
+  modules/meta_client.py      -- higher-level Meta client (pages, tokens, publish)
 """
 
 import os
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
 from flask import Flask, g, jsonify, redirect, url_for, flash, request
 from flask_login import LoginManager, current_user
 from flask_wtf.csrf import CSRFProtect
@@ -36,6 +50,19 @@ from modules.api_manager     import CREATE_API_KEYS_TABLE
 from modules.website_manager import WebsiteManager
 
 load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Sentry -- error monitoring (no-op if SENTRY_DSN is not set)
+# ---------------------------------------------------------------------------
+_sentry_dsn = os.getenv('SENTRY_DSN')
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.2,   # 20% of requests for performance tracing
+        send_default_pii=False,   # never send user PII to Sentry
+        environment=os.getenv('APP_ENV', 'development'),
+    )
 
 # ---------------------------------------------------------------------------
 # Secret key

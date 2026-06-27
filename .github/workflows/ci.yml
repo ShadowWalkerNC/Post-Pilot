@@ -15,16 +15,24 @@ jobs:
       DATABASE_URL: ''
       DATABASE_PATH: ':memory:'
       FLASK_SECRET_KEY: ci-test-secret-key
-      TOKEN_ENCRYPTION_KEY: dGVzdC1lbmNyeXB0aW9uLWtleS1mb3ItY2ktb25seQ==
+      # TOKEN_ENCRYPTION_KEY is injected from the GitHub Actions secret below.
+      # Add it at: Settings → Secrets and variables → Actions → CI_TOKEN_ENCRYPTION_KEY
+      TOKEN_ENCRYPTION_KEY: ${{ secrets.CI_TOKEN_ENCRYPTION_KEY }}
       FLASK_ENV: testing
+      APP_ENV: testing
       OPENAI_API_KEY: dummy
       STRIPE_SECRET_KEY: dummy
+      STRIPE_WEBHOOK_SECRET: dummy
       FACEBOOK_APP_ID: dummy
       FACEBOOK_APP_SECRET: dummy
       GOOGLE_CLIENT_ID: dummy
       GOOGLE_CLIENT_SECRET: dummy
       TIKTOK_CLIENT_KEY: dummy
       TIKTOK_CLIENT_SECRET: dummy
+      TWITTER_CLIENT_ID: dummy
+      TWITTER_CLIENT_SECRET: dummy
+      SUPABASE_URL: https://placeholder.supabase.co
+      SUPABASE_ANON_KEY: placeholder
 
     steps:
       - name: Checkout
@@ -39,17 +47,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Syntax check
+      - name: Install dev tools
+        run: pip install ruff flake8
+
+      - name: Lint with ruff (errors + warnings)
+        run: ruff check app.py modules/ blueprints/ --output-format=github
+
+      - name: Lint with flake8 (fatal errors only)
+        run: flake8 app.py modules/ blueprints/ --count --select=E9,F6,F7,F8 --show-source --statistics
+
+      - name: Syntax check all Python files
         run: |
           python -m py_compile app.py
-          find modules -name '*.py' | xargs python -m py_compile
+          find modules blueprints -name '*.py' | xargs python -m py_compile
           echo "All files compile OK"
 
-      - name: Lint (errors only)
-        run: |
-          pip install flake8
-          flake8 app.py modules/ --count --select=E9,F6,F7,F8 --show-source --statistics
-
-      - name: Run smoke tests
-        run: |
-          pytest tests/ -v --tb=short
+      - name: Run tests
+        run: pytest tests/ -v --tb=short --cov=modules --cov=blueprints --cov-report=term-missing

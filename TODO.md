@@ -1,5 +1,5 @@
 # Post-Pilot — Task List
-*Last updated: 2026-06-26 — UPA v1.0 Full Run*
+*Last updated: 2026-06-28 — UPA session (gap analysis + GitHub fixes)*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
 
@@ -55,24 +55,16 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 ### INFRA-4 · Duplicate module ambiguity
 - [x] Resolved — all modules have distinct roles, documented in `app.py` docstring
 
-### INFRA-5 · Consolidate deployment configuration
-- [ ] Delete unused configs: `railway.toml`, `render.yaml`, `nixpacks.toml`, `Procfile`
-- [ ] Create `DEPLOY.md` documenting Vercel as the deployment target
-
 ### INFRA-6 · Scheduler worker for serverless
 - [x] **Resolved — Vercel Cron implemented**
 - [x] `blueprints/cron.py` — `/api/cron/publish` endpoint with `CRON_SECRET` auth
 - [x] `vercel.json` updated — cron runs every minute (`* * * * *`)
 - [x] Endpoint calls `_publish_scheduled_posts()` directly (no APScheduler needed)
 - [x] Constant-time HMAC comparison for auth header (timing attack safe)
+- [x] `cron_bp` registered in `blueprints/__init__.py` with CSRF exemption
 - [ ] **Add `CRON_SECRET` to Vercel environment variables:**
   ```bash
   python -c "import secrets; print(secrets.token_urlsafe(32))"
-  ```
-- [ ] **Register the cron blueprint** — add to `blueprints/__init__.py`:
-  ```python
-  from blueprints.cron import cron_bp
-  app.register_blueprint(cron_bp)
   ```
 - [ ] Redeploy and confirm Vercel Cron tab shows the `/api/cron/publish` job
 
@@ -92,10 +84,19 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 ### DEV-3 · CORS
 - [x] Localhost origins are dev-environment-only
 
-### DB-1 · Clean up pp.users schema
-- [ ] Write migration to drop `password_hash` column from `pp.users`
-- [ ] Apply via Supabase SQL editor
-- [ ] Verify no code references `password_hash`
+### DB-1 · Clean up users schema — drop password_hash
+- [x] `password_hash` made nullable (prior session)
+- [x] Migration `0003_drop_password_hash.py` written and pushed
+- [ ] **Verify no code references `password_hash`:**
+  ```bash
+  grep -r "password_hash" . --include="*.py"
+  ```
+  Expected: zero matches (excluding alembic history)
+- [ ] **Apply migration:**
+  ```bash
+  alembic upgrade head
+  ```
+- [ ] Verify column is gone: check schema in Supabase SQL editor
 
 ---
 
@@ -121,7 +122,10 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 
 ## ✅ COMPLETED
 
-- [x] INFRA-6: Vercel Cron implemented (`blueprints/cron.py` + `vercel.json`)
+- [x] INFRA-5: Deleted `railway.toml`, `render.yaml`, `nixpacks.toml`, `Procfile` — Vercel is the only deployment target
+- [x] INFRA-6 (code): `cron_bp` registered in `blueprints/__init__.py` with CSRF exemption
+- [x] INFRA-6 (impl): Vercel Cron implemented (`blueprints/cron.py` + `vercel.json`)
+- [x] DB-1 (migration): `0003_drop_password_hash.py` written — apply with `alembic upgrade head`
 - [x] Sentry wired in `app.py`
 - [x] CI hardened: `ruff`, GitHub Actions secret, coverage reporting
 - [x] Module architecture documented in `app.py` docstring
@@ -143,4 +147,8 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 - [x] `import requests` moved to top-level
 - [x] `WTF_CSRF_TIME_LIMIT` raised to 7200
 - [x] `REDIS_URL` and `APP_ENV` added to `.env.example`
+- [x] `AGENTS.md` completed with full stack, rules, env vars, known issues
+- [x] `ARCHITECTURE.md` created — module map, data flows, DB schema, integrations
+- [x] `DEVELOPMENT.md` created — local setup, env var guide, branching, troubleshooting
+- [x] `README.md` rewritten — current stack, structure, docs links, session bootstrap
 - [x] UPA v1.0, Light Mode, and Escalation Checklist added to `.github/`

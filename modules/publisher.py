@@ -3,12 +3,20 @@ PostPilot Pro — Universal Publisher
 Smart routing: videos → video platforms, text → text platforms,
 images → image platforms. Write once, push everywhere.
 
+Active platforms: fb, ig, tt, yt, yts, tw, gb, web
+Removed: LinkedIn (li) and Pinterest (pi) -- not yet implemented.
+
 Option B support:
     push_all() accepts either:
-      caption  (str)  — single caption used for all platforms (old behaviour)
+      caption  (str)  — single caption used for all platforms
       captions (dict) — {platform_key: text} per-platform captions (Option B)
     When captions dict is provided, each platform gets its own adapted text.
     Falls back to caption string if a platform key is missing from the dict.
+
+Note on AutomationAgent captions:
+    When called from scheduler_worker, results may contain a 'captions' key
+    in the post_history results JSON. _publish_scheduled_posts() extracts this
+    and passes it as the captions kwarg so each platform gets its adapted text.
 """
 
 import json
@@ -32,21 +40,22 @@ KEY_MAP: Dict[str, str] = {
     'tiktok':         'tt',
     'google':         'gb',
     'website':        'web',
-    'linkedin':       'li',
     'twitter':        'tw',
     'x':              'tw',
-    'pinterest':      'pi',
 }
 
 # ---------------------------------------------------------------------------
 # Smart routing rules — which platforms suit which content types
 # ---------------------------------------------------------------------------
 ROUTING_RULES: Dict[str, list] = {
-    'text':   ['fb', 'li', 'tw', 'gb', 'web'],
-    'image':  ['fb', 'ig', 'pi', 'li', 'gb', 'web'],
-    'video':  ['fb', 'ig', 'yt', 'yts', 'tt', 'web'],
-    'promo':  ['fb', 'ig', 'tt', 'yts', 'li', 'tw', 'gb', 'web'],
-    'update': ['fb', 'li', 'tw', 'gb', 'web'],
+    'text':         ['fb', 'tw', 'gb', 'web'],
+    'image':        ['fb', 'ig', 'gb', 'web'],
+    'video':        ['fb', 'ig', 'yt', 'yts', 'tt', 'web'],
+    'promo':        ['fb', 'ig', 'tt', 'yts', 'tw', 'gb', 'web'],
+    'update':       ['fb', 'tw', 'gb', 'web'],
+    'daily_special':['fb', 'ig', 'tt', 'gb', 'web'],
+    'location':     ['fb', 'ig', 'gb', 'web'],
+    'general':      ['fb', 'ig', 'tw', 'gb', 'web'],
 }
 
 # Twitter hard character limit
@@ -111,17 +120,9 @@ class UniversalPublisher:
             cap = self._resolve_caption(captions, caption, 'gb')
             results['gb'] = self._publish_google_business(cap, image_url, link_url)
 
-        if platforms.get('li'):
-            cap = self._resolve_caption(captions, caption, 'li')
-            results['li'] = self._publish_linkedin(cap, image_url, link_url)
-
         if platforms.get('tw'):
             cap = self._resolve_caption(captions, caption, 'tw')
             results['tw'] = self._publish_twitter(cap, image_url)
-
-        if platforms.get('pi'):
-            cap = self._resolve_caption(captions, caption, 'pi')
-            results['pi'] = self._publish_pinterest(cap, image_url, link_url)
 
         if platforms.get('web'):
             cap = self._resolve_caption(captions, caption, 'web')
@@ -167,7 +168,7 @@ class UniversalPublisher:
             if schedule_time:
                 ts = int(datetime.fromisoformat(schedule_time).timestamp())
                 params.update({'published': False, 'scheduled_publish_time': ts})
-            r = requests.post(endpoint, params=params)
+            r = requests.post(endpoint, params=params, timeout=15)
             d = r.json()
             label = 'Scheduled' if schedule_time else ('Video posted' if video_url else 'Posted')
             return {
@@ -196,12 +197,16 @@ class UniversalPublisher:
                 params['video_url']  = media_url
             else:
                 params['image_url'] = media_url
-            c = requests.post(f'https://graph.facebook.com/v19.0/{ig_id}/media', params=params)
+            c = requests.post(
+                f'https://graph.facebook.com/v19.0/{ig_id}/media',
+                params=params, timeout=15,
+            )
             if c.status_code != 200:
                 return {'success': False, 'error': 'Failed to create media container', 'detail': c.json()}
             p = requests.post(
                 f'https://graph.facebook.com/v19.0/{ig_id}/media_publish',
-                params={'creation_id': c.json().get('id'), 'access_token': token}
+                params={'creation_id': c.json().get('id'), 'access_token': token},
+                timeout=15,
             )
             d     = p.json()
             label = 'Reel published' if is_video else 'Photo published'
@@ -336,16 +341,6 @@ class UniversalPublisher:
             return {'success': False, 'error': str(e)}
 
     # ------------------------------------------------------------------
-    # LinkedIn (stub — OAuth client built in Phase 3)
-    # ------------------------------------------------------------------
-
-    def _publish_linkedin(self, caption, image_url=None, link_url=None):
-        token = self.tokens.get('linkedin_token')
-        if not token:
-            return {'success': False, 'error': 'LinkedIn not connected — connect in Settings'}
-        return {'success': False, 'error': 'LinkedIn publishing not yet implemented — coming soon'}
-
-    # ------------------------------------------------------------------
     # Twitter / X
     # ------------------------------------------------------------------
 
@@ -358,37 +353,28 @@ class UniversalPublisher:
             'Authorization': f'Bearer {token}',
             'Content-Type':  'application/json',
         }
-
-        # Enforce 280-char hard limit
         tweet_text = caption if len(caption) <= TWITTER_MAX_CHARS else caption[:277] + '…'
 
         try:
             media_id = None
             if image_url:
-                # Upload image via v1.1 media/upload (INIT + APPEND + FINALIZE)
                 img_resp = requests.get(image_url, timeout=15)
                 img_resp.raise_for_status()
-                media_bytes  = img_resp.content
-                total_bytes  = len(media_bytes)
-                media_type   = img_resp.headers.get('Content-Type', 'image/jpeg')
+                media_bytes = img_resp.content
+                total_bytes = len(media_bytes)
+                media_type  = img_resp.headers.get('Content-Type', 'image/jpeg')
 
-                # INIT
                 init = requests.post(
                     'https://upload.twitter.com/1.1/media/upload.json',
                     headers={'Authorization': f'Bearer {token}'},
-                    data={
-                        'command':      'INIT',
-                        'total_bytes':  total_bytes,
-                        'media_type':   media_type,
-                        'media_category': 'tweet_image',
-                    },
+                    data={'command': 'INIT', 'total_bytes': total_bytes,
+                          'media_type': media_type, 'media_category': 'tweet_image'},
                     timeout=10,
                 ).json()
                 media_id = init.get('media_id_string')
                 if not media_id:
                     return {'success': False, 'error': f'Twitter media INIT failed: {init}'}
 
-                # APPEND
                 requests.post(
                     'https://upload.twitter.com/1.1/media/upload.json',
                     headers={'Authorization': f'Bearer {token}'},
@@ -397,7 +383,6 @@ class UniversalPublisher:
                     timeout=30,
                 )
 
-                # FINALIZE
                 fin = requests.post(
                     'https://upload.twitter.com/1.1/media/upload.json',
                     headers={'Authorization': f'Bearer {token}'},
@@ -407,16 +392,13 @@ class UniversalPublisher:
                 if fin.get('error'):
                     return {'success': False, 'error': f'Twitter media FINALIZE failed: {fin["error"]}'}
 
-            # Post the tweet
             payload = {'text': tweet_text}
             if media_id:
                 payload['media'] = {'media_ids': [media_id]}
 
             r = requests.post(
                 'https://api.twitter.com/2/tweets',
-                json=payload,
-                headers=headers,
-                timeout=10,
+                json=payload, headers=headers, timeout=10,
             )
             d = r.json()
             if r.status_code in (200, 201):
@@ -437,22 +419,18 @@ class UniversalPublisher:
             return {'success': False, 'error': str(e)}
 
     # ------------------------------------------------------------------
-    # Pinterest (stub — OAuth client built in Phase 5)
-    # ------------------------------------------------------------------
-
-    def _publish_pinterest(self, caption, image_url=None, link_url=None):
-        token = self.tokens.get('pinterest_token')
-        if not token:
-            return {'success': False, 'error': 'Pinterest not connected — connect in Settings'}
-        return {'success': False, 'error': 'Pinterest publishing not yet implemented — coming soon'}
-
-    # ------------------------------------------------------------------
-    # Website banner
+    # Website banner -- writes to DB (not filesystem; ephemeral on Vercel)
     # ------------------------------------------------------------------
 
     def _update_website(self, caption, image_url=None, link_url=None, web_data=None):
+        """
+        Persist website banner data to the websites table in the DB.
+        This replaces the old static/banner.json approach which did not
+        persist on Vercel's ephemeral serverless filesystem.
+        """
         try:
-            data = {
+            from modules.db import get_connection, placeholder as p_
+            data = json.dumps({
                 'message':  caption.split('\n')[0][:120],
                 'full':     caption,
                 'image':    image_url or '',
@@ -462,10 +440,17 @@ class UniversalPublisher:
                 'specials': (web_data or {}).get('specials', ''),
                 'hours':    (web_data or {}).get('hours',    ''),
                 'location': (web_data or {}).get('location', ''),
-            }
-            path = os.path.join(os.path.dirname(__file__), '..', 'static', 'banner.json')
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
-            return {'success': True, 'message': 'Website banner + sections updated', 'data': data}
+            })
+            conn = get_connection()
+            cur  = conn.cursor()
+            # Upsert: update config for existing website row, or do nothing if no row yet
+            cur.execute(
+                f'UPDATE websites SET config = {p_}, updated_at = {p_} '
+                f'WHERE user_id = {p_}',
+                (data, datetime.now().isoformat(), self.user_id)
+            )
+            conn.commit()
+            conn.close()
+            return {'success': True, 'message': 'Website banner updated in DB'}
         except Exception as e:
             return {'success': False, 'error': str(e)}

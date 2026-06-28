@@ -1,26 +1,24 @@
 """
 blueprintsicron.py
-Vercel Cron Job endpoint for Post-Pilot.
+Vercel Cron Job endpoints for Post-Pilot.
 
-Vercel calls POST /api/cron/publish every minute (configured in vercel.json).
-This replaces the APScheduler background thread, which cannot run persistently
-on Vercel's serverless platform.
+Endpoints:
+  POST /api/cron/publish   -- runs every minute; publishes due scheduled posts
+  POST /api/cron/generate  -- runs every hour; generates and schedules new posts
+  GET  /api/cron/health    -- liveness check (no auth required)
 
 Security:
-  All requests must carry the Authorization header:
+  All POST requests must carry:
     Authorization: Bearer <CRON_SECRET>
-  Vercel automatically injects this header when invoking cron jobs.
-  Unauthenticated requests receive 401. The secret never appears in code.
-
-Usage:
-  Set CRON_SECRET in your Vercel environment variables.
-  Vercel will pass it automatically -- you never call this endpoint manually.
+  Vercel automatically injects this header on cron invocations.
+  Unauthenticated requests receive 401.
 
 Reference:
   https://vercel.com/docs/cron-jobs
 """
 
 import os
+import hmac
 import logging
 
 from flask import Blueprint, request, jsonify
@@ -43,31 +41,59 @@ def _verify_cron_secret() -> bool:
         return False
     auth_header = request.headers.get('Authorization', '')
     expected    = f'Bearer {_CRON_SECRET}'
-    # Constant-time comparison to prevent timing attacks
-    import hmac
     return hmac.compare_digest(auth_header, expected)
 
 
+# ---------------------------------------------------------------------------
+# POST /api/cron/publish
+# Runs every minute (vercel.json). Publishes all due scheduled posts.
+# ---------------------------------------------------------------------------
+
 @cron_bp.route('/publish', methods=['POST'])
 def publish_due_posts():
-    """
-    Called by Vercel Cron every minute.
-    Publishes all scheduled posts whose scheduled_at <= now().
-    """
     if not _verify_cron_secret():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
-
     try:
         from modules.scheduler_worker import _publish_scheduled_posts
         _publish_scheduled_posts()
-        logger.info('cron: publish_due_posts completed')
+        logger.info('cron/publish: completed')
         return jsonify({'success': True}), 200
     except Exception as e:
-        logger.error('cron: publish_due_posts failed: %s', e)
+        logger.error('cron/publish: failed: %s', e)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# ---------------------------------------------------------------------------
+# POST /api/cron/generate
+# Runs every hour (vercel.json). Generates and schedules new posts for all
+# users whose business profiles are complete.
+# ---------------------------------------------------------------------------
+
+@cron_bp.route('/generate', methods=['POST'])
+def generate_scheduled_posts():
+    if not _verify_cron_secret():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        from modules.automation_agent import run_for_all_users
+        summary = run_for_all_users()
+        logger.info('cron/generate: %s', summary)
+        return jsonify({'success': True, 'summary': summary}), 200
+    except Exception as e:
+        logger.error('cron/generate: failed: %s', e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ---------------------------------------------------------------------------
+# GET /api/cron/health
+# Lightweight liveness check (no auth required).
+# ---------------------------------------------------------------------------
+
 @cron_bp.route('/health', methods=['GET'])
 def cron_health():
-    """Lightweight liveness check for the cron blueprint (no auth required)."""
-    return jsonify({'status': 'ok', 'endpoint': '/api/cron/publish'}), 200
+    return jsonify({
+        'status':    'ok',
+        'endpoints': {
+            'publish':  '/api/cron/publish  (POST, every minute)',
+            'generate': '/api/cron/generate (POST, every hour)',
+        },
+    }), 200

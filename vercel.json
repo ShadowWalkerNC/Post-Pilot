@@ -8,6 +8,10 @@
   ],
   "crons": [
     {
+      "path": "/api/cron/generate",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/cron/publish",
       "schedule": "* * * * *"
     }

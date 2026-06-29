@@ -20,6 +20,7 @@ Generates high-engagement posts via Anthropic Claude and publishes directly to F
 | [DEPLOY.md](./DEPLOY.md) | Vercel deployment runbook |
 | [CHANGELOG.md](./CHANGELOG.md) | What changed and when |
 | [V1_API.md](./V1_API.md) | External API reference |
+| [docs/embed-widget.md](./docs/embed-widget.md) | Public embed widget usage & API reference |
 
 ---
 
@@ -32,6 +33,7 @@ Generates high-engagement posts via Anthropic Claude and publishes directly to F
 - Authenticates users via **magic link email** (no passwords)
 - Monitors errors in production via **Sentry**
 - Enforces plan limits per user with `@require_plan` decorator
+- Serves a **public embed widget** so clients can show live posts/hours/services on any external site
 
 ---
 
@@ -70,6 +72,7 @@ Post-Pilot/
     onboarding.py         ← New user setup flow
     settings.py           ← Account and platform settings
     admin.py              ← Internal admin tools
+    embed_api.py          ← Public embed API (/api/embed/<slug>) — no auth required
   modules/                ← Shared utilities and services
     db.py                 ← SQLAlchemy engine, session factory, base models
     database.py           ← Safe proxy to db.py (backward compat)
@@ -82,9 +85,12 @@ Post-Pilot/
     rate_limit.py         ← Flask-Limiter + Redis config
   templates/              ← Jinja2 HTML templates
   static/                 ← Tailwind CSS, JS, images
+    embed.js              ← Drop-in public embed widget script
   alembic/                ← Database migrations (forward-only)
     versions/             ← Migration files
   tests/                  ← pytest test suite
+  docs/                   ← Feature-level documentation
+    embed-widget.md       ← Embed widget usage guide
   mcp/                    ← Post-Pilot MCP server (planned)
   .github/
     workflows/ci.yml      ← GitHub Actions: ruff + pytest + coverage
@@ -113,12 +119,62 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for the complete setup guide, env var ref
 
 ---
 
+## 🧩 Embed Widget — Manual Setup
+
+The embed widget lets any client drop live posts, hours, and services onto their own website with a single `<div>` and `<script>` tag.
+
+### 1. Register the blueprint in `app.py`
+
+Open `app.py` and add the following two lines alongside the other blueprint imports and registrations:
+
+```python
+from blueprints.embed_api import embed_bp
+app.register_blueprint(embed_bp)
+```
+
+### 2. (Optional) Add a custom slug column
+
+By default the widget uses the user's **username** as the slug. To support custom vanity slugs, run this migration once against your database:
+
+```sql
+ALTER TABLE users ADD COLUMN embed_slug TEXT UNIQUE;
+```
+
+### 3. Serve `static/embed.js` publicly
+
+Ensure your Vercel / Flask static file config exposes `/static/embed.js`. No extra config is needed if you are already serving the `static/` folder (Flask does this by default).
+
+### 4. Give clients their snippet
+
+Replace `your-business-slug` with the user's username (or their custom `embed_slug`):
+
+```html
+<div
+  data-postpilot-slug="your-business-slug"
+  data-postpilot-theme="light"
+  data-postpilot-sections="posts,hours,services"
+></div>
+
+<script src="https://yourapp.com/static/embed.js" async></script>
+```
+
+| Attribute | Options | Default | Description |
+|---|---|---|---|
+| `data-postpilot-slug` | any string | *(required)* | Username or custom embed slug |
+| `data-postpilot-theme` | `light` \| `dark` | `light` | Widget colour scheme |
+| `data-postpilot-sections` | comma-separated | `posts,hours,services` | Sections to display |
+
+Full reference: [docs/embed-widget.md](./docs/embed-widget.md)
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Phase 1 — Facebook + Instagram API integration
 - [x] Phase 2 — Post scheduler + calendar
 - [x] Phase 3 — SaaS billing (Stripe), magic link auth, plan enforcement
 - [x] Phase 4 — Blueprint architecture, Vercel Cron, Sentry, CI hardening
+- [x] Phase 4.5 — Public embed widget (`/api/embed/<slug>` + `static/embed.js`)
 - [ ] **Phase 5** — Alembic migration cleanup, multi-user teams, Redis rate limiting, analytics dashboard
 - [ ] Phase 6 — Public launch, onboarding flow, marketing site
 

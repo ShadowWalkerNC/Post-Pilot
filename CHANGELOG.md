@@ -7,6 +7,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+- Re-enabled CSRF on session-authenticated APIs (`api` / specials / events / hours); dashboard pages send `X-CSRFToken` via `static/js/csrf.js`
+- Fixed `/v1` IDOR: user API keys ignore client-supplied `user_id` and bind to the key owner
+- Production refuses to start with missing/invalid `TOKEN_ENCRYPTION_KEY` (no ephemeral Fernet key)
+- Disabled `POST /api/setup_tokens` in production unless `ALLOW_MANUAL_TOKEN_SETUP=1`
+- Removed tracked `.venv` and `__pycache__` from version control
+- Fixed broken `from app import get_db` imports (now `modules.database.get_db`)
+- Hardened session cookies (`HttpOnly`, `SameSite=Lax`, `Secure` in production)
+- Cron endpoints accept GET+POST (Vercel Cron); error bodies no longer leak exception strings
+- Dev-login uses constant-time key compare; analytics no longer accepts client-supplied Meta tokens
+
+### Tests
+- Added `tests/test_security_c1_c6.py`; updated fixtures for magic-link auth
+
 ---
 
 ## [0.4.0] — 2026-06-22

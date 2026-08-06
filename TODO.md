@@ -1,7 +1,27 @@
 # Post-Pilot — Task List
-*Last updated: 2026-06-30 — Audit complete, go-live steps documented*
+*Last updated: 2026-08-06 — C1–C6 security fixes landed*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
+
+---
+
+## 🔴 CRITICAL — Security (code fixes)
+
+See also `docs/SECURITY_AUDIT.md` (audit PR) for full write-up.
+
+- [x] **C1** CSRF re-enabled on session APIs; `static/js/csrf.js` + template meta
+- [x] **C2** `/v1` IDOR — user API keys bound to key owner (`_resolve_scoped_user_id`)
+- [x] **C3** Fail closed if `TOKEN_ENCRYPTION_KEY` missing/invalid in production
+- [x] **C4** Untracked `.venv` and `__pycache__` from git
+- [x] **C5** `get_db` imports fixed → `modules.database`
+- [x] **C6** `POST /api/setup_tokens` disabled in production (opt-in `ALLOW_MANUAL_TOKEN_SETUP`)
+
+Still open (ops / high):
+- [ ] Confirm `DEV_LOGIN_KEY` absent in Vercel production
+- [ ] Set stable `TOKEN_ENCRYPTION_KEY` / `FLASK_SECRET_KEY` / `CRON_SECRET` / `REDIS_URL` in Vercel
+- [ ] H1 rate limits on login + generate/publish
+- [ ] H2 SSRF allowlist for media URLs
+- [ ] H3 escape XSS in `static/embed.js`
 
 ---
 

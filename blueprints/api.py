@@ -75,7 +75,7 @@ def _get_business_profile() -> dict:
 
 def _get_enabled_platforms(uid: str) -> dict:
     try:
-        from app import get_db
+        from modules.database import get_db
         db   = get_db()
         rows = db.execute(
             'SELECT platform, enabled FROM platform_settings WHERE user_id = ?', (uid,)
@@ -227,7 +227,7 @@ def api_save_platform_settings():
     if not isinstance(settings, dict):
         return jsonify({'success': False, 'error': 'settings must be an object'}), 400
     try:
-        from app import get_db
+        from modules.database import get_db
         db = get_db()
         for platform, enabled in settings.items():
             db.execute(
@@ -309,6 +309,22 @@ def api_onboarding_setup():
 @api_bp.route('/api/setup_tokens', methods=['POST'])
 @login_required
 def api_setup_tokens():
+    """
+    Manual token injection — disabled in production unless ALLOW_MANUAL_TOKEN_SETUP=1.
+    Prefer OAuth connect flows (/auth/facebook, /auth/google, …).
+    """
+    import os
+    _prod = (
+        os.getenv('VERCEL_ENV')
+        or os.getenv('APP_ENV') == 'production'
+        or os.getenv('FLASK_ENV') == 'production'
+    )
+    if _prod and os.getenv('ALLOW_MANUAL_TOKEN_SETUP', '').strip() not in ('1', 'true', 'True'):
+        return jsonify({
+            'success': False,
+            'error': 'Manual token setup is disabled in production. Connect platforms via OAuth.',
+        }), 403
+
     data     = request.json or {}
     uid      = _uid()
     incoming = data.get('tokens', {})
@@ -376,7 +392,7 @@ def api_schedule_post():
 @api_bp.route('/api/scheduled_posts', methods=['GET'])
 @login_required
 def api_scheduled_posts():
-    from app import get_db
+    from modules.database import get_db
     uid = _uid()
     db  = get_db()
     try:
@@ -401,7 +417,7 @@ def api_scheduled_posts():
 @api_bp.route('/api/post_history', methods=['GET'])
 @login_required
 def api_post_history():
-    from app import get_db
+    from modules.database import get_db
     uid = _uid()
     db  = get_db()
     try:
@@ -453,7 +469,7 @@ def api_bulk_schedule():
 @api_bp.route('/api/delete_post', methods=['POST'])
 @login_required
 def api_delete_post():
-    from app import get_db
+    from modules.database import get_db
     data    = request.json or {}
     post_id = data.get('post_id')
     uid     = _uid()
@@ -491,9 +507,9 @@ def api_analytics():
     except (ValueError, TypeError):
         days = 30
 
-    token   = tokens.get('facebook_token') or data.get('access_token')
-    page_id = tokens.get('facebook_page_id') or data.get('page_id')
-    ig_id   = tokens.get('instagram_id') or data.get('ig_id')
+    token   = tokens.get('facebook_token')
+    page_id = tokens.get('facebook_page_id')
+    ig_id   = tokens.get('instagram_id')
 
     # ── Facebook / Instagram ──────────────────────────────────────────
     if not token or not page_id:

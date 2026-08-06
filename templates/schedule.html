@@ -1,7 +1,13 @@
-{% extends 'dashboard.html' %}
-{% block title %}Schedule — Post-Pilot{% endblock %}
-
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schedule — Post-Pilot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  {% include "_csrf.html" %}
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
 <div class="max-w-5xl mx-auto px-4 py-8">
 
   <!-- Header -->
@@ -542,4 +548,5 @@ document.getElementById('form-hours').addEventListener('submit', async e => {
 switchTab('specials');
 loadAll();
 </script>
-{% endblock %}
+</body>
+</html>

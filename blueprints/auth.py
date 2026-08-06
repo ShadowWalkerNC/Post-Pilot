@@ -57,10 +57,16 @@ def _send_magic_link(email: str, redirect_to: str = None) -> bool:
 
 @auth_bp.route('/dev-login')
 def dev_login():
+    import hmac as _hmac
     dev_key = os.getenv('DEV_LOGIN_KEY', '')
     if not dev_key:
         return 'Dev login is disabled.', 403
-    if request.args.get('key') != dev_key:
+    provided = request.args.get('key', '')
+    if (
+        not provided
+        or len(provided) != len(dev_key)
+        or not _hmac.compare_digest(provided, dev_key)
+    ):
         return 'Invalid key.', 403
 
     email = request.args.get('email', '').strip().lower()
@@ -83,7 +89,7 @@ def dev_login():
             404,
         )
 
-    login_user(user, remember=True)
+    login_user(user, remember=False)
     UserManager.touch_login(user.id)
     flash('Dev login successful.', 'success')
     return redirect(url_for('pages.home'))

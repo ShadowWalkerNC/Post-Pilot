@@ -31,17 +31,16 @@ class TestAuthFlow:
     def test_register_new_user(self, client):
         resp = client.post('/register', data={
             'email':        'brand-new@example.com',
-            'password':     'SecurePass1!',
             'display_name': 'Brand New',
         }, follow_redirects=True)
         assert resp.status_code == 200
 
-    def test_login_wrong_password(self, client):
+    def test_login_unknown_email_does_not_500(self, client):
+        """Magic-link login: unknown email should not crash (link send may fail in CI)."""
         resp = client.post('/login', data={
-            'email':    'nobody@example.com',
-            'password': 'wrongpassword',
+            'email': 'nobody@example.com',
         }, follow_redirects=True)
-        assert b'Invalid email or password' in resp.data
+        assert resp.status_code == 200
 
     def test_protected_redirects_anonymous(self, client):
         resp = client.get('/dashboard')
@@ -57,7 +56,12 @@ class TestAuthenticatedRoutes:
         assert logged_in_client.get('/billing').status_code == 200
 
     def test_post_history_returns_list(self, logged_in_client):
-        resp = logged_in_client.get('/api/post_history')
+        from unittest.mock import MagicMock, patch
+        with patch('modules.database.get_db') as gdb:
+            mock_db = MagicMock()
+            mock_db.execute.return_value.fetchall.return_value = []
+            gdb.return_value = mock_db
+            resp = logged_in_client.get('/api/post_history')
         assert resp.status_code == 200
         data = resp.get_json()
         assert data['success'] is True

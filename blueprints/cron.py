@@ -49,7 +49,7 @@ def _verify_cron_secret() -> bool:
 # Runs every minute (vercel.json). Publishes all due scheduled posts.
 # ---------------------------------------------------------------------------
 
-@cron_bp.route('/publish', methods=['POST'])
+@cron_bp.route('/publish', methods=['GET', 'POST'])
 def publish_due_posts():
     if not _verify_cron_secret():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
@@ -60,7 +60,7 @@ def publish_due_posts():
         return jsonify({'success': True}), 200
     except Exception as e:
         logger.error('cron/publish: failed: %s', e)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -69,7 +69,7 @@ def publish_due_posts():
 # users whose business profiles are complete.
 # ---------------------------------------------------------------------------
 
-@cron_bp.route('/generate', methods=['POST'])
+@cron_bp.route('/generate', methods=['GET', 'POST'])
 def generate_scheduled_posts():
     if not _verify_cron_secret():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
@@ -80,7 +80,7 @@ def generate_scheduled_posts():
         return jsonify({'success': True, 'summary': summary}), 200
     except Exception as e:
         logger.error('cron/generate: failed: %s', e)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
 
 
 # ---------------------------------------------------------------------------

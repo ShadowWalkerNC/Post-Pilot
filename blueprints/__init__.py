@@ -28,12 +28,9 @@ def register_blueprints(app, csrf):
     app.register_blueprint(hours_bp)
     app.register_blueprint(v1_blueprint)
 
-    # Exempt API and webhook blueprints from CSRF
-    # cron_bp is authenticated via CRON_SECRET (HMAC), not browser sessions
+    # Exempt only machine-to-machine endpoints from CSRF.
+    # Session-authenticated browser APIs (api/specials/events/hours/website)
+    # must send X-CSRFToken — see static/js/csrf.js.
     csrf.exempt(v1_blueprint)
     csrf.exempt(stripe_webhook_bp)
     csrf.exempt(cron_bp)
-    csrf.exempt(api_bp)
-    csrf.exempt(specials_bp)
-    csrf.exempt(events_bp)
-    csrf.exempt(hours_bp)

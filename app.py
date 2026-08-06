@@ -81,6 +81,20 @@ app = Flask(__name__)
 app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 
+# Session / remember-cookie hardening (Secure only when not clearly local-dev)
+_is_prod_runtime = bool(
+    os.getenv('VERCEL_ENV')
+    or os.getenv('APP_ENV') == 'production'
+    or os.getenv('FLASK_ENV') == 'production'
+)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+if _is_prod_runtime:
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['REMEMBER_COOKIE_SECURE'] = True
+
 # ---------------------------------------------------------------------------
 # Supabase client (used for Auth -- magic links)
 # ---------------------------------------------------------------------------

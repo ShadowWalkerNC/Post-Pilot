@@ -30,8 +30,21 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Encryption key
 # ---------------------------------------------------------------------------
+def _is_production() -> bool:
+    return bool(
+        os.environ.get('VERCEL_ENV')
+        or os.environ.get('APP_ENV') == 'production'
+        or os.environ.get('FLASK_ENV') == 'production'
+    )
+
+
 ENCRYPTION_KEY = os.environ.get('TOKEN_ENCRYPTION_KEY', '').strip()
 if not ENCRYPTION_KEY:
+    if _is_production():
+        raise SystemExit(
+            'FATAL: TOKEN_ENCRYPTION_KEY is not set. '
+            'Refusing to start in production — OAuth tokens cannot be encrypted safely.'
+        )
     ENCRYPTION_KEY = Fernet.generate_key().decode()
     logger.warning('TOKEN_ENCRYPTION_KEY not set -- generated ephemeral key (dev only)')
 
@@ -42,7 +55,12 @@ _key_bytes = ENCRYPTION_KEY.encode() if isinstance(ENCRYPTION_KEY, str) else ENC
 try:
     fernet = Fernet(_key_bytes)
 except Exception as exc:
-    logger.error('Invalid TOKEN_ENCRYPTION_KEY (%s) -- generating ephemeral key', exc)
+    if _is_production():
+        raise SystemExit(
+            f'FATAL: Invalid TOKEN_ENCRYPTION_KEY ({exc}). '
+            'Refusing to start in production.'
+        ) from exc
+    logger.error('Invalid TOKEN_ENCRYPTION_KEY (%s) -- generating ephemeral key (dev only)', exc)
     fernet = Fernet(Fernet.generate_key())
 
 

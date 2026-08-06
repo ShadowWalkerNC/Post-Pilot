@@ -1,7 +1,23 @@
 # Post-Pilot — Task List
-*Last updated: 2026-06-30 — Audit complete, go-live steps documented*
+*Last updated: 2026-08-06 — Full security audit documented in docs/SECURITY_AUDIT.md*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
+
+---
+
+## 🔴 CRITICAL — Security Audit Findings (2026-08-06)
+
+Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
+
+Code/stop-ship (not just env ops):
+- [ ] **C1** Re-enable CSRF on `api_bp` / specials / events / hours; send CSRF token from dashboard JS
+- [ ] **C2** `/v1` IDOR — ignore client `user_id` for user API keys; bind to key owner
+- [ ] **C3** Fail closed if `TOKEN_ENCRYPTION_KEY` missing/invalid in production (no ephemeral Fernet key)
+- [ ] **C4** Untrack `.venv` and `__pycache__` (`git rm -r --cached`)
+- [ ] **C5** Fix `from app import get_db` → `from modules.database import get_db`
+- [ ] **C6** Remove or lock down `POST /api/setup_tokens` in production
+
+High priority follow-ups: rate limits on auth/API (H1), SSRF on media URLs (H2), embed.js XSS (H3), session cookie flags (H5), cron GET vs POST (H6).
 
 ---
 

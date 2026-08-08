@@ -68,7 +68,7 @@ class User(UserMixin):
 
     @property
     def is_paid(self) -> bool:
-        return self.plan in ('starter', 'growth', 'pro', 'agency')
+        return self.plan in ('starter', 'pro', 'agency')
 
     def can_use_platform(self, platform: str) -> bool:
         if self.is_paid:
@@ -76,7 +76,8 @@ class User(UserMixin):
         return platform in {'fb', 'web'}
 
     def ai_captions_limit(self) -> int:
-        limits = {'free': 5, 'starter': 30, 'growth': 150, 'pro': 999999, 'agency': 999999}
+        # Canonical limits: Free/Starter/Pro/Agency (see plan_guard.py / PRICING.md)
+        limits = {'free': 5, 'starter': 30, 'pro': 999999, 'agency': 999999}
         return limits.get(self.plan, 5)
 
     def __repr__(self):

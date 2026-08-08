@@ -2,9 +2,9 @@
 
 **AI-powered social media automation for food trucks, restaurants, hotels, cafes, and food companies.**
 
-Generates high-engagement posts via Anthropic Claude and publishes directly to Facebook & Instagram via the Meta Graph API. Runs as a Flask SaaS on Vercel with Supabase (PostgreSQL), Stripe billing, magic-link auth, and Vercel Cron for scheduled publishing.
+Generates high-engagement posts via OpenAI and publishes directly to Facebook & Instagram via the Meta Graph API. Runs as a Flask SaaS on Vercel with Supabase (PostgreSQL), Stripe billing, magic-link auth, and Vercel Cron for scheduled publishing.
 
-> **Status:** In production · Phase 5 in progress (Teams, Alembic migrations, Redis, analytics)
+> **Status:** In production · Phase 5 — harden & go live (see `PLANNING.md` / `TODO.md`)
 
 ---
 
@@ -26,10 +26,10 @@ Generates high-engagement posts via Anthropic Claude and publishes directly to F
 
 ## ✨ What It Does
 
-- Generates platform-optimised posts using Anthropic Claude
+- Generates platform-optimised posts using **OpenAI** (GPT-4o-mini)
 - Publishes directly to **Facebook** and **Instagram** via Meta Graph API
-- Schedules posts with **Vercel Cron** (fires every minute, HMAC-authenticated)
-- Manages subscriptions with **Stripe** (Starter / Pro / Agency plans)
+- Schedules posts with **Vercel Cron** (generate hourly, publish every minute, secret-authenticated)
+- Manages subscriptions with **Stripe** (Free / Starter / Pro / Agency)
 - Authenticates users via **magic link email** (no passwords)
 - Monitors errors in production via **Sentry**
 - Enforces plan limits per user with `@require_plan` decorator
@@ -45,9 +45,9 @@ Generates high-engagement posts via Anthropic Claude and publishes directly to F
 | Framework | Flask 3.x |
 | Database | Supabase (PostgreSQL) via SQLAlchemy + psycopg2 |
 | Hosting | Vercel (serverless + Vercel Cron) |
-| AI | Anthropic Claude (claude-3-5-sonnet) |
-| Auth | Magic link email (Flask-Mail + JWT) |
-| Payments | Stripe (subscription billing) |
+| AI | OpenAI GPT-4o-mini (`OPENAI_API_KEY`) |
+| Auth | Magic link via Supabase Auth |
+| Payments | Stripe (Free / Starter / Pro / Agency) |
 | Observability | Sentry (`sentry-sdk[flask]`) |
 | Rate limiting | Flask-Limiter + Upstash Redis |
 | Migrations | Alembic |
@@ -62,41 +62,33 @@ Generates high-engagement posts via Anthropic Claude and publishes directly to F
 Post-Pilot/
   app.py                  ← Flask app factory, blueprint registration, Sentry init
   blueprints/             ← Flask blueprints (one file per domain)
-    auth.py               ← Magic link auth, session management
-    dashboard.py          ← Post queue, platform overview
-    generate.py           ← AI post generation (Claude)
-    publish.py            ← Meta Graph API publish logic
-    scheduler.py          ← Post scheduling interface
-    cron.py               ← Vercel Cron endpoint (/api/cron/publish)
+    auth.py               ← Magic link auth, OAuth connect, /dev-login
     billing.py            ← Stripe subscription management
-    onboarding.py         ← New user setup flow
-    settings.py           ← Account and platform settings
-    admin.py              ← Internal admin tools
-    embed_api.py          ← Public embed API (/api/embed/<slug>) — no auth required
+    api.py                ← Generate / publish APIs
+    pages.py              ← HTML pages (dashboard, generate, …)
+    cron.py               ← Vercel Cron (/api/cron/generate, /publish)
+    website.py            ← Website hub
+    embed_api.py          ← Public embed API (/api/embed/<slug>)
+    specials.py | events.py | hours.py
   modules/                ← Shared utilities and services
-    db.py                 ← SQLAlchemy engine, session factory, base models
-    database.py           ← Safe proxy to db.py (backward compat)
-    models.py             ← ORM models: User, Post, Platform, Schedule, Plan
-    ai.py                 ← Claude API wrapper, prompt management
+    auth_manager.py       ← Encrypted platform tokens
+    ai_generator.py       ← OpenAI caption generation
+    platform_adapter.py   ← Per-platform adaptation
+    publisher.py          ← Publish router
+    billing_manager.py    ← Stripe lifecycle
+    plan_guard.py         ← @require_plan + limits
+    automation_agent.py   ← Specials/events/hours → posts
     meta_api.py           ← Meta Graph API client
-    scheduler_utils.py    ← _publish_scheduled_posts() — called by cron
-    auth_utils.py         ← JWT, magic link generation, session helpers
-    billing_utils.py      ← Stripe helpers, @require_plan decorator
-    rate_limit.py         ← Flask-Limiter + Redis config
   templates/              ← Jinja2 HTML templates
   static/                 ← Tailwind CSS, JS, images
     embed.js              ← Drop-in public embed widget script
-  alembic/                ← Database migrations (forward-only)
-    versions/             ← Migration files
+  alembic/versions/       ← Migrations 0001…0006
   tests/                  ← pytest test suite
-  docs/                   ← Feature-level documentation
-    embed-widget.md       ← Embed widget usage guide
-  mcp/                    ← Post-Pilot MCP server (planned)
-  .github/
-    workflows/ci.yml      ← GitHub Actions: ruff + pytest + coverage
+  docs/embed-widget.md    ← Embed widget usage guide
+  mcp/                    ← Post-Pilot MCP server
   vercel.json             ← Vercel deployment + Cron config
-  requirements.txt        ← Pinned Python dependencies
-  .env.example            ← All required env vars (no values)
+  PLANNING.md             ← Phase / pricing / stack source of truth
+  TODO.md                 ← Open work + go-live checklist
 ```
 
 ---
@@ -123,14 +115,9 @@ See [DEVELOPMENT.md](./DEVELOPMENT.md) for the complete setup guide, env var ref
 
 The embed widget lets any client drop live posts, hours, and services onto their own website with a single `<div>` and `<script>` tag.
 
-### 1. Register the blueprint in `app.py`
+### 1. Blueprint registration
 
-Open `app.py` and add the following two lines alongside the other blueprint imports and registrations:
-
-```python
-from blueprints.embed_api import embed_bp
-app.register_blueprint(embed_bp)
-```
+`embed_bp` is registered in `blueprints/__init__.py` (CSRF-exempt). No manual `app.py` wiring needed.
 
 ### 2. (Optional) Add a custom slug column
 
@@ -170,13 +157,12 @@ Full reference: [docs/embed-widget.md](./docs/embed-widget.md)
 
 ## 🗺️ Roadmap
 
-- [x] Phase 1 — Facebook + Instagram API integration
-- [x] Phase 2 — Post scheduler + calendar
-- [x] Phase 3 — SaaS billing (Stripe), magic link auth, plan enforcement
-- [x] Phase 4 — Blueprint architecture, Vercel Cron, Sentry, CI hardening
-- [x] Phase 4.5 — Public embed widget (`/api/embed/<slug>` + `static/embed.js`)
-- [ ] **Phase 5** — Alembic migration cleanup, multi-user teams, Redis rate limiting, analytics dashboard
-- [ ] Phase 6 — Public launch, onboarding flow, marketing site
+See [`PLANNING.md`](./PLANNING.md) and [`ROADMAP.md`](./ROADMAP.md).
+
+- [x] Phases 1–4 — Core product (auth, OpenAI, Meta publish, Stripe, cron, embed, specials/events/hours)
+- [ ] **Phase 5** — Harden & go live (keys, Vercel env, Redis, smoke test, teams design)
+- [ ] Phase 6 — Retention (morning prompt, location one-tap), inbox, finish non-Meta publishers
+- [ ] Phase 7 — Agency multi-location / ecosystem
 
 ---
 
@@ -201,11 +187,11 @@ https://raw.githubusercontent.com/ShadowWalkerNC/Post-Pilot/main/AGENTS.md
 https://raw.githubusercontent.com/ShadowWalkerNC/Post-Pilot/main/ARCHITECTURE.md
 
 PROJECT:      Post-Pilot
-PHASE:        5 — Teams, Alembic migrations, Redis, analytics
+PHASE:        5 — Harden & go live (see PLANNING.md)
 LAST COMMIT:  [paste last commit SHA or message]
 MODE:         [full | quick | audit | hotfix | onboard]
-AGENT:        [Perplexity | Claude]
-OPEN:         SEC-1 (key rotation), INFRA-6 (register cron blueprint), [your third item]
+AGENT:        [Perplexity | Claude | Cursor]
+OPEN:         SEC-1 (key rotation), TODO.md §CRITICAL, [your third item]
 SCOPE:        [what you want this session]
 OUT OF SCOPE: [what you are not doing]
 ```

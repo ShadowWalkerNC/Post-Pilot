@@ -1,18 +1,20 @@
 # Post-Pilot — Task List
-*Last updated: 2026-06-30 — Audit complete, go-live steps documented*
+*Last updated: 2026-08-08 — Plan docs rebased to live stack; phases aligned with PLANNING.md*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
 
+**Phase source of truth:** `PLANNING.md` · **Checkbox tracker:** `ROADMAP.md`
+
 ---
 
-## 🔴 CRITICAL — You Must Do These Manually (Go-Live Blockers)
+## 🔴 CRITICAL — Manual go-live blockers (Phase 5)
 
 ### STEP 1 · Generate secure keys (run locally)
 ```bash
 # Flask secret key
 python -c "import secrets; print(secrets.token_hex(32))"
 
-# Fernet encryption key for platform_tokens
+# Fernet encryption key for platform tokens
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 
 # Cron secret
@@ -25,72 +27,83 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 - [ ] `CRON_SECRET` → urlsafe token from Step 1
 - [ ] `OPENAI_API_KEY` → from https://platform.openai.com
 - [ ] `STRIPE_PRICE_STARTER_MONTHLY` / `STRIPE_PRICE_STARTER_ANNUAL`
-- [ ] `STRIPE_PRICE_GROWTH_MONTHLY` / `STRIPE_PRICE_GROWTH_ANNUAL`
 - [ ] `STRIPE_PRICE_PRO_MONTHLY` / `STRIPE_PRICE_PRO_ANNUAL`
 - [ ] `STRIPE_PRICE_AGENCY_MONTHLY` / `STRIPE_PRICE_AGENCY_ANNUAL`
-- [ ] `REDIS_URL` — provision free tier at https://upstash.com, copy Redis URL
-- [ ] `SENTRY_DSN` — optional, from https://sentry.io (add for production error tracking)
+- [ ] `REDIS_URL` — Upstash Redis URL
+- [ ] `SENTRY_DSN` — production error tracking
+- [ ] Supabase: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- [ ] `DATABASE_URL` — Supabase Postgres pooler URL
+- [ ] Meta / Stripe / mail vars per `.env.example`
+
+> Do **not** create Growth price env vars — product tiers are Free / Starter / Pro / Agency only.
 
 ### STEP 3 · Add to GitHub Actions Secrets
-- [ ] Go to: repo → Settings → Secrets and variables → Actions
-- [ ] Add `CI_TOKEN_ENCRYPTION_KEY` → same Fernet key used in Vercel
+- [ ] Repo → Settings → Secrets and variables → Actions
+- [ ] `CI_TOKEN_ENCRYPTION_KEY` → same Fernet key used in Vercel
 
 ### STEP 4 · Run DB migrations
 ```bash
-# From your local machine or Railway shell
 DATABASE_URL=your_postgres_connection_string alembic upgrade head
 ```
-> Applies migrations 0003 through 0006 (specials, events, hours_overrides tables)
+> Applies through `0006_events_hours` (includes `0003_drop_password_hash`).
 
 ### STEP 5 · Security check
-- [ ] Confirm `DEV_LOGIN_KEY` is **absent or empty** in Vercel production env vars
-- [ ] Re-encrypt any existing `platform_tokens` rows if TOKEN_ENCRYPTION_KEY changed
+- [ ] Confirm `DEV_LOGIN_KEY` is **absent or empty** in Vercel production
+- [ ] Re-encrypt existing platform token rows if `TOKEN_ENCRYPTION_KEY` changed
 
-### STEP 6 · Git cleanup — remove tracked binaries
+### STEP 6 · Git cleanup (if binaries still tracked)
 ```bash
 git rm --cached postpilot.db .venv __pycache__ -r --ignore-unmatch
 git commit -m "chore: untrack .db, .venv, __pycache__"
 git push
 ```
 
-### STEP 7 · Deploy + Smoke Test
-- [ ] Trigger fresh Vercel redeploy after all env vars are set
-- [ ] Visit `/login` → receive magic link → click link → land on dashboard
-- [ ] Go to `/schedule` → add a Special
-- [ ] `POST /api/cron/generate` with `Authorization: Bearer <CRON_SECRET>` header
-- [ ] Confirm a row appears in `post_history` table
-- [ ] Visit `/billing` → verify plan tiers display correctly
-- [ ] Connect one platform (Facebook or Google) via `/settings`
+### STEP 7 · Deploy + smoke test
+- [ ] Fresh Vercel redeploy after env vars are set
+- [ ] `/login` → magic link → dashboard
+- [ ] `/schedule` → add a Special
+- [ ] Cron generate with `Authorization: Bearer <CRON_SECRET>`
+- [ ] Confirm automation/post history row written
+- [ ] `/billing` → Free / Starter ($19) / Pro ($49) / Agency ($99)
+- [ ] Connect one platform (Facebook or Google)
 
 ---
 
-## 🟠 HIGH — Phase 2: Website Embed
+## 🟠 HIGH — Phase 5 code hardening
 
-- [ ] `alembic/0007_business_slug.py` — add `slug` to `business_profiles`
-- [ ] Onboarding step: choose/confirm slug (auto-generated from business name, user can edit once)
-- [ ] `blueprints/embed.py` — `GET /api/public/<slug>/feed` → public JSON (no auth required)
-- [ ] `static/embed.js` — 10-line drop-in script for any website
-- [ ] `templates/embed_preview.html` — live preview + copy embed code in dashboard
+- [x] Remove Growth orphan from Stripe maps / user limit dicts / env docs
+- [x] Register `embed_bp` in `blueprints/__init__.py`
+- [ ] `check_post_limit()` wired into publish / push-all API paths
+- [ ] Delete leftover non-Vercel deploy configs (`railway.toml`, etc.) when confirmed unused
+- [ ] Agent activity log page — show `automation_log` rows
+- [ ] Confirm `CRON_SECRET` set in Vercel prod (blueprint already registered)
 
 ---
 
-## 🟠 HIGH — Phase 3: Inbox
+## 🟠 HIGH — Phase 6: Inbox
 
-- [ ] `alembic/0008_inbox.py` — `inbox_items` table
-- [ ] `modules/comment_poller.py` — polls FB + IG Graph API for new comments on recent posts
-- [ ] `modules/reply_agent.py` — generates AI draft reply per comment, tone-matched to business
-- [ ] `blueprints/inbox.py` — list inbox, approve / edit / reject
-- [ ] `templates/inbox.html` — comment feed + Approve / Edit / Skip buttons
-- [ ] `vercel.json` — add `/api/cron/poll_comments` every 15 min
+- [ ] Alembic migration — `inbox_items` table
+- [ ] `modules/comment_poller.py` — FB + IG comments on recent posts
+- [ ] `modules/reply_agent.py` — AI draft reply, tone-matched
+- [ ] Inbox blueprint + template — approve / edit / skip
+- [ ] `vercel.json` — `/api/cron/poll_comments` every 15 min
+
+---
+
+## 🟠 HIGH — Phase 6: Retention
+
+- [ ] Morning daily prompt (email at user-set time)
+- [ ] Location one-tap post
+- [ ] Embed slug choose/confirm in onboarding + dashboard preview/copy UX
+  - Note: `embed_api.py` + `static/embed.js` already ship; polish slug UX remains
 
 ---
 
 ## 🟡 MEDIUM
 
-- [ ] `check_post_limit()` wired into `api_publish` and `api_push_all`
-- [ ] Agent activity log page (`/dashboard/automation`) — show `automation_log` rows
-- [ ] Add `/schedule` link to dashboard sidebar nav
-- [ ] Replace `print()` with `app.logger` calls
+- [ ] Add `/schedule` link to dashboard sidebar nav (if missing)
+- [ ] Replace remaining `print()` with `app.logger`
+- [ ] Verify analytics against live Meta insights
 
 ---
 
@@ -105,21 +118,21 @@ git push
 
 ## ✅ COMPLETED
 
-- [x] CI pipeline — `.github/workflows/ci.yml` (lint + pytest + coverage on push/PR)
-- [x] Stripe webhook handler — `billing_manager.py` handles all 5 Stripe events (verified 2026-06-30)
-- [x] Tests — `test_smoke.py`, `test_p0_fixes.py`, `test_validator.py`, `conftest.py` (verified 2026-06-30)
-- [x] MCP server — `mcp/server.py` with 7 real tools, stdio + SSE transport (verified 2026-06-30)
-- [x] All 11 blueprints registered and CSRF-exempted correctly (verified 2026-06-30)
-- [x] PHASE 1: Events table + CRUD blueprint (`blueprints/events.py`)
-- [x] PHASE 1: Hours overrides table + CRUD blueprint (`blueprints/hours.py`)
-- [x] PHASE 1: Migration `0006_events_hours.py` — `events` + `hours_overrides` tables
-- [x] PHASE 1: `automation_agent.py` v3 — reads specials + events + hours
-- [x] PHASE 1: `schedule.html` — tabbed UI (Specials / Events / Hours) with per-tab modals
-- [x] PHASE 1: `blueprints/__init__.py` — registers specials_bp, events_bp, hours_bp + CSRF exemptions
-- [x] BILLING-1: `plan_guard.py` — Free/Starter/Pro/Agency tiers, post/platform/location limits
-- [x] BILLING-1: `billing.html` — correct prices, monthly/annual toggle, annual totals
-- [x] AUTOMATION-1: `specials` table + CRUD + agent v2
-- [x] INFRA-6: Vercel Cron — `/api/cron/generate` (hourly) + `/api/cron/publish` (every minute)
-- [x] Publisher: `_update_website` fixed, timeout=15, LinkedIn/Pinterest stubs removed
-- [x] Security: `.gitignore`, `.env` placeholders, `/dev-login` guard, XSS fix, CORS, OAuth state
-- [x] Docs: `AGENTS.md`, `ARCHITECTURE.md`, `DEVELOPMENT.md`, `README.md`
+- [x] CI pipeline — `.github/workflows/ci.yml` (lint + pytest + coverage)
+- [x] Stripe webhook handler — `billing_manager.py` (5 Stripe events)
+- [x] Tests — `test_smoke.py`, `test_p0_fixes.py`, `test_validator.py`, `conftest.py`
+- [x] MCP server — `mcp/server.py`
+- [x] Blueprints registered (auth, billing, api, website, pages, cron, specials, events, hours, embed, v1)
+- [x] Events + hours CRUD + migration `0006_events_hours`
+- [x] `automation_agent.py` reads specials + events + hours
+- [x] `schedule.html` tabbed UI (Specials / Events / Hours)
+- [x] `plan_guard.py` — Free/Starter/Pro/Agency limits
+- [x] `billing.html` — $0 / $19 / $49 / $99 with annual toggle
+- [x] Specials table + CRUD + agent
+- [x] Vercel Cron — `/api/cron/generate` + `/api/cron/publish`
+- [x] Public embed — `blueprints/embed_api.py` + `static/embed.js`
+- [x] Token encryption — `auth_manager.py`
+- [x] OpenAI generation — `ai_generator.py` + `platform_adapter.py`
+- [x] Magic-link auth — Supabase (`blueprints/auth.py`)
+- [x] Migration `0003_drop_password_hash`
+- [x] Docs rebased — `PLANNING.md` / `ROADMAP.md` / `PRICING.md` aligned to live stack (2026-08-08)

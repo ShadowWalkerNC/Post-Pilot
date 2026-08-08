@@ -1,181 +1,103 @@
 # Deploying Post-Pilot
 
-Post-Pilot is a Python/Flask web app deployed on **Railway** — the same platform as Sigil.
-Both projects live under the same Railway account and auto-deploy on `git push` to `main`.
+Post-Pilot is a Python/Flask app deployed on **Vercel** (serverless) with **Supabase** (Postgres + Auth) and **Vercel Cron** for scheduled generate/publish.
+
+> Older Railway/Render runbooks are obsolete. Do not deploy this app as a long-lived APScheduler worker.
 
 ---
 
-## 1. Create the Railway project
+## 1. Link the Vercel project
 
-1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Select `ShadowWalkerNC/Post-Pilot`
-3. Railway detects `railway.toml` and configures the service automatically
-4. Click **Deploy** — Railway runs `pip install -r requirements.txt` then starts gunicorn
-5. Once live, go to **Settings → Networking → Generate Domain**:
-   `https://post-pilot-production.up.railway.app`
+1. Import `ShadowWalkerNC/Post-Pilot` in the Vercel dashboard (or `vercel link` locally).
+2. Framework preset: Other / Python. Entry is `app.py` (see `vercel.json`).
+3. Production deploys on push to `main`.
 
----
+`vercel.json` defines:
 
-## 2. Add Plugins (before setting Variables)
-
-In the Railway project, add these two plugins first — they auto-inject their connection URLs:
-
-| Plugin | Auto-injected Variable | Used for |
-|--------|------------------------|----------|
-| **PostgreSQL** | `DATABASE_URL` | Production database |
-| **Redis** | `REDIS_URL` | Rate limiting across workers |
-
-Railway dashboard → **New** → **Database** → select Postgres / Redis.
-
-> **Local dev:** SQLite is still used by default when `DATABASE_URL` is not set.
-> Set `DATABASE_PATH=postpilot.db` in your local `.env`. No volume needed locally.
+- Build: `@vercel/python` on `app.py`
+- Routes: all traffic → `app.py`
+- Crons:
+  - `/api/cron/generate` — hourly (`0 * * * *`)
+  - `/api/cron/publish` — every minute (`* * * * *`)
 
 ---
 
-## 3. Set Environment Variables
+## 2. Provision dependencies
 
-Railway dashboard → Post-Pilot service → **Variables** tab.
-Use `.env.example` as the reference — all keys are documented there with notes.
-
-| Variable | Where to get it |
+| Service | Purpose |
 |---|---|
-| `FLASK_SECRET_KEY` | Any random 32+ char string |
-| `TOKEN_ENCRYPTION_KEY` | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
-| `DATABASE_URL` | Auto-injected by Railway Postgres plugin |
-| `SUPABASE_URL` | Supabase dashboard → Project Settings → API |
-| `SUPABASE_ANON_KEY` | Same — "anon / public" key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Same — "service_role" key (keep secret, server-side only) |
-| `REDIS_URL` | Auto-injected by Railway Redis plugin |
-| `OPENAI_API_KEY` | [platform.openai.com](https://platform.openai.com) |
-| `STRIPE_SECRET_KEY` | [dashboard.stripe.com](https://dashboard.stripe.com) → Developers → API keys |
-| `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → your endpoint → Signing secret |
-| `STRIPE_PRICE_STARTER` | Stripe → Products → Starter → price ID |
-| `STRIPE_PRICE_GROWTH` | Stripe → Products → Growth → price ID |
-| `STRIPE_PRICE_AGENCY` | Stripe → Products → Agency → price ID |
-| `FACEBOOK_APP_ID` | [developers.facebook.com](https://developers.facebook.com) |
-| `FACEBOOK_APP_SECRET` | Same |
-| `REDIRECT_URI` | `https://<your-railway-domain>/auth/facebook/callback` |
-| `GOOGLE_CLIENT_ID` | [console.cloud.google.com](https://console.cloud.google.com) |
-| `GOOGLE_CLIENT_SECRET` | Same |
-| `GOOGLE_REDIRECT_URI` | `https://<your-railway-domain>/auth/google/callback` |
-| `TIKTOK_CLIENT_KEY` | [developers.tiktok.com](https://developers.tiktok.com) |
-| `TIKTOK_CLIENT_SECRET` | Same |
-| `TIKTOK_REDIRECT_URI` | `https://<your-railway-domain>/auth/tiktok/callback` |
-| `TWITTER_CLIENT_ID` | [developer.twitter.com](https://developer.twitter.com) → App → OAuth 2.0 settings |
-| `TWITTER_CLIENT_SECRET` | Same |
-| `TWITTER_REDIRECT_URI` | `https://<your-railway-domain>/auth/twitter/callback` |
-| `SENTRY_DSN` | [sentry.io](https://sentry.io) → Project → Settings → DSN (optional) |
+| **Supabase** | Postgres (`DATABASE_URL`) + magic-link auth keys |
+| **Upstash Redis** | `REDIS_URL` for Flask-Limiter across instances |
+| **Stripe** | Products/prices for Starter / Pro / Agency (monthly + annual) |
+| **OpenAI** | `OPENAI_API_KEY` for caption generation |
+| **Sentry** | `SENTRY_DSN` for production errors |
+| **Meta app** | Facebook/Instagram OAuth + Graph API |
 
 ---
 
-## 4. Run Alembic Migrations
+## 3. Set Vercel environment variables
 
-After first deploy, run migrations to initialise the Postgres schema:
+Use `.env.example` as the checklist. Minimum production set:
+
+- `FLASK_SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET`
+- `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY`
+- `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_STARTER_MONTHLY` / `_ANNUAL`
+- `STRIPE_PRICE_PRO_MONTHLY` / `_ANNUAL`
+- `STRIPE_PRICE_AGENCY_MONTHLY` / `_ANNUAL`
+- `REDIS_URL`, `SENTRY_DSN`
+- Meta / Google / TikTok OAuth vars as needed
+- `APP_ENV=production`
+
+**Must be absent in production:** `DEV_LOGIN_KEY`
+
+Also set GitHub Actions secret `CI_TOKEN_ENCRYPTION_KEY` to the same Fernet key.
+
+---
+
+## 4. Run migrations
+
+From a trusted machine with network access to Supabase:
 
 ```bash
-# Option A — via Railway CLI
-railway run alembic upgrade head
-
-# Option B — add a one-off start command in the Railway dashboard,
-# run it once, then switch back to the gunicorn start command.
+DATABASE_URL=your_postgres_connection_string alembic upgrade head
 ```
 
-For subsequent deploys, migrations run automatically if you add this to `railway.toml`:
-```toml
-[build]
-buildCommand = "pip install -r requirements.txt && alembic upgrade head"
-```
+Forward-only. Current head includes through `0006_events_hours`.
 
 ---
 
-## 5. Set Up Stripe Webhook
+## 5. Stripe webhook
 
-1. Stripe → **Developers** → **Webhooks** → **Add endpoint**
-2. URL: `https://<your-railway-domain>/webhooks/stripe`
-3. Events to subscribe:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_failed`
-4. Copy **Signing secret** → set as `STRIPE_WEBHOOK_SECRET` in Railway Variables
+Point Stripe to:
+
+`https://<your-vercel-domain>/billing/webhook`
+
+Events: `customer.subscription.created|updated|deleted`, `invoice.payment_failed`, `invoice.payment_succeeded`.
 
 ---
 
-## 6. Create Stripe Products
+## 6. Smoke test
 
-Stripe dashboard → **Products** → **Add product** × 3:
+Follow `TODO.md` §CRITICAL Step 7:
 
-| Product | Monthly | Annual |
-|---------|---------|--------|
-| Starter | $29/mo  | $290/yr |
-| Growth  | $59/mo  | $590/yr |
-| Agency  | $149/mo | $1,490/yr |
-
-Copy the **price IDs** (`price_xxx`) into Railway Variables.
+1. Magic link login
+2. Add a Special on `/schedule`
+3. Hit cron generate with `Authorization: Bearer <CRON_SECRET>`
+4. Confirm billing tiers ($0 / $19 / $49 / $99)
+5. Connect a platform
 
 ---
 
-## 7. Wire Sigil → Post-Pilot
+## 7. Local vs production
 
-Once Post-Pilot is live:
+| | Local | Production |
+|---|---|---|
+| Host | `flask run` | Vercel serverless |
+| DB | SQLite (`DATABASE_PATH`) | Supabase Postgres |
+| Cron | Manual curl to cron routes | Vercel Cron |
+| Rate limit | memory:// | Redis (`REDIS_URL`) |
+| Auth | Supabase magic link (+ optional `DEV_LOGIN_KEY`) | Magic link only |
 
-1. Log in at `https://<your-railway-domain>` — create your account
-2. Go to **Settings → API Keys** → **Create Key** → name it `sigil`
-3. Copy the `pp_live_...` key
-4. In Railway → Sigil project → **Variables**, set:
-   ```
-   POSTPILOT_URL=https://<your-post-pilot-railway-domain>
-   POSTPILOT_API_KEY=pp_live_...
-   POSTPILOT_USER_ID=<your user ID from Post-Pilot settings>
-   ```
-5. Sigil auto-redeploys
-6. In Discord: `/poststatus` → 🟢 Online
-
----
-
-## 8. Update SRN_REGISTRY.json
-
-In `ShadowRealm/SRN_REGISTRY.json`, update:
-
-```json
-"postpilot": {
-  "live_url": "https://<your-post-pilot-railway-domain>",
-  "deploy_target": "railway",
-  "status": "live"
-}
-```
-
----
-
-## 9. Smoke Test Checklist
-
-```
-☐ GET  https://<domain>/           → marketing page loads
-☐ GET  https://<domain>/v1/health  → { "status": "ok" }
-☐ POST /register                   → account created, redirects to onboarding
-☐ Complete onboarding              → business profile saved
-☐ GET  /billing                    → plans shown, Stripe checkout works
-☐ GET  /website                    → website hub loads
-☐ GET  /site/preview               → preview iframe renders
-☐ POST /v1/generate_post           → returns AI caption
-☐ Discord /poststatus              → 🟢 Online
-☐ Discord /postgenerate topic:test → caption embed appears
-☐ Discord /post topic:test         → publishes
-☐ POST /webhooks/stripe            → 200 OK (test with Stripe CLI)
-```
-
----
-
-## Local Development
-
-```bash
-git clone https://github.com/ShadowWalkerNC/Post-Pilot.git
-cd Post-Pilot
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your keys
-python app.py
-# Open http://localhost:5000
-```
+Full env notes: `DEVELOPMENT.md` · go-live checklist: `TODO.md` · phase context: `PLANNING.md`.

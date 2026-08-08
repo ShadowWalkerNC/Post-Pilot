@@ -7,6 +7,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Docs
+- Rebased `PLANNING.md`, `ROADMAP.md`, `PRICING.md`, `TODO.md`, `DEPLOY.md`, `AGENTS.md`, `ARCHITECTURE.md`, and `README.md` to the live stack (Vercel, OpenAI, magic-link, Free/Starter/Pro/Agency).
+- Removed obsolete Growth-tier / Render / Claude plan claims that conflicted with code.
+
+### Fixed
+- Registered `embed_bp` in `blueprints/__init__.py` (public embed was implemented but not wired).
+- Dropped orphan Growth Stripe price map entries from `billing_manager.py` / `user_manager.py`.
+- Aligned `.env.example` Stripe price var names with monthly/annual Starter/Pro/Agency.
+
 ---
 
 ## [0.4.0] — 2026-06-22

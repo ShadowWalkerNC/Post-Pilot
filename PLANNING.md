@@ -191,6 +191,7 @@ Keep this as Phase 6 priority after go-live. Do not block production deploy on i
 | Doc | Role |
 |---|---|
 | `PLANNING.md` | **This file** — strategy, stack, phases, pricing truth |
+| `docs/PRODUCT_AUDIT.md` | Full multi-role audit + execution waves (A→E) |
 | `ROADMAP.md` | Checkbox phase tracker (must match this file) |
 | `TODO.md` | Actionable open work + manual go-live steps |
 | `PRICING.md` | Tier marketing copy + Stripe notes (must match plan_guard) |

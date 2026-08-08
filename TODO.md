@@ -69,14 +69,21 @@ git push
 
 ---
 
-## 🟠 HIGH — Phase 5 code hardening
+## 🟠 HIGH — Phase 5 code hardening (see `docs/PRODUCT_AUDIT.md`)
 
 - [x] Remove Growth orphan from Stripe maps / user limit dicts / env docs
 - [x] Register `embed_bp` in `blueprints/__init__.py`
-- [ ] `check_post_limit()` wired into publish / push-all API paths
+- [x] Wave A: User/session, Stripe subscription kwargs, post_history logging, business profile save
+- [x] Wave A: Cron GET+POST, get_db rewire, Fernet prod hard-fail, plan escalation fix
+- [x] Wave A: `check_post_limit()` on publish/push-all; disable `/api/setup_tokens`
+- [x] Wave B: Magic-link auth UI + landing pricing honesty + schedule standalone
+- [x] Untrack `.venv` from git (SEC-2)
+- [x] Delete `railway.toml` (Vercel-only deploy)
 - [ ] Delete leftover non-Vercel deploy configs (`railway.toml`, etc.) when confirmed unused
 - [ ] Agent activity log page — show `automation_log` rows
 - [ ] Confirm `CRON_SECRET` set in Vercel prod (blueprint already registered)
+- [ ] Fix `tests/conftest.py` (`app.init_db` missing) so CI smoke suite boots
+- [ ] Schema migration aligning Alembic `subscription_tier` ↔ live `plan` columns
 
 ---
 

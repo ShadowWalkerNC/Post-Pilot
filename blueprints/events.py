@@ -31,7 +31,7 @@ DEFAULT_PLATFORMS = ['fb', 'ig', 'tt', 'gb', 'web']
 
 
 def _db():
-    from app import get_db
+    from modules.database import get_db
     return get_db()
 
 

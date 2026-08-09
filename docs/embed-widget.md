@@ -61,12 +61,7 @@ This endpoint is **public** (no authentication required). It returns:
 
 ## Registering the Blueprint
 
-In `app.py`, import and register `embed_bp`:
-
-```python
-from blueprints.embed_api import embed_bp
-app.register_blueprint(embed_bp)
-```
+`embed_bp` is registered in `blueprints/__init__.py` (CSRF-exempt). No manual `app.py` wiring needed.
 
 ## Database Note
 

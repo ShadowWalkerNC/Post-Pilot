@@ -48,6 +48,7 @@ from modules.user_manager    import UserManager
 from modules.auth_manager    import init_db as auth_init_db
 from modules.api_manager     import CREATE_API_KEYS_TABLE
 from modules.website_manager import WebsiteManager
+from modules.database        import get_db  # noqa: F401 — re-export for blueprints
 
 load_dotenv()
 
@@ -80,6 +81,20 @@ if not _secret:
 app = Flask(__name__)
 app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
+
+# Harden session cookies in production (Vercel HTTPS)
+_prod = (
+    os.getenv('FLASK_ENV') == 'production'
+    or os.getenv('APP_ENV') == 'production'
+    or bool(os.getenv('VERCEL_ENV'))
+)
+if _prod:
+    app.config['SESSION_COOKIE_SECURE']   = True
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['REMEMBER_COOKIE_SECURE']  = True
+    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 
 # ---------------------------------------------------------------------------
 # Supabase client (used for Auth -- magic links)

@@ -1,319 +1,202 @@
-# PostPilot Pro — Master Build Plan
+# Post-Pilot — Master Plan
 
-> **Status:** Planning Complete → Ready to Build
-> **Last Updated:** June 2026
-> **Repo:** github.com/ShadowWalkerNC/social-media-post-generator
-> **SaaS Target:** postpilotpro.com
-
----
-
-## 🎯 What It Is
-
-> **PostPilot Pro is the only tool that lets a local food or hospitality business update their social media, Google Business, and website — all at once, from one screen, in under 60 seconds.**
-
-Write once. Smart routing sends videos to video platforms, text to text platforms, images to image platforms. Hit Push. Done.
+> **Status:** In production (Vercel) · Phase 5 hardening  
+> **Last Updated:** 2026-08-08  
+> **Repo:** github.com/ShadowWalkerNC/Post-Pilot  
+> **Canonical for:** phase status, stack, pricing, next work  
+> **Open tasks:** see `TODO.md` · **Ship steps:** see `TODO.md` §CRITICAL
 
 ---
 
-## 👤 Who It's For
+## What it is
 
-### Primary — Solo Food/Hospitality Operator
-- Food truck, coffee shop, cafe, bar, brewery, farmers market vendor, pop-up, catering
-- 1–5 employees. No marketing person. No marketing budget.
-- Knows they need to post but never has time or content ideas
-- Currently using: phone + Meta's free tools + nothing for website
-- **Pain:** 5 different apps, zero consistency, website always outdated
-- **Willingness to pay:** $15–30/mo if it genuinely saves 2+ hours/week
+Post-Pilot is AI-powered social media automation for food trucks, restaurants, hotels, cafes, and food companies. Operators generate platform-aware captions, publish to connected networks, keep specials/events/hours current, and optionally embed that data on their website.
 
-### Secondary — Independent Restaurant / Cafe
-- 5–20 employees, maybe one part-time social media helper
-- Has a website nobody updates
-- Needs Google Business kept current (hours, specials, posts)
-- **Willingness to pay:** $30–60/mo
+**Working promise (shipped core):** write once → adapt per platform → publish or schedule via Vercel Cron.
 
-### Tertiary — Local Marketing Agency (Phase 5+)
-- Manages 10–50 local food/hospitality clients
-- Wants white-label tool to resell under their brand
-- **Willingness to pay:** $249/mo for agency tier
+**Stretch promise (not fully shipped):** one-tap location posts, morning habit loop, full Google/TikTok/YouTube publish, multi-location agency white-label.
 
 ---
 
-## 🏆 The Market Gap
+## Who it's for
 
-| Tool | Price | Google Business | Website | Content Generation | TikTok Auto |
-|------|-------|----------------|---------|-------------------|-------------|
-| Hootsuite | $99–739/mo | ❌ | ❌ | ❌ | ✅ |
-| Buffer | $20/mo | ❌ | ❌ | ❌ | ✅ |
-| Later | $25/mo | ❌ | ❌ | ❌ | ✅ |
-| Meta Suite | Free | ❌ | ❌ | ❌ | ❌ |
-| **PostPilot Pro** | **$15/mo** | **✅** | **✅** | **✅** | **✅** |
-
-Freelance social media management costs $500–1,500/mo. We do more for $15.
+| Segment | Profile | Willingness to pay |
+|---|---|---|
+| Primary | Solo food/hospitality operator, 1–5 people, no marketer | $15–30/mo if it saves 2+ hrs/week |
+| Secondary | Independent restaurant/cafe, 5–20 people | $30–60/mo |
+| Tertiary | Local agency managing many food clients | Agency tier when multi-location + reseller are real |
 
 ---
 
-## 💰 Pricing
+## Stack (live — do not contradict)
 
-### Monthly
-| Tier | Price | Platforms | AI Captions | Users | Key Feature |
-|------|-------|-----------|-------------|-------|-------------|
-| **Free** | $0 | FB + Website only | 5/mo | 1 | Hook + lead gen |
-| **Starter** | $15/mo | All 6 platforms | 30/mo | 1 | Core tool |
-| **Growth** | $35/mo | All 6 + API access | 150/mo | 1 | Weekly planner + analytics |
-| **Pro** | $69/mo | All 6 + white-label website | Unlimited | 3 seats | Multi-location |
-| **Agency** | $249/mo | All + reseller dashboard | Unlimited | 25 clients | White-label |
+| Layer | Technology |
+|---|---|
+| Language | Python 3.11+ |
+| App | Flask 3.x, Jinja2, Tailwind |
+| Hosting | **Vercel** (serverless) + Vercel Cron |
+| Database | Supabase PostgreSQL (SQLAlchemy + psycopg2); SQLite local |
+| Auth | **Supabase magic link** (no passwords) |
+| AI | **OpenAI** (`OPENAI_API_KEY`, GPT-4o-mini) via `modules/ai_generator.py` |
+| Social | Meta Graph API (FB/IG); Google/TikTok/YouTube clients exist (completeness varies) |
+| Billing | Stripe + `modules/billing_manager.py` + `modules/plan_guard.py` |
+| Rate limits | Flask-Limiter; Redis/Upstash in prod |
+| Observability | Sentry when `SENTRY_DSN` set |
+| Migrations | Alembic (forward-only) |
+| CI | GitHub Actions — ruff + pytest |
 
-### Annual (2 months free)
-| Tier | Annual Price | Monthly Equivalent | Savings |
-|------|-------------|-------------------|--------|
-| Starter | $150/yr | $12.50/mo | $30 |
-| Growth | $350/yr | $29.17/mo | $70 |
-| Pro | $690/yr | $57.50/mo | $138 |
-| Agency | $2,490/yr | $207.50/mo | $498 |
-
-### Free Tier Limits (Conversion Gates)
-- FB + Website only (TikTok, IG, Google, YouTube locked)
-- 5 AI captions/mo (hits limit in first week for active users)
-- Schedule up to 3 posts (calendar locked)
-- No API access
-- No analytics
+**Not the deploy target:** Render, Railway, Heroku, long-lived APScheduler workers. Cron must go through `vercel.json` → `/api/cron/*` + `CRON_SECRET`.
 
 ---
 
-## 🔧 Feature Roadmap
+## Pricing (canonical — matches `billing.html` + `plan_guard.py`)
 
-### ✅ Phase 1–3 — Built
-- Flask app + web GUI
-- Facebook + Instagram publishing (Meta Graph API)
-- Meta OAuth flow
-- Post scheduler (APScheduler)
-- Visual content calendar
-- Analytics dashboard (Meta Insights)
-- One-page command center hub
-- Smart content routing (video → video, text → text, image → image)
-- Google Business shell + OAuth
-- TikTok script generator + OAuth shell
-- YouTube shell + OAuth
-- Website live hub (banner, specials, hours, location)
-- embed.js — one-line website integration
-- Live preview per platform
+Hierarchy: `free < starter < pro < agency`  
+**There is no Growth tier in the product UI or plan guard.** Orphan `growth_*` Stripe env keys / maps should be removed, not documented as live.
 
-### 📋 Phase 4 — Make It Work (Build Next)
+| Tier | Monthly | Annual equiv. | Posts/mo | Platforms | Locations | Highlights |
+|---|---|---|---|---|---|---|
+| Free | $0 | — | 5 | 3 | 1 | Manual publish only |
+| Starter | $19 | $15/mo ($180/yr) | 30 | 5 | 1 | Agent, inbox read-only, basic embed, basic analytics |
+| Pro | $49 | $39/mo ($468/yr) | Unlimited | 8 | 1 | Full agent, AI replies, full embed, advanced analytics, API |
+| Agency | $99 | $79/mo ($948/yr) | Unlimited | 8 | 5 | Everything in Pro per location |
 
-#### Priority 1 — Token Persistence (`auth_manager.py`)
-- Currently tokens die on app restart — breaks everything for real users
-- Store tokens encrypted in SQLite (dev) / PostgreSQL (prod)
-- Background job checks token expiry weekly
-- Dashboard red pill indicator when token within 7 days of expiry
-- Facebook: 60-day token, store long-lived version
-- Google: 1-hour token, store refresh_token, auto-refresh silently
-- TikTok: 24-hour token, daily refresh job
-- One-click reauth from dashboard when expired
+Stripe price env vars (only these):
 
-#### Priority 2 — Morning Daily Prompt (Retention Engine)
-- Daily push notification + email at user-set time (default 7am)
-- Message: "Good morning! Where are you today? What's the special?"
-- User replies / taps → auto-posts location + special to all platforms
-- This is the #1 retention feature — creates daily habit loop
-- **Must ship in Phase 4, not Phase 6**
+- `STRIPE_PRICE_STARTER_MONTHLY` / `_ANNUAL`
+- `STRIPE_PRICE_PRO_MONTHLY` / `_ANNUAL`
+- `STRIPE_PRICE_AGENCY_MONTHLY` / `_ANNUAL`
 
-#### Priority 3 — AI Caption Generator (`ai_generator.py`)
-- Input: business_info + content_type + tone + keywords
-- Output: platform-optimized captions (different per platform)
-- Option A: OpenAI GPT-4o-mini (cheap, $0.002/caption)
-- Option B: Local LLM fallback (Ollama + llama3) for self-hosted users
-- Option C: Template fallback if no AI key configured
-- Tone selector: 🔥 Hype / 😊 Friendly / 📣 Urgent / 😂 Funny / 🤝 Community
-
-#### Priority 4 — Image Auto-Resize (`media_handler.py`)
-- Instagram: 1080×1080 (square) or 1080×1350 (portrait)
-- Facebook: 1200×630
-- YouTube thumbnail: 1280×720
-- TikTok: 9:16 vertical
-- Tool: Pillow for images, ffmpeg for video thumbnails
-- Store processed versions in /static/uploads/ temporarily
-
-#### Priority 5 — Location One-Tap Post
-- Single biggest daily action for food trucks
-- GPS pull or manual pin drop
-- Auto-writes: "🚚 We're at [Location] today! Open [hours]. Come find us!"
-- Pushes to FB + IG + Google Business + Website map in one tap
-- No other tool does this specifically for food trucks
-
-#### Priority 6 — Onboarding Wizard (`onboarding.html`)
-- 5-minute guided setup
-- Step 1: Business name, type, location, hours
-- Step 2: Connect Facebook (gets FB + IG)
-- Step 3: Connect Google (gets Google Business + YouTube)
-- Step 4: Connect TikTok
-- Step 5: Add embed to website (copy/paste one line)
-- Step 6: First post — guided, can't fail
-- Progress bar. Celebrate each connection. Make it feel easy.
-
-### 📋 Phase 5 — Make It a Real SaaS
-
-#### Multi-User Accounts
-- Flask-Login or Supabase Auth
-- Users table: id, email, password_hash, subscription_tier, created_at
-- Tokens table: user_id, platform, access_token (encrypted), refresh_token, expires_at
-- Business profiles table: user_id, name, type, location, hours, logo_url
-
-#### Stripe Billing
-- Subscription tiers map to Stripe Price IDs
-- Webhook handles: subscription created, updated, cancelled, payment failed
-- Graceful downgrade on payment failure (don't delete data, lock features)
-- Customer portal for self-serve plan changes
-
-#### Hosted Website Per User
-- Every user gets: yourbusiness.postpilot.app
-- Full page: banner, specials, hours, location map, gallery, about, contact
-- Custom domain support: point yourfoodtruck.com → our server via Cloudflare
-- "Powered by PostPilot Pro" footer link = passive marketing
-- Sections editable directly from dashboard — no login to website ever
-
-#### Public API + API Keys
-- Every Growth+ user gets an API key from their dashboard
-- Endpoints: /v1/publish, /v1/schedule, /v1/analytics, /v1/website, /v1/generate
-- Rate limits by tier
-- Developer docs at docs.postpilotpro.com
-- Partner portal for POS integrations
-
-### 📋 Phase 6 — Make It Sticky
-- **Weekly Planner** — set 7 posts Sunday, forget about it all week
-- **Simple Wins Dashboard** — reach up 34%, best post this week, etc.
-- **Review Alerts** — Google + Facebook reviews in one inbox, one-click response
-- **Repost Best Performers** — surface top posts from 90 days ago
-- **Photo Templates** — "TODAY'S SPECIAL" overlays, zero design skill
-- **Competitor Peek** — "your 3 nearest competitors posted 4x this week"
-- **Square / Toast POS Integration** — auto-post when new menu item added
-- **Threads** — free add, reuses existing Meta OAuth token
-- **X/Twitter** — simple REST API add
-- **Nextdoor** — hyper-local, perfect for food trucks
-- **Annual recap** — "Your best year on social" sharable graphic
+Details and upgrade moments: `PRICING.md`.
 
 ---
 
-## 🏗️ File Structure
+## Phase status
+
+### Done — foundation through SaaS core
+
+Treat these as **built**, not rebuild targets:
+
+- Flask app + blueprint layout (`blueprints/`, `modules/`)
+- Magic-link auth (`blueprints/auth.py`, Supabase)
+- Encrypted platform tokens (`modules/auth_manager.py`, Fernet / `TOKEN_ENCRYPTION_KEY`)
+- OpenAI caption generation + per-platform adaptation (`ai_generator.py`, `platform_adapter.py`)
+- Meta publish path + publisher routing
+- Stripe billing + webhooks + plan gating
+- Onboarding / login / billing / dashboard / generate / schedule / analytics templates
+- Specials, events, hours CRUD + automation agent reads all three
+- Vercel Cron: `/api/cron/generate` (hourly), `/api/cron/publish` (every minute)
+- Public embed API + `static/embed.js` (`blueprints/embed_api.py`)
+- Alembic migrations through `0006_events_hours` (incl. `0003_drop_password_hash`)
+- CI (ruff + pytest), MCP server scaffolding
+
+### Now — Phase 5: harden & go live
+
+Definition of done:
+
+1. Manual go-live blockers in `TODO.md` §CRITICAL completed (keys, Vercel env, migrations, smoke test)
+2. Doc/code single source of truth (this file + `TODO.md` + `ROADMAP.md`)
+3. Redis rate limiting live in prod (`REDIS_URL`)
+4. Growth-tier orphans removed from billing maps / env checklists
+5. Teams / multi-user (if still required) designed against magic-link users — **no password_hash**
+6. Analytics page verified against real Meta insights data
+7. SEC-1 / SEC-2 / SEC-3 confirmed done
+
+### Next — Phase 6: retention & depth
+
+Ship only after Phase 5 go-live:
+
+- Morning daily prompt (email; push later) — habit loop
+- Location one-tap post (food-truck daily action)
+- Inbox comment poll + AI draft replies (plan-gated)
+- Embed slug onboarding polish + dashboard preview UX
+- Full Google Business / TikTok / YouTube publish (beyond OAuth shells)
+- Weekly planner, review alerts, repost winners
+- Marketing site polish + public launch checklist
+
+### Later — Phase 7: agency & ecosystem
+
+- True multi-location / reseller dashboard matching Agency limits
+- Custom domains for hosted mini-sites
+- POS integrations (Square / Toast) when API access is real
+- Extra networks (Threads, X, Nextdoor) only after Meta + Google quality is solid
+
+---
+
+## Architecture map (actual layout)
 
 ```
-postpilot-pro/
-│
-├── app.py                        # Flask entry point, all routes, OAuth flows
-├── config.py                     # TODO: App config, env loading, feature flags per tier
-├── requirements.txt
-├── Procfile                      # For Render/Heroku deployment
-├── .env.example                  # All API keys documented
-├── README.md
-├── PLANNING.md                   # This file
-├── ROADMAP.md                    # Phase tracker
-├── COMPETITORS.md                # Competitive analysis
-├── API_NOTES.md                  # Per-platform API gotchas
-├── DISTRIBUTION.md               # GTM, POS marketplace, agency strategy
-├── PRICING.md                    # Pricing logic, Stripe Price IDs
-│
-├── modules/
-│   ├── __init__.py
-│   ├── publisher.py              # ✅ Smart router — core brain
-│   ├── post_generator.py         # ✅ Template-based caption generator
-│   ├── post_scheduler.py         # ✅ APScheduler
-│   ├── analytics_client.py       # ✅ Meta Insights
-│   ├── auth_manager.py           # TODO P4: Token storage, refresh, expiry
-│   ├── ai_generator.py           # TODO P4: OpenAI / LLM caption generation
-│   ├── media_handler.py          # TODO P4: Image resize per platform
-│   ├── location_service.py       # TODO P4: GPS + location post generator
-│   ├── notification_service.py   # TODO P4: Morning prompt push/email
-│   ├── meta_client.py            # TODO P4: Extract FB+IG into own module
-│   ├── google_client.py          # TODO P4: Google Business + YouTube
-│   ├── tiktok_client.py          # TODO P4: TikTok Content Posting API
-│   ├── youtube_client.py         # TODO P4: YouTube Data API v3
-│   ├── website_client.py         # TODO P4: Hosted website + banner.json
-│   ├── user_manager.py           # TODO P5: Multi-user DB operations
-│   ├── billing_manager.py        # TODO P5: Stripe webhooks + tier gating
-│   └── api_manager.py            # TODO P5: Public API keys + rate limiting
-│
-├── templates/
-│   ├── dashboard.html            # ✅ ONE-PAGE HUB — primary interface
-│   ├── setup.html                # ✅ Business setup + platform connect
-│   ├── calendar.html             # ✅ Visual content calendar
-│   ├── analytics.html            # ✅ Analytics dashboard
-│   ├── onboarding.html           # TODO P4: First-run 5-min wizard
-│   ├── website_hub.html          # TODO P5: Hosted website template per user
-│   ├── login.html                # TODO P5: User authentication
-│   ├── register.html             # TODO P5: New user signup
-│   ├── billing.html              # TODO P5: Stripe subscription management
-│   ├── api_docs.html             # TODO P5: Developer API documentation
-│   └── index.html                # TODO P5: Marketing landing page
-│
-├── static/
-│   ├── style.css                 # ✅ Global styles
-│   ├── dashboard.css             # ✅ Hub-specific styles
-│   ├── dashboard.js              # ✅ Hub logic, smart routing, live preview
-│   ├── embed.js                  # ✅ Website banner embed (served to client sites)
-│   ├── banner.json               # ✅ Live website data bridge
-│   ├── app.js                    # TODO: Shared JS utilities
-│   ├── uploads/                  # TODO P4: Processed media files (temp)
-│   ├── favicon.ico               # TODO: Brand icon
-│   └── logo.png                  # TODO: PostPilot Pro logo
-│
-├── tests/
-│   ├── test_publisher.py         # TODO: Smart routing unit tests
-│   ├── test_generator.py         # TODO: Caption generation tests
-│   ├── test_auth.py              # TODO: Token refresh/expiry tests
-│   ├── test_api_mocks.py         # TODO: Mock API responses (no real calls)
-│   └── test_routing.py           # TODO: Verify all routing rules
-│
-└── docs/
-    ├── SETUP_FACEBOOK.md         # TODO: Facebook app setup guide
-    ├── SETUP_GOOGLE.md           # TODO: Google Cloud console setup
-    ├── SETUP_TIKTOK.md           # TODO: TikTok developer account guide
-    ├── SETUP_YOUTUBE.md          # TODO: YouTube Data API setup
-    ├── WEBSITE_EMBED.md          # TODO: Add embed to any website
-    ├── API_REFERENCE.md          # TODO: Public API endpoint reference
-    └── DEPLOY_RENDER.md          # TODO: Deploy to Render step-by-step
+Post-Pilot/
+  app.py                      # Flask factory, limiter, Sentry, blueprint register
+  blueprints/
+    auth.py                   # Magic link, OAuth connect callbacks, /dev-login
+    billing.py                # Stripe checkout / portal / webhook
+    api.py                    # Generate / publish / platform settings APIs
+    cron.py                   # Vercel Cron generate + publish
+    pages.py                  # HTML pages (dashboard, generate, etc.)
+    website.py                # Website hub
+    embed_api.py              # Public GET /api/embed/<slug>
+    specials.py | events.py | hours.py
+  modules/
+    auth_manager.py           # Encrypted token store
+    ai_generator.py           # OpenAI captions
+    platform_adapter.py       # Per-platform adaptation
+    publisher.py              # Publish router
+    billing_manager.py        # Stripe lifecycle
+    plan_guard.py             # @require_plan + limits
+    user_manager.py           # Users (magic-link era)
+    automation_agent.py       # Specials/events/hours → posts
+    meta_api.py / meta_client.py
+    google_client.py | tiktok_client.py | …
+  alembic/versions/           # 0001 … 0006
+  templates/ | static/
+  vercel.json                 # Builds + cron schedules
+  TODO.md                     # Executable checklist (source for open work)
 ```
+
+Agents must not invent missing files from old plans (`auth_utils.py`, `generate.py` blueprint, `modules/ai.py` Claude wrapper, etc.). If a path is not on disk, it is not the architecture.
 
 ---
 
-## 🔄 Retention Strategy
+## Execution order (from here)
 
-### The Daily Habit Loop
 ```
-TRIGGER  → 7am notification: "Good morning! Where are you today?"
-ACTION   → User types location + special, hits Push
-REWARD   → "✅ Posted to 6 platforms! Yesterday's post got 47 likes 🎉"
+1. Complete TODO.md §CRITICAL (manual ops — keys, Vercel env, alembic upgrade, smoke)
+2. Remove Growth orphan from billing_manager / env docs / checklists
+3. Confirm Redis + Sentry in Vercel production
+4. Wire remaining plan gates (e.g. check_post_limit on publish paths)
+5. Inbox + morning prompt + location one-tap (Phase 6 product)
+6. Finish non-Meta publishers only after Meta path is reliable in prod
+7. Agency multi-location / white-label last
 ```
-Repeat daily. App becomes essential within 2 weeks.
 
-### Retention Touchpoints
-| Timing | Action |
-|--------|--------|
-| Day 1 | Welcome email + setup video |
-| Day 3 | "You've posted X times! Here's your reach" |
-| Day 7 | First weekly summary email |
-| Day 14 | Audience insight: "Most active at 11:30am Fridays" |
-| Day 30 | Monthly recap + upgrade prompt with specific ROI shown |
-| Token expiry | Dashboard red alert + one-click reauth |
-| 7 days no post | "It's been a week — your followers miss you 👀" |
+Do **not** restart with “Session 1: rebuild auth_manager” or “Deploy to Render.”
 
 ---
 
-## 🔑 Build Session Order
+## Retention (still the product north star)
 
 ```
-Session 1:  auth_manager.py — token persistence (SQLite + encryption)
-Session 2:  notification_service.py — morning prompt (email + push)
-Session 3:  ai_generator.py — OpenAI caption generation
-Session 4:  media_handler.py — image auto-resize per platform
-Session 5:  location_service.py — one-tap location post
-Session 6:  onboarding.html — 5-minute guided setup wizard
-Session 7:  google_client.py — full Google Business + YouTube
-Session 8:  tiktok_client.py — TikTok Content Posting API
-Session 9:  user_manager.py + login/register — multi-user accounts
-Session 10: billing_manager.py + Stripe — subscriptions
-Session 11: website_hub.html — hosted website per user
-Session 12: api_manager.py — public API + developer docs
-Session 13: index.html — marketing landing page
-Session 14: tests/ — unit tests for all modules
-Session 15: docs/ — setup guides + deploy guide
-Session 16: Deploy to Render — go live
+TRIGGER  → morning ping: "Where are you today? What's the special?"
+ACTION   → location + special → Push
+REWARD   → posted confirmation + simple reach win
 ```
+
+Keep this as Phase 6 priority after go-live. Do not block production deploy on it.
+
+---
+
+## Doc ownership
+
+| Doc | Role |
+|---|---|
+| `PLANNING.md` | **This file** — strategy, stack, phases, pricing truth |
+| `docs/PRODUCT_AUDIT.md` | Full multi-role audit + execution waves (A→E) |
+| `ROADMAP.md` | Checkbox phase tracker (must match this file) |
+| `TODO.md` | Actionable open work + manual go-live steps |
+| `PRICING.md` | Tier marketing copy + Stripe notes (must match plan_guard) |
+| `ARCHITECTURE.md` | Technical reference (must match repo layout) |
+| `AGENTS.md` | Agent rules (must match stack above) |
+| `DEPLOY.md` | Vercel deploy runbook only |
+
+When these disagree, **code + `plan_guard.py` + `billing.html` + `vercel.json` win**, then update the docs in the same PR.

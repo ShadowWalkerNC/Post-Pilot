@@ -46,8 +46,6 @@ stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
 STRIPE_PRICES: dict[str, str] = {
     'starter_monthly':  os.environ.get('STRIPE_PRICE_STARTER_MONTHLY',  'price_starter_monthly'),
     'starter_annual':   os.environ.get('STRIPE_PRICE_STARTER_ANNUAL',   'price_starter_annual'),
-    'growth_monthly':   os.environ.get('STRIPE_PRICE_GROWTH_MONTHLY',   'price_growth_monthly'),
-    'growth_annual':    os.environ.get('STRIPE_PRICE_GROWTH_ANNUAL',     'price_growth_annual'),
     'pro_monthly':      os.environ.get('STRIPE_PRICE_PRO_MONTHLY',       'price_pro_monthly'),
     'pro_annual':       os.environ.get('STRIPE_PRICE_PRO_ANNUAL',        'price_pro_annual'),
     'agency_monthly':   os.environ.get('STRIPE_PRICE_AGENCY_MONTHLY',    'price_agency_monthly'),

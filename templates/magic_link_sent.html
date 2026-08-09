@@ -1,16 +1,56 @@
-{% extends 'base.html' %}
-{% block title %}Check Your Email — Post-Pilot{% endblock %}
-{% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-  <div class="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
-    <div class="text-5xl mb-4">📬</div>
-    <h1 class="text-2xl font-bold text-gray-900 mb-2">Check your inbox</h1>
-    <p class="text-gray-500 mb-6">
-      We sent a magic sign-in link to <strong>{{ email }}</strong>.<br>
-      Click it to be signed in instantly — no password needed.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Your Email — Post-Pilot</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      color: #e5e7eb;
+    }
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    .icon {
+      width: 56px; height: 56px; margin: 0 auto 1rem;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #6366f1, #f97316);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem;
+    }
+    h1 { font-size: 1.5rem; color: #fff; margin-bottom: .5rem; }
+    p { color: #9ca3af; font-size: .95rem; line-height: 1.55; margin-bottom: 1rem; }
+    strong { color: #fff; }
+    .meta { color: #6b7280; font-size: .8rem; margin-bottom: 1.5rem; }
+    a { color: #818cf8; text-decoration: none; font-weight: 600; font-size: .875rem; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">✉️</div>
+    <h1>Check your inbox</h1>
+    <p>
+      We sent a magic sign-in link to <strong>{{ email }}</strong>.
+      Tap it on this device to get into Post-Pilot — no password needed.
     </p>
-    <p class="text-sm text-gray-400">Link expires in 1 hour. Check your spam folder if you don't see it.</p>
-    <a href="{{ url_for('auth.login') }}" class="mt-6 inline-block text-indigo-600 hover:underline text-sm">Use a different email</a>
+    <p class="meta">Link expires in about an hour. Check spam if you don’t see it.</p>
+    <a href="{{ url_for('auth.login') }}">Use a different email</a>
   </div>
-</div>
-{% endblock %}
+</body>
+</html>

@@ -23,7 +23,7 @@ def public_embed(slug):
     Public endpoint — no login required.
     Slug is matched against users.embed_slug (falls back to username).
     """
-    from app import get_db
+    from modules.database import get_db
     db = get_db()
 
     # ── Look up the user by embed_slug or username ────────────────────

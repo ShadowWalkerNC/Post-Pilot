@@ -1,67 +1,75 @@
-# PostPilot Pro — Roadmap
+# Post-Pilot — Roadmap
 
-> Track what's done, what's next, and what's planned.
+> Track what's done, what's next, and what's planned.  
+> **Source of truth for phases:** `PLANNING.md` · **Open tasks:** `TODO.md`
 
 ---
 
-## ✅ Phase 1 — Foundation
-- [x] Flask app + web GUI
-- [x] Facebook publishing via Meta Graph API
-- [x] Instagram publishing via Meta Graph API
-- [x] Meta OAuth flow (FB + IG in one connect)
-- [x] 5 post templates per business type
+## ✅ Phase 1–4 — Core product (shipped)
 
-## ✅ Phase 2 — Scheduling & Analytics
-- [x] Post scheduler (APScheduler)
-- [x] Visual content calendar
-- [x] Analytics dashboard (Meta Insights)
-- [x] Weekly auto-schedule generator
+- [x] Flask app + web GUI (blueprints + modules)
+- [x] Facebook + Instagram publishing (Meta Graph API)
+- [x] Meta OAuth connect flow
+- [x] Magic-link auth (Supabase) — no passwords
+- [x] Encrypted token persistence (`auth_manager.py` + `TOKEN_ENCRYPTION_KEY`)
+- [x] OpenAI caption generation + per-platform adaptation
+- [x] Stripe billing + webhooks + `@require_plan` / `plan_guard.py`
+- [x] Onboarding, dashboard, generate, schedule, analytics, billing UI
+- [x] Specials / events / hours + automation agent
+- [x] Vercel Cron (`/api/cron/generate`, `/api/cron/publish`)
+- [x] Public embed API + `static/embed.js`
+- [x] Alembic migrations through `0006`
+- [x] CI (ruff + pytest) + MCP server scaffolding
 
-## ✅ Phase 3 — Smart Hub
-- [x] One-page Command Center
-- [x] Smart content routing (video → video, text → text, image → image)
-- [x] Google Business OAuth shell
-- [x] TikTok script generator + OAuth shell
-- [x] YouTube OAuth shell
-- [x] Website hub editor (specials, hours, location, banner)
-- [x] embed.js — one-line website integration
-- [x] Live preview per platform
-- [x] Platform connection status indicators
+---
 
-## 📋 Phase 4 — Make It Work
-- [ ] `auth_manager.py` — token persistence + expiry detection
-- [ ] Morning daily prompt — push notification + email
-- [ ] `ai_generator.py` — OpenAI caption generation + tone selector
-- [ ] `media_handler.py` — auto-resize images per platform spec
-- [ ] `location_service.py` — one-tap location post for food trucks
-- [ ] `onboarding.html` — 5-minute guided setup wizard
-- [ ] Full `google_client.py` — Google Business posting + YouTube upload
-- [ ] Full `tiktok_client.py` — TikTok Content Posting API
+## 📋 Phase 5 — Harden & go live (current)
 
-## 📋 Phase 5 — SaaS Launch
-- [ ] Multi-user login (Flask-Login)
-- [ ] PostgreSQL user + token database
-- [ ] Stripe billing + subscription tiers
-- [ ] Hosted website per user (yourbusiness.postpilot.app)
-- [ ] Custom domain support via Cloudflare
-- [ ] Public API with per-user API keys
-- [ ] Developer docs (docs.postpilotpro.com)
-- [ ] Square App Marketplace listing
-- [ ] Toast Partner Marketplace listing
-- [ ] Marketing landing page (index.html)
-- [ ] Deploy to Render (production)
+- [ ] Manual go-live blockers in `TODO.md` §CRITICAL
+- [ ] Rotate / set `FLASK_SECRET_KEY`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET` in Vercel
+- [ ] Production env: `OPENAI_API_KEY`, Stripe prices, `REDIS_URL`, `SENTRY_DSN`, Supabase keys
+- [ ] `alembic upgrade head` against production Postgres
+- [ ] Confirm `DEV_LOGIN_KEY` absent in Vercel production
+- [ ] Remove Growth-tier orphans from code/env checklists
+- [ ] Untrack secrets/binaries if still present (`.venv`, local DB artifacts)
+- [ ] Smoke test: magic link → schedule special → cron generate → billing → connect platform
+- [ ] Teams / multi-seat design (magic-link users only; no `password_hash`)
+- [ ] Analytics verified with real Meta insights in prod
 
-## 📋 Phase 6 — Growth & Stickiness
-- [ ] Weekly Planner — set and forget 7-day schedule
-- [ ] Simple Wins Dashboard — feel-good metrics
-- [ ] Review Alerts — Google + Facebook in one inbox
-- [ ] Repost Best Performers — surface top posts from 90 days
-- [ ] Photo Templates — "TODAY'S SPECIAL" overlays
-- [ ] Competitor Peek — compare posting frequency
-- [ ] Square / Toast POS Integration — auto-post menu updates
-- [ ] Threads — reuses existing Meta OAuth
-- [ ] X/Twitter — simple REST API
-- [ ] Nextdoor — hyper-local food truck discovery
-- [ ] White-label Agency tier
-- [ ] Annual recap shareable graphic
-- [ ] Affiliate program (20% recurring)
+---
+
+## 📋 Phase 6 — Retention & depth
+
+- [ ] Morning daily prompt (email first)
+- [ ] Location one-tap post
+- [ ] Inbox: poll comments + AI draft replies + approve/edit/skip
+- [ ] Embed slug onboarding + in-dashboard preview/copy UX
+- [ ] Complete Google Business posting (beyond OAuth shell)
+- [ ] Complete TikTok Content Posting API path
+- [ ] Complete YouTube upload path
+- [ ] Weekly planner (set 7, forget)
+- [ ] Simple wins / best-performer resurfacing
+- [ ] Review alerts (Google + Facebook)
+
+---
+
+## 📋 Phase 7 — Agency & ecosystem
+
+- [ ] Multi-location Agency UX (up to 5 locations per `plan_guard`)
+- [ ] White-label / reseller dashboard
+- [ ] Custom domain for hosted mini-sites
+- [ ] Square / Toast POS integrations (when partner access exists)
+- [ ] Threads / X / Nextdoor (only after Meta + Google quality is solid)
+- [ ] Affiliate program
+
+---
+
+## Explicitly out of plan
+
+| Idea | Why not |
+|---|---|
+| Deploy to Render / Railway as primary | Production target is Vercel (+ Supabase) |
+| Rebuild password auth / Flask-Login passwords | Magic link is the product auth |
+| Re-add Growth tier | UI + `plan_guard` are Free/Starter/Pro/Agency |
+| Restart Phase 4 “auth_manager from scratch” | Already shipped |
+| Claim full TikTok auto as a differentiator today | Publish path not production-complete |

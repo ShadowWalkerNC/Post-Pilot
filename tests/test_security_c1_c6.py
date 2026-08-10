@@ -115,6 +115,11 @@ class TestEncryptionKeyPolicy:
         assert _is_production() is False
         monkeypatch.setenv('APP_ENV', 'production')
         assert _is_production() is True
+        monkeypatch.setenv('APP_ENV', 'development')
+        monkeypatch.setenv('VERCEL_ENV', 'preview')
+        assert _is_production() is False
+        monkeypatch.setenv('VERCEL_ENV', 'production')
+        assert _is_production() is True
 
 
 # ---------------------------------------------------------------------------

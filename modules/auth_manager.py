@@ -32,8 +32,9 @@ logger = logging.getLogger(__name__)
 # Encryption key
 # ---------------------------------------------------------------------------
 def _is_production() -> bool:
-    return bool(
-        os.environ.get('VERCEL_ENV')
+    """True only for real production — not local, CI, or Vercel preview."""
+    return (
+        os.environ.get('VERCEL_ENV') == 'production'
         or os.environ.get('APP_ENV') == 'production'
         or os.environ.get('FLASK_ENV') == 'production'
     )

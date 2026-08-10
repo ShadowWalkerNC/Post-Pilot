@@ -58,7 +58,7 @@ def publish_due_posts():
         return jsonify({'success': True}), 200
     except Exception as e:
         logger.error('cron/publish: failed: %s', e)
-        return jsonify({'success': False, 'error': 'publish failed'}), 500
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ def generate_scheduled_posts():
         return jsonify({'success': True, 'summary': summary}), 200
     except Exception as e:
         logger.error('cron/generate: failed: %s', e)
-        return jsonify({'success': False, 'error': 'generate failed'}), 500
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
 
 
 # ---------------------------------------------------------------------------

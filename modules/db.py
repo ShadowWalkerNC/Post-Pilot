@@ -42,7 +42,7 @@ if USE_POSTGRES:
     try:
         import psycopg2
         import psycopg2.extras
-        logger.info('db.py: PostgreSQL mode (%s...)', DATABASE_URL[:40])
+        logger.info('db.py: PostgreSQL mode (host configured)')
     except ImportError as exc:
         raise RuntimeError(
             'DATABASE_URL points to Postgres but psycopg2 is not installed. '

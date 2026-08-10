@@ -22,7 +22,6 @@ APP_VERSION = '1.0.0'
 
 def _get_api_key_row(token: str):
     """Look up an API key row by its token value."""
-    import hashlib
     key_hash = hashlib.sha256(token.encode()).hexdigest()
     db = get_db()
     return db.execute(
@@ -33,6 +32,26 @@ def _get_api_key_row(token: str):
 def _get_srn_key():
     """Accept the shared SRN_SECRET as a valid caller key."""
     return os.environ.get('SRN_SECRET', '')
+
+
+def _resolve_scoped_user_id(requested=None):
+    """
+    Resolve the user_id for a /v1 call.
+
+    User API keys are always bound to the key owner — client-supplied
+    user_id is ignored (prevents cross-tenant IDOR).
+
+    SRN shared-secret callers may pass an explicit user_id (required for
+    most write tools). They cannot impersonate via a user API key.
+    """
+    # Authenticated via user-issued API key
+    if getattr(g, 'api_key_row', None) is not None:
+        return g.api_user_id
+    # SRN / service caller
+    if requested:
+        return requested
+    return getattr(g, 'api_user_id', None)
+
 
 def require_api_key(f):
     """
@@ -53,7 +72,11 @@ def require_api_key(f):
 
         # --- SRN shared secret ---
         srn_secret = _get_srn_key()
-        if srn_secret and token == srn_secret:
+        if (
+            srn_secret
+            and len(token) == len(srn_secret)
+            and hmac.compare_digest(token, srn_secret)
+        ):
             g.api_user_id = None          # SRN calls are not user-scoped
             g.api_caller  = caller
             g.api_key_row = None
@@ -210,7 +233,7 @@ def generate_post():
     topic     = body.get('topic', '').strip()
     platform  = body.get('platform', 'instagram')
     tone      = body.get('tone', 'engaging')
-    user_id   = body.get('user_id') or g.api_user_id
+    user_id   = _resolve_scoped_user_id(body.get('user_id'))
 
     if not topic:
         return _err('topic is required', 'MISSING_TOPIC')
@@ -232,7 +255,7 @@ def publish_post():
     body         = request.get_json(silent=True) or {}
     caption      = body.get('caption', '').strip()
     platforms    = body.get('platforms') or ['facebook', 'instagram']
-    user_id      = body.get('user_id') or g.api_user_id
+    user_id      = _resolve_scoped_user_id(body.get('user_id'))
     image_url    = body.get('image_url')
     scheduled_at = body.get('scheduled_at')
 
@@ -265,7 +288,7 @@ def generate_and_publish():
     topic     = body.get('topic', '').strip()
     platforms = body.get('platforms') or ['facebook', 'instagram']
     tone      = body.get('tone', 'engaging')
-    user_id   = body.get('user_id') or g.api_user_id
+    user_id   = _resolve_scoped_user_id(body.get('user_id'))
     image_url = body.get('image_url')
 
     if not topic:
@@ -301,7 +324,7 @@ def generate_and_publish():
 @v1.get('/get_history')
 @require_api_key
 def get_history():
-    user_id = request.args.get('user_id') or g.api_user_id
+    user_id = _resolve_scoped_user_id(request.args.get('user_id'))
     limit   = min(int(request.args.get('limit', 20)), 100)
 
     if not user_id:
@@ -337,7 +360,7 @@ def get_history():
 @v1.get('/get_site_config')
 @require_api_key
 def get_site_config():
-    user_id = request.args.get('user_id') or g.api_user_id
+    user_id = _resolve_scoped_user_id(request.args.get('user_id'))
     if not user_id:
         return _err('user_id required', 'MISSING_USER_ID')
     try:
@@ -355,7 +378,7 @@ def get_site_config():
 @require_api_key
 def set_published():
     body      = request.get_json(silent=True) or {}
-    user_id   = body.get('user_id') or g.api_user_id
+    user_id   = _resolve_scoped_user_id(body.get('user_id'))
     published = body.get('published')
 
     if not user_id:
@@ -391,7 +414,6 @@ def create_api_key():
         token      = 'pp_live_' + secrets.token_urlsafe(32)
         expires_at = int(time.time()) + ttl * 86400 if ttl else None
 
-        import hashlib
         key_hash = hashlib.sha256(token.encode()).hexdigest()
         preview  = token[:12] + '...'
 

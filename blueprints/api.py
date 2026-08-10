@@ -388,7 +388,7 @@ def api_schedule_post():
 @api_bp.route('/api/scheduled_posts', methods=['GET'])
 @login_required
 def api_scheduled_posts():
-    from app import get_db
+    from modules.database import get_db
     uid = _uid()
     db  = get_db()
     try:
@@ -413,7 +413,7 @@ def api_scheduled_posts():
 @api_bp.route('/api/post_history', methods=['GET'])
 @login_required
 def api_post_history():
-    from app import get_db
+    from modules.database import get_db
     uid = _uid()
     db  = get_db()
     try:
@@ -465,7 +465,7 @@ def api_bulk_schedule():
 @api_bp.route('/api/delete_post', methods=['POST'])
 @login_required
 def api_delete_post():
-    from app import get_db
+    from modules.database import get_db
     data    = request.json or {}
     post_id = data.get('post_id')
     uid     = _uid()
@@ -503,9 +503,9 @@ def api_analytics():
     except (ValueError, TypeError):
         days = 30
 
-    token   = tokens.get('facebook_token') or data.get('access_token')
-    page_id = tokens.get('facebook_page_id') or data.get('page_id')
-    ig_id   = tokens.get('instagram_id') or data.get('ig_id')
+    token   = tokens.get('facebook_token')
+    page_id = tokens.get('facebook_page_id')
+    ig_id   = tokens.get('instagram_id')
 
     # ── Facebook / Instagram ──────────────────────────────────────────
     if not token or not page_id:

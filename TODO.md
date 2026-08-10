@@ -1,5 +1,5 @@
 # Post-Pilot — Task List
-*Last updated: 2026-08-10 — Security audit doc merged; remediations in #12*
+*Last updated: 2026-08-10 — Security audit doc on main; C1–C6 remediations in #12*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
 
@@ -7,11 +7,23 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 
 ---
 
-## 🔴 CRITICAL — Security audit findings
+## 🔴 CRITICAL — Security (code fixes)
 
 Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
 
-C1–C6 remediations are implemented on `cursor/security-fixes-c1-c6-2720` (PR #12). Remaining high follow-ups from the audit: rate limits (H1), SSRF allowlist (H2), embed.js XSS (H3).
+- [x] **C1** CSRF re-enabled on session APIs; `static/js/csrf.js` + template meta
+- [x] **C2** `/v1` IDOR — user API keys bound to key owner (`_resolve_scoped_user_id`)
+- [x] **C3** Fail closed if `TOKEN_ENCRYPTION_KEY` missing/invalid in production
+- [x] **C4** Untracked `.venv` and `__pycache__` from git
+- [x] **C5** `get_db` imports fixed → `modules.database`
+- [x] **C6** `POST /api/setup_tokens` always `410 Gone` (OAuth-only; aligned with Wave A)
+
+Still open (ops / high):
+- [ ] Confirm `DEV_LOGIN_KEY` absent in Vercel production
+- [ ] Set stable `TOKEN_ENCRYPTION_KEY` / `FLASK_SECRET_KEY` / `CRON_SECRET` / `REDIS_URL` in Vercel
+- [ ] H1 rate limits on login + generate/publish
+- [ ] H2 SSRF allowlist for media URLs
+- [ ] H3 escape XSS in `static/embed.js`
 
 ---
 

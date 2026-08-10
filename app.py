@@ -71,7 +71,7 @@ if _sentry_dsn:
 _secret = os.getenv('FLASK_SECRET_KEY')
 if not _secret:
     import sys
-    if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV'):
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV') == 'production':
         sys.exit('FATAL: FLASK_SECRET_KEY is not set. Refusing to start in production.')
     _secret = 'dev-only-insecure-key'
 
@@ -82,19 +82,20 @@ app = Flask(__name__)
 app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 
-# Harden session cookies in production (Vercel HTTPS)
-_prod = (
-    os.getenv('FLASK_ENV') == 'production'
+# Session / remember-cookie hardening.
+# HttpOnly + SameSite always; Secure only on HTTPS production runtimes.
+_is_prod_runtime = (
+    os.getenv('VERCEL_ENV') == 'production'
     or os.getenv('APP_ENV') == 'production'
-    or bool(os.getenv('VERCEL_ENV'))
+    or os.getenv('FLASK_ENV') == 'production'
 )
-if _prod:
-    app.config['SESSION_COOKIE_SECURE']   = True
-    app.config['SESSION_COOKIE_HTTPONLY'] = True
-    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-    app.config['REMEMBER_COOKIE_SECURE']  = True
-    app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-    app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+if _is_prod_runtime:
+    app.config['SESSION_COOKIE_SECURE'] = True
+    app.config['REMEMBER_COOKIE_SECURE'] = True
 
 # ---------------------------------------------------------------------------
 # Supabase client (used for Auth -- magic links)
@@ -103,7 +104,7 @@ _sb_url = os.getenv('SUPABASE_URL')
 _sb_key = os.getenv('SUPABASE_ANON_KEY')
 if not _sb_url or not _sb_key:
     import sys
-    if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV'):
+    if os.getenv('FLASK_ENV') == 'production' or os.getenv('VERCEL_ENV') == 'production':
         sys.exit('FATAL: SUPABASE_URL and SUPABASE_ANON_KEY must be set.')
     # Dev fallback -- auth routes will fail but app still starts
     _sb_url = _sb_url or 'https://placeholder.supabase.co'

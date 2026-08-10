@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Schedule — Post-Pilot</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body { background: #0f1117; color: #e5e7eb; min-height: 100vh; }
   </style>
+  {% include "_csrf.html" %}
 </head>
 <body>
   <nav class="border-b border-gray-800 px-4 py-3 flex items-center justify-between gap-3">
@@ -18,7 +19,7 @@
       <a href="/billing" class="text-gray-400 hover:text-white">Billing</a>
     </div>
   </nav>
-Schedule — Post-Pilot<div class="max-w-5xl mx-auto px-4 py-8">
+<div class="max-w-5xl mx-auto px-4 py-8">
 
   <!-- Header -->
   <div class="flex items-center justify-between mb-6">

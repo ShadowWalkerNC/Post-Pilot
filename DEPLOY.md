@@ -16,9 +16,11 @@ Post-Pilot is a Python/Flask app deployed on **Vercel** (serverless) with **Supa
 
 - Build: `@vercel/python` on `app.py`
 - Routes: all traffic → `app.py`
-- Crons:
-  - `/api/cron/generate` — hourly (`0 * * * *`)
-  - `/api/cron/publish` — every minute (`* * * * *`)
+- Crons (Hobby-compatible — once per day max):
+  - `/api/cron/generate` — daily at 14:00 UTC (`0 14 * * *`)
+  - `/api/cron/publish` — daily at 15:00 UTC (`0 15 * * *`)
+
+> **Hobby vs Pro:** Vercel Hobby rejects cron expressions that run more than once per day (deploys fail with the cron usage error). On **Pro**, you can tighten schedules (e.g. publish `* * * * *`, generate `0 * * * *`) for near-real-time scheduling.
 
 ---
 

@@ -68,20 +68,20 @@ def reverse_geocode(lat: float, lng: float) -> dict:
 # ---------------------------------------------------------------------------
 LOCATION_TEMPLATES = {
     'facebook': (
-        '📍 We're at {location} today!\n'
+        "📍 We're at {location} today!\n"
         '{special_line}'
         'Open until {hours}. Come find us! 🚚'
     ),
     'instagram': (
         '📍 FIND US TODAY\n\n'
-        'We're set up at {location} and ready to serve!\n'
+        "We're set up at {location} and ready to serve!\n"
         '{special_line}'
         '⏰ Open until {hours}\n\n'
         'Tag a friend who needs to eat! 👇\n\n'
         '#{hashtag} #foodtruck #localeats #streetfood'
     ),
     'tiktok': (
-        'We're at {location} right now 📍 Open until {hours}! '
+        "We're at {location} right now 📍 Open until {hours}! "
         '{special_short} #{hashtag} #foodtruck #findus'
     ),
     'google': (
@@ -91,9 +91,9 @@ LOCATION_TEMPLATES = {
     ),
     'website': '📍 Today: {location} | Open until {hours}',
     'youtube': (
-        'We're parked at {location} today until {hours}! '
+        "We're parked at {location} today until {hours}! "
         '{special_line_plain}'
-        'Here's everything you need to know to find us.'
+        "Here's everything you need to know to find us."
     ),
 }
 

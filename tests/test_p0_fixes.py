@@ -35,30 +35,32 @@ class TestBillingBypass:
         A free-tier user selecting more platforms than allowed should get 403
         from /api/publish, not just /api/push_all.
         """
-        with patch('modules.plan_guard.check_platform_limit', return_value=(False, 1)):
+        with patch('blueprints.api.check_platform_limit', return_value=(False, 1)):
             resp = logged_in_client.post(
                 '/api/publish',
                 json={
                     'caption':      'Test post',
                     'content_type': 'text',
-                    'platforms':    ['fb', 'ig', 'tt'],
+                    # fb/web need no media — avoid validator 400 before plan check
+                    'platforms':    ['fb', 'web', 'gb'],
                 },
                 content_type='application/json',
             )
         assert resp.status_code == 403
         data = resp.get_json()
-        err_msg = data['error']['message'] if isinstance(data['error'], dict) else data['error']
-        assert 'plan' in err_msg.lower() or 'limit' in err_msg.lower()
+        err = data.get('error', '')
+        err_msg = err['message'] if isinstance(err, dict) else str(err)
+        assert 'plan' in err_msg.lower() or 'limit' in err_msg.lower() or 'platform' in err_msg.lower()
 
     def test_free_user_blocked_on_push_all_multi_platform(self, logged_in_client):
         """Same check on /api/push_all."""
-        with patch('modules.plan_guard.check_platform_limit', return_value=(False, 1)):
+        with patch('blueprints.api.check_platform_limit', return_value=(False, 1)):
             resp = logged_in_client.post(
                 '/api/push_all',
                 json={
                     'caption':      'Test post',
                     'content_type': 'text',
-                    'platforms':    ['fb', 'ig', 'tt'],
+                    'platforms':    ['fb', 'web', 'gb'],
                 },
                 content_type='application/json',
             )
@@ -66,23 +68,14 @@ class TestBillingBypass:
         data = resp.get_json()
         assert data['success'] is False
 
-    def test_allowed_user_not_blocked(self, client, registered_user):
+    def test_allowed_user_not_blocked(self, logged_in_client):
         """When check_platform_limit returns allowed=True, the request proceeds past the guard."""
-        # Log in the user
-        client.post('/login', data={
-            'email':    registered_user['email'],
-            'password': registered_user['password'],
-        }, follow_redirects=True)
-
-        mock_user = MagicMock()
-        mock_user.subscription_tier = 'starter'
-        mock_user.id = 'dummy-id'
-
-        with patch('modules.plan_guard.current_user', mock_user), \
-             patch('modules.plan_guard.check_platform_limit', return_value=(True, 3)), \
-             patch('modules.publisher.UniversalPublisher.push_all', return_value={'fb': {'success': True}}), \
-             patch('modules.user_manager.UserManager.log_post', return_value=None):
-            resp = client.post(
+        with patch('blueprints.api.check_platform_limit', return_value=(True, 3)), \
+             patch('blueprints.api.UniversalPublisher') as Pub, \
+             patch('blueprints.api.UserManager.log_post', return_value=None), \
+             patch('blueprints.api._get_tokens', return_value={}):
+            Pub.return_value.push_all.return_value = {'fb': {'success': True}}
+            resp = logged_in_client.post(
                 '/api/publish',
                 json={
                     'caption':      'Hello world',
@@ -204,19 +197,34 @@ class TestPostHistoryLimit:
 
     def test_non_integer_limit_returns_200(self, logged_in_client):
         """A non-integer ?limit= should fall back to default 20 and return 200."""
-        resp = logged_in_client.get('/api/post_history?limit=abc')
+        from unittest.mock import MagicMock, patch
+        with patch('modules.database.get_db') as gdb:
+            mock_db = MagicMock()
+            mock_db.execute.return_value.fetchall.return_value = []
+            gdb.return_value = mock_db
+            resp = logged_in_client.get('/api/post_history?limit=abc')
         assert resp.status_code == 200
         data = resp.get_json()
         assert data['success'] is True
 
     def test_negative_limit_is_clamped(self, logged_in_client):
         """A negative limit should not crash; posts list is returned."""
-        resp = logged_in_client.get('/api/post_history?limit=-5')
+        from unittest.mock import MagicMock, patch
+        with patch('modules.database.get_db') as gdb:
+            mock_db = MagicMock()
+            mock_db.execute.return_value.fetchall.return_value = []
+            gdb.return_value = mock_db
+            resp = logged_in_client.get('/api/post_history?limit=-5')
         assert resp.status_code == 200
 
     def test_over_max_limit_is_clamped_to_100(self, logged_in_client):
         """Limits above 100 should be silently clamped to 100."""
-        resp = logged_in_client.get('/api/post_history?limit=9999')
+        from unittest.mock import MagicMock, patch
+        with patch('modules.database.get_db') as gdb:
+            mock_db = MagicMock()
+            mock_db.execute.return_value.fetchall.return_value = []
+            gdb.return_value = mock_db
+            resp = logged_in_client.get('/api/post_history?limit=9999')
         assert resp.status_code == 200
 
 

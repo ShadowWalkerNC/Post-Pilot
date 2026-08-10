@@ -10,6 +10,7 @@
     .platform-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); transition: border-color .2s; }
     .platform-card:hover { border-color: rgba(255,255,255,0.15); }
   </style>
+  {% include "_csrf.html" %}
 </head>
 <body class="text-white min-h-screen">
 
@@ -136,7 +137,7 @@ async function disconnectPlatform(pid) {
   const p = PLATFORMS.find(x => x.id === pid);
   if (!confirm('Disconnect ' + p.name + '? You can reconnect at any time.')) return;
   try {
-    const res = await fetch('/auth/disconnect/' + pid);
+    const res = await fetch('/auth/disconnect/' + pid, { method: 'POST' });
     const data = await res.json();
     if (data.success) {
       render();

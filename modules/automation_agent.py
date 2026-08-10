@@ -79,8 +79,7 @@ def run_for_all_users() -> Dict:
 # ---------------------------------------------------------------------------
 
 def _process_user(conn, profile: Dict, today: str) -> int:
-    user_id = profile['user_id']
-    queued  = 0
+    queued = 0
     queued += _process_specials(conn, profile, today)
     queued += _process_events(conn, profile, today)
     queued += _process_hours(conn, profile, today)

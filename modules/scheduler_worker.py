@@ -287,7 +287,6 @@ def init_scheduler():
 
 def shutdown_scheduler():
     """Gracefully stop the scheduler on app teardown."""
-    global _scheduler
     if _scheduler and _scheduler.running:
         _scheduler.shutdown(wait=False)
         logger.info('scheduler_worker: APScheduler stopped')

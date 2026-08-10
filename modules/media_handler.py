@@ -159,7 +159,7 @@ def validate_upload(file_path: str) -> tuple[bool, str]:
         return False, 'File not found'
 
     if path.suffix.lower() not in allowed_extensions:
-        return False, f'File type not supported. Use: {', '.join(allowed_extensions)}'
+        return False, f"File type not supported. Use: {', '.join(allowed_extensions)}"
 
     size_mb = path.stat().st_size / (1024 * 1024)
     if size_mb > max_size_mb:

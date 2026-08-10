@@ -14,6 +14,7 @@ def register_blueprints(app, csrf):
     from .specials import specials_bp
     from .events   import events_bp
     from .hours    import hours_bp
+    from .embed_api import embed_bp
     from modules.api_manager import v1 as v1_blueprint
 
     app.register_blueprint(auth_bp)
@@ -26,11 +27,13 @@ def register_blueprints(app, csrf):
     app.register_blueprint(specials_bp)
     app.register_blueprint(events_bp)
     app.register_blueprint(hours_bp)
+    app.register_blueprint(embed_bp)
     app.register_blueprint(v1_blueprint)
 
-    # Exempt only machine-to-machine endpoints from CSRF.
+    # Exempt only machine-to-machine / public-no-session endpoints.
     # Session-authenticated browser APIs (api/specials/events/hours/website)
     # must send X-CSRFToken — see static/js/csrf.js.
     csrf.exempt(v1_blueprint)
     csrf.exempt(stripe_webhook_bp)
     csrf.exempt(cron_bp)
+    csrf.exempt(embed_bp)  # public JSON embed; no session cookie

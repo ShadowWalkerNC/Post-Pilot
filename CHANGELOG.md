@@ -7,11 +7,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Docs
+- Rebased `PLANNING.md`, `ROADMAP.md`, `PRICING.md`, `TODO.md`, `DEPLOY.md`, `AGENTS.md`, `ARCHITECTURE.md`, and `README.md` to the live stack (Vercel, OpenAI, magic-link, Free/Starter/Pro/Agency).
+- Removed obsolete Growth-tier / Render / Claude plan claims that conflicted with code.
+- Added `docs/PRODUCT_AUDIT.md` — full architect/UX/security audit + sellable-product execution waves.
+
+### Fixed
+- Registered `embed_bp` in `blueprints/__init__.py` (public embed was implemented but not wired).
+- Dropped orphan Growth Stripe price map entries from `billing_manager.py` / `user_manager.py`.
+- Aligned `.env.example` Stripe price var names with monthly/annual Starter/Pro/Agency.
+- **Wave A (contracts):** `User.is_active` crash, Stripe `update_subscription` kwargs, `log_post`→`post_history`, `save_business_profile`, cron GET, `get_db` rewire, prod Fernet hard-fail, plan privilege escalation, `past_due` gates, post limits, disable `/api/setup_tokens`.
+- **Wave B (honesty):** magic-link login/register UI, magic-link sent page, landing pricing $0/$19/$49/$99, legal footer URLs, standalone schedule page.
+
 ### Security
 - Re-enabled CSRF on session-authenticated APIs (`api` / specials / events / hours); dashboard pages send `X-CSRFToken` via `static/js/csrf.js`
 - Fixed `/v1` IDOR: user API keys ignore client-supplied `user_id` and bind to the key owner
 - Production refuses to start with missing/invalid `TOKEN_ENCRYPTION_KEY` (no ephemeral Fernet key)
-- Disabled `POST /api/setup_tokens` in production unless `ALLOW_MANUAL_TOKEN_SETUP=1`
+- Disabled `POST /api/setup_tokens` permanently (`410 Gone`; OAuth-only)
 - Removed tracked `.venv` and `__pycache__` from version control
 - Fixed broken `from app import get_db` imports (now `modules.database.get_db`)
 - Hardened session cookies (`HttpOnly`, `SameSite=Lax`, `Secure` in production)

@@ -2,7 +2,7 @@
 
 > **Purpose:** Complete technical reference for the Post-Pilot system. Read this before making any change to modules, database schema, environment variables, or integrations.
 > **Maintained by:** Every agent session that changes behavior must update this file.
-> **Last updated:** 2026-06-28
+> **Last updated:** 2026-08-08
 
 ---
 
@@ -16,15 +16,13 @@ User (browser)
 Vercel (serverless Flask)
     ├── Auth (magic link email)
     ├── Dashboard / Post Queue
-    ├── AI Generation (→ Anthropic Claude)
+    ├── AI Generation (→ OpenAI)
     ├── Publish (→ Meta Graph API)
     ├── Scheduling (→ Vercel Cron)
     ├── Billing (→ Stripe)
-    └── Cron Endpoint (/api/cron/publish)
-         ↓ every minute
-    Supabase (PostgreSQL)
-         └── pp.users, pp.posts, pp.platforms,
-             pp.schedules, pp.plans, pp.teams
+    └── Cron Endpoints (/api/cron/generate, /api/cron/publish)
+         ↓
+    Supabase (PostgreSQL + Auth)
 ```
 
 ---
@@ -48,16 +46,16 @@ Each blueprint owns one domain. Routes, forms, and view logic live here. Busines
 
 | Blueprint | File | Routes | Responsibility |
 |---|---|---|---|
-| Auth | `auth.py` | `/login`, `/auth/magic`, `/logout` | Magic link generation, session management, user creation |
-| Dashboard | `dashboard.py` | `/`, `/dashboard` | Post queue view, platform status, recent activity |
-| Generate | `generate.py` | `/generate` | Claude-powered post generation UI and API |
-| Publish | `publish.py` | `/publish` | Manual and scheduled Meta Graph API publishing |
-| Scheduler | `scheduler.py` | `/schedule` | Post scheduling interface, schedule CRUD |
-| Cron | `cron.py` | `/api/cron/publish` | Vercel Cron endpoint — calls `_publish_scheduled_posts()` |
-| Billing | `billing.py` | `/billing`, `/billing/webhook` | Stripe subscription, plan enforcement, webhook handler |
-| Onboarding | `onboarding.py` | `/onboarding` | New user setup: connect platform, choose plan |
-| Settings | `settings.py` | `/settings` | Account, platform tokens, notification prefs |
-| Admin | `admin.py` | `/admin` | Internal tools — user management, system health |
+| Auth | `auth.py` | `/login`, `/register`, `/auth/*`, `/dev-login` | Supabase magic link, OAuth connect callbacks |
+| Pages | `pages.py` | `/`, `/dashboard`, `/generate`, … | HTML pages for the product UI |
+| API | `api.py` | `/api/generate`, `/api/push_all`, … | JSON generate/publish/platform settings |
+| Cron | `cron.py` | `/api/cron/generate`, `/api/cron/publish` | Vercel Cron — automation + scheduled publish |
+| Billing | `billing.py` | `/billing`, `/billing/webhook` | Stripe checkout, portal, webhooks |
+| Website | `website.py` | website hub routes | Hosted/website data editing |
+| Embed | `embed_api.py` | `/api/embed/<slug>` | Public embed JSON (no auth) |
+| Specials | `specials.py` | `/schedule`, `/api/specials/*` | Specials CRUD + schedule UI |
+| Events | `events.py` | `/api/events/*` | Events CRUD |
+| Hours | `hours.py` | `/api/hours/*` | Hours override CRUD |
 
 ---
 
@@ -67,15 +65,16 @@ Shared utilities. No Flask routes here. Called by blueprints.
 
 | Module | File | Responsibility |
 |---|---|---|
-| Database engine | `db.py` | SQLAlchemy engine, session factory, declarative base |
-| DB proxy | `database.py` | Backward-compat proxy to `db.py` — do not bypass |
-| ORM Models | `models.py` | All database models (see DB Schema below) |
-| AI | `ai.py` | Claude API wrapper, system prompt management, post generation |
-| Meta API | `meta_api.py` | Meta Graph API client — publish, token refresh, page listing |
-| Scheduler utils | `scheduler_utils.py` | `_publish_scheduled_posts()` — called by cron endpoint |
-| Auth utils | `auth_utils.py` | JWT generation/validation, magic link creation, session helpers |
-| Billing utils | `billing_utils.py` | Stripe API helpers, `@require_plan` decorator, plan limits |
-| Rate limit | `rate_limit.py` | Flask-Limiter configuration, Redis integration |
+| DB | `database.py` / `db.py` | Connection helpers — treat as foundation |
+| Auth tokens | `auth_manager.py` | Encrypted platform token store (Fernet) |
+| Users | `user_manager.py` | User records for magic-link era |
+| AI | `ai_generator.py` | OpenAI caption generation + adaptations |
+| Adapter | `platform_adapter.py` | Per-platform caption shaping |
+| Publisher | `publisher.py` | Publish router across platforms |
+| Meta API | `meta_api.py` / `meta_client.py` | Meta Graph API client |
+| Billing | `billing_manager.py` | Stripe lifecycle + webhooks |
+| Plan gates | `plan_guard.py` | `@require_plan`, post/platform/location limits |
+| Automation | `automation_agent.py` | Specials/events/hours → generated posts |
 
 ---
 
@@ -83,47 +82,38 @@ Shared utilities. No Flask routes here. Called by blueprints.
 
 ### Post Generation
 ```
-User fills generation form
-    → generate.py POST /generate
-    → modules/ai.py: build_prompt(business_context, platform, tone)
-    → Anthropic Claude API (claude-3-5-sonnet)
-    → Return generated post text
-    → Save as Draft post to pp.posts
-    → Redirect to dashboard
+User submits topic / tone / platforms
+    → api.py POST /api/generate (or generate page)
+    → modules/ai_generator.py + platform_adapter.py
+    → OpenAI API (GPT-4o-mini)
+    → Return master + per-platform adapted captions
 ```
 
 ### Manual Publish
 ```
-User clicks Publish
-    → publish.py POST /publish
-    → modules/billing_utils.py: @require_plan check
-    → modules/meta_api.py: publish_post(platform_token, post_content)
-    → Meta Graph API: POST /{page-id}/feed
-    → Update pp.posts.status = 'published', published_at = now()
-    → Update dashboard
+User clicks Publish All
+    → api.py POST /api/push_all
+    → plan_guard / billing checks
+    → modules/publisher.py → meta_api / platform clients
+    → Update post history / status
 ```
 
 ### Scheduled Publish (Cron)
 ```
-Vercel Cron fires every minute
-    → GET /api/cron/publish (Authorization: Bearer CRON_SECRET)
-    → blueprints/cron.py: verify HMAC header
-    → modules/scheduler_utils.py: _publish_scheduled_posts()
-        → Query pp.schedules WHERE scheduled_at <= now() AND status = 'pending'
-        → For each: modules/meta_api.py: publish_post()
-        → Update pp.schedules.status = 'published' | 'failed'
+Vercel Cron fires
+    → /api/cron/generate (hourly) and /api/cron/publish (* * * * *)
+    → blueprints/cron.py verifies CRON_SECRET
+    → automation_agent / scheduler publish path
     → Return 200 JSON summary
 ```
 
 ### Authentication (Magic Link)
 ```
 User enters email → /login
-    → modules/auth_utils.py: generate_magic_link(email)
-    → Send email via Flask-Mail (SMTP)
-    → User clicks link → /auth/magic?token=...
-    → modules/auth_utils.py: validate_token(token)
-    → Create or get pp.users row
-    → Set Flask session
+    → Supabase Auth magic link email
+    → User clicks link → auth confirm callback
+    → Upsert user via user_manager
+    → Flask-Login session
     → Redirect to dashboard or onboarding
 ```
 
@@ -143,8 +133,8 @@ Local dev: SQLite (`postpilot.db`) — same models, different engine URL.
 | `last_login` | TIMESTAMP | |
 | `plan_id` | FK → pp.plans | Current subscription plan |
 | `stripe_customer_id` | VARCHAR | Stripe customer reference |
-| `password_hash` | VARCHAR NULL | ⚠️ Deprecated — pending migration to drop (DB-1) |
-| `team_id` | FK → pp.teams NULL | Phase 5 — teams feature |
+| `password_hash` | — | Removed by migration `0003_drop_password_hash` |
+| `team_id` | FK → pp.teams NULL | Phase 5 — teams design (not fully shipped) |
 
 ### `pp.posts`
 | Column | Type | Notes |
@@ -211,22 +201,21 @@ Local dev: SQLite (`postpilot.db`) — same models, different engine URL.
 - **Rate limits:** Meta enforces per-page limits — respect 200 calls/hour
 - **Docs:** `API_NOTES.md`, `V1_API.md`
 
-### Anthropic Claude
-- **Model:** `claude-3-5-sonnet` (primary), `claude-opus-4` (heavy tasks)
-- **Usage:** Post generation in `modules/ai.py`
-- **Prompt strategy:** System prompt with business context + platform + tone + brand voice
-- **Cost control:** Token limits enforced per request
+### OpenAI
+- **Model:** GPT-4o-mini (primary) via `OPENAI_API_KEY`
+- **Usage:** `modules/ai_generator.py` + `modules/platform_adapter.py`
+- **Prompt strategy:** Business context + content type + tone + per-platform rules
+- **Fallback:** Template captions when OpenAI is unavailable
 
 ### Stripe
-- **Products:** Starter, Pro, Agency plans
-- **Webhooks:** `/billing/webhook` — handles `customer.subscription.updated`, `invoice.payment_succeeded`, `invoice.payment_failed`
-- **Plan enforcement:** `@require_plan` decorator in `modules/billing_utils.py`
-- **Docs:** `PRICING.md`
+- **Products:** Starter ($19), Pro ($49), Agency ($99) — monthly + annual
+- **Webhooks:** `/billing/webhook` — subscription + invoice events
+- **Plan enforcement:** `@require_plan` in `modules/plan_guard.py`
+- **Docs:** `PRICING.md` (must match `billing.html`)
 
 ### Vercel Cron
-- **Schedule:** Every minute (`* * * * *`)
-- **Endpoint:** `GET /api/cron/publish`
-- **Auth:** `Authorization: Bearer CRON_SECRET` header, HMAC constant-time comparison
+- **Schedules:** `/api/cron/generate` hourly; `/api/cron/publish` every minute
+- **Auth:** `Authorization: Bearer CRON_SECRET`
 - **Config:** `vercel.json`
 
 ### Sentry
@@ -252,11 +241,10 @@ See `.env.example` for the key list without values.
 | ID | Description | Priority |
 |---|---|---|
 | SEC-1 | TOKEN_ENCRYPTION_KEY + FLASK_SECRET_KEY need rotation in Vercel | 🔴 Critical |
-| SEC-2 | postpilot.db + .venv tracked in git — need untrack + history audit | 🔴 Critical |
+| SEC-2 | Ensure postpilot.db + .venv stay untracked | 🔴 Critical |
 | SEC-3 | Confirm DEV_LOGIN_KEY absent in Vercel production | 🔴 Critical |
-| DB-1 | Drop password_hash column from pp.users via Alembic migration | 🟡 Medium |
-| INFRA-5 | Delete railway.toml, render.yaml, nixpacks.toml, Procfile | 🟡 Medium |
-| INFRA-6 | Register cron blueprint in blueprints/__init__.py + set CRON_SECRET | 🟠 High |
+| INFRA-5 | Delete railway.toml (and any Render/Procfile leftovers) — Vercel only | 🟡 Medium |
+| OPS-CRON | Confirm CRON_SECRET set in Vercel (blueprint already registered) | 🟠 High |
 | PERF-1 | Add Redis caching for top 3 DB queries | 🟢 Low |
 | OPS-1 | Replace print() with app.logger throughout | 🟢 Low |
 

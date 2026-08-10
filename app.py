@@ -48,6 +48,7 @@ from modules.user_manager    import UserManager
 from modules.auth_manager    import init_db as auth_init_db
 from modules.api_manager     import CREATE_API_KEYS_TABLE
 from modules.website_manager import WebsiteManager
+from modules.database        import get_db  # noqa: F401 — re-export for blueprints
 
 load_dotenv()
 
@@ -81,7 +82,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 
-# Session / remember-cookie hardening (Secure only when not clearly local-dev)
+# Session / remember-cookie hardening.
+# HttpOnly + SameSite always; Secure only on HTTPS production runtimes.
 _is_prod_runtime = bool(
     os.getenv('VERCEL_ENV')
     or os.getenv('APP_ENV') == 'production'

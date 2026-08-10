@@ -17,6 +17,7 @@ Storage backend: SQLite (dev) or PostgreSQL (prod) via modules/db.py.
 """
 
 import os
+import sys
 import json
 import logging
 from datetime import datetime, timedelta
@@ -41,9 +42,9 @@ def _is_production() -> bool:
 ENCRYPTION_KEY = os.environ.get('TOKEN_ENCRYPTION_KEY', '').strip()
 if not ENCRYPTION_KEY:
     if _is_production():
-        raise SystemExit(
+        sys.exit(
             'FATAL: TOKEN_ENCRYPTION_KEY is not set. '
-            'Refusing to start in production — OAuth tokens cannot be encrypted safely.'
+            'Refusing to start in production (ephemeral keys break OAuth tokens on Vercel).'
         )
     ENCRYPTION_KEY = Fernet.generate_key().decode()
     logger.warning('TOKEN_ENCRYPTION_KEY not set -- generated ephemeral key (dev only)')
@@ -56,10 +57,7 @@ try:
     fernet = Fernet(_key_bytes)
 except Exception as exc:
     if _is_production():
-        raise SystemExit(
-            f'FATAL: Invalid TOKEN_ENCRYPTION_KEY ({exc}). '
-            'Refusing to start in production.'
-        ) from exc
+        sys.exit(f'FATAL: Invalid TOKEN_ENCRYPTION_KEY ({exc}). Refusing to start in production.')
     logger.error('Invalid TOKEN_ENCRYPTION_KEY (%s) -- generating ephemeral key (dev only)', exc)
     fernet = Fernet(Fernet.generate_key())
 

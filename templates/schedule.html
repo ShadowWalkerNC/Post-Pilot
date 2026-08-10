@@ -5,9 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Schedule — Post-Pilot</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f1117; color: #e5e7eb; min-height: 100vh; }
+  </style>
   {% include "_csrf.html" %}
 </head>
-<body class="bg-gray-950 text-white min-h-screen">
+<body>
+  <nav class="border-b border-gray-800 px-4 py-3 flex items-center justify-between gap-3">
+    <a href="/dashboard" class="font-bold text-white">← Post-Pilot</a>
+    <div class="flex gap-3 text-sm">
+      <a href="/generate" class="text-gray-400 hover:text-white">Generate</a>
+      <a href="/schedule" class="text-indigo-400 font-semibold">Schedule</a>
+      <a href="/billing" class="text-gray-400 hover:text-white">Billing</a>
+    </div>
+  </nav>
 <div class="max-w-5xl mx-auto px-4 py-8">
 
   <!-- Header -->

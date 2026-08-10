@@ -24,9 +24,9 @@ from modules.post_scheduler    import PostScheduler
 from modules.analytics_client  import Analytics
 from modules.publisher         import UniversalPublisher
 from modules.user_manager      import UserManager
-from modules.auth_manager      import save_token
-from modules.plan_guard        import require_plan, check_platform_limit
+from modules.plan_guard        import require_plan, check_platform_limit, check_post_limit
 from modules.validator         import validate_post_input
+from modules.database          import get_db
 from blueprints.utils          import _uid, _get_tokens
 
 api_bp = Blueprint('api', __name__)
@@ -45,6 +45,21 @@ def _enforce_platform_limit(tier, platforms):
         return False, (jsonify({
             'success': False,
             'error': f'Your plan allows up to {limit} platform(s) at once. Upgrade at /billing.'
+        }), 403)
+    return True, None
+
+
+def _enforce_post_limit(uid, tier):
+    used = UserManager.count_posts_this_month(uid)
+    allowed, limit = check_post_limit(tier, used)
+    if not allowed:
+        return False, (jsonify({
+            'success': False,
+            'error': {
+                'code': 'POST_LIMIT',
+                'message': f'Your plan allows {limit} posts this month. Upgrade at /billing.',
+                'upgrade_url': '/billing',
+            }
         }), 403)
     return True, None
 
@@ -75,7 +90,6 @@ def _get_business_profile() -> dict:
 
 def _get_enabled_platforms(uid: str) -> dict:
     try:
-        from modules.database import get_db
         db   = get_db()
         rows = db.execute(
             'SELECT platform, enabled FROM platform_settings WHERE user_id = ?', (uid,)
@@ -137,6 +151,9 @@ def api_push_all():
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
     if not ok:
         return limit_err
+    ok, limit_err = _enforce_post_limit(uid, current_user.subscription_tier)
+    if not ok:
+        return limit_err
     tokens    = _get_tokens(uid)
     publisher = UniversalPublisher(tokens, user_id=uid)
     results   = publisher.push_all(
@@ -178,6 +195,9 @@ def api_publish():
         return err
     platforms = data.get('platforms') or []
     ok, limit_err = _enforce_platform_limit(current_user.subscription_tier, platforms)
+    if not ok:
+        return limit_err
+    ok, limit_err = _enforce_post_limit(uid, current_user.subscription_tier)
     if not ok:
         return limit_err
     tokens    = _get_tokens(uid)
@@ -227,7 +247,6 @@ def api_save_platform_settings():
     if not isinstance(settings, dict):
         return jsonify({'success': False, 'error': 'settings must be an object'}), 400
     try:
-        from modules.database import get_db
         db = get_db()
         for platform, enabled in settings.items():
             db.execute(
@@ -309,39 +328,16 @@ def api_onboarding_setup():
 @api_bp.route('/api/setup_tokens', methods=['POST'])
 @login_required
 def api_setup_tokens():
-    """
-    Manual token injection — disabled in production unless ALLOW_MANUAL_TOKEN_SETUP=1.
-    Prefer OAuth connect flows (/auth/facebook, /auth/google, …).
-    """
-    import os
-    _prod = (
-        os.getenv('VERCEL_ENV')
-        or os.getenv('APP_ENV') == 'production'
-        or os.getenv('FLASK_ENV') == 'production'
-    )
-    if _prod and os.getenv('ALLOW_MANUAL_TOKEN_SETUP', '').strip() not in ('1', 'true', 'True'):
-        return jsonify({
-            'success': False,
-            'error': 'Manual token setup is disabled in production. Connect platforms via OAuth.',
-        }), 403
-
-    data     = request.json or {}
-    uid      = _uid()
-    incoming = data.get('tokens', {})
-    if incoming.get('facebook_token'):
-        save_token('facebook', incoming['facebook_token'],
-                   meta={'page_id': incoming.get('facebook_page_id', ''),
-                         'ig_id':   incoming.get('instagram_id', '')},
-                   user_id=uid)
-    if incoming.get('google_token'):
-        save_token('google', incoming['google_token'],
-                   meta={'location_id': incoming.get('google_location_id', '')},
-                   user_id=uid)
-    if incoming.get('tiktok_token'):   save_token('tiktok',    incoming['tiktok_token'],    user_id=uid)
-    if incoming.get('linkedin_token'): save_token('linkedin',  incoming['linkedin_token'],  user_id=uid)
-    if incoming.get('twitter_token'):  save_token('twitter',   incoming['twitter_token'],   user_id=uid)
-    if incoming.get('pinterest_token'):save_token('pinterest', incoming['pinterest_token'], user_id=uid)
-    return jsonify({'success': True})
+    # Disabled: raw token injection is a CSRF/XSS hazard.
+    # Connect platforms via OAuth routes under /auth/* instead.
+    return jsonify({
+        'success': False,
+        'error': {
+            'code': 'GONE',
+            'message': 'Use Connect Platforms (OAuth) instead of posting tokens directly.',
+            'connect_url': '/connect',
+        }
+    }), 410
 
 
 # ---------------------------------------------------------------------------

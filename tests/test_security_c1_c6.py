@@ -71,36 +71,34 @@ class TestCSRFEnforced:
 
 
 # ---------------------------------------------------------------------------
-# C6 — setup_tokens blocked in production
+# C6 — setup_tokens always gone (OAuth-only; matches main Wave A)
 # ---------------------------------------------------------------------------
 
 class TestSetupTokensLocked:
 
-    def test_setup_tokens_forbidden_in_production(self, logged_in_client, monkeypatch):
+    def test_setup_tokens_gone_in_production(self, logged_in_client, monkeypatch):
         monkeypatch.setenv('APP_ENV', 'production')
-        monkeypatch.delenv('ALLOW_MANUAL_TOKEN_SETUP', raising=False)
-        monkeypatch.delenv('VERCEL_ENV', raising=False)
         monkeypatch.setenv('FLASK_ENV', 'production')
         resp = logged_in_client.post(
             '/api/setup_tokens',
             json={'tokens': {'facebook_token': 'stolen'}},
             content_type='application/json',
         )
-        assert resp.status_code == 403
-        assert resp.get_json()['success'] is False
+        assert resp.status_code == 410
+        data = resp.get_json()
+        assert data['success'] is False
+        assert data['error']['code'] == 'GONE'
 
-    def test_setup_tokens_allowed_in_dev(self, logged_in_client, monkeypatch):
+    def test_setup_tokens_gone_in_dev(self, logged_in_client, monkeypatch):
         monkeypatch.setenv('APP_ENV', 'development')
         monkeypatch.setenv('FLASK_ENV', 'development')
-        monkeypatch.delenv('VERCEL_ENV', raising=False)
-        with patch('blueprints.api.save_token'):
-            resp = logged_in_client.post(
-                '/api/setup_tokens',
-                json={'tokens': {'tiktok_token': 'dev-token'}},
-                content_type='application/json',
-            )
-        assert resp.status_code == 200
-        assert resp.get_json()['success'] is True
+        resp = logged_in_client.post(
+            '/api/setup_tokens',
+            json={'tokens': {'tiktok_token': 'dev-token'}},
+            content_type='application/json',
+        )
+        assert resp.status_code == 410
+        assert resp.get_json()['success'] is False
 
 
 # ---------------------------------------------------------------------------

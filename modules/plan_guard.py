@@ -131,11 +131,32 @@ def require_plan(minimum_plan: str):
     Decorator: block users below `minimum_plan`.
     - API / JSON requests -> 403 JSON with upgrade_url
     - Browser requests   -> redirect to /billing with flash
+    Also blocks past_due / cancelled paid access until billing is fixed.
     """
     def decorator(f):
         @functools.wraps(f)
         def wrapped(*args, **kwargs):
             user_tier = getattr(current_user, 'subscription_tier', 'free') or 'free'
+            sub_status = (getattr(current_user, 'sub_status', None) or 'active').lower()
+
+            if sub_status in ('past_due', 'unpaid'):
+                msg = 'Your last payment failed. Update billing to keep using paid features.'
+                logger.warning(
+                    'Plan gate past_due: user=%s path=%s',
+                    getattr(current_user, 'id', 'anon'), request.path,
+                )
+                if request.is_json or request.path.startswith('/api/'):
+                    return jsonify({
+                        'success': False,
+                        'error': {
+                            'code': 'PAYMENT_REQUIRED',
+                            'message': msg,
+                            'upgrade_url': '/billing',
+                        }
+                    }), 402
+                flash(msg, 'warning')
+                return redirect(url_for('billing.billing'))
+
             if _plan_rank(user_tier) < _plan_rank(minimum_plan):
                 logger.warning(
                     'Plan gate blocked: user=%s tier=%s path=%s requires=%s',
@@ -152,7 +173,7 @@ def require_plan(minimum_plan: str):
                         }
                     }), 403
                 flash(f'Upgrade to {minimum_plan.title()} to unlock this feature.', 'warning')
-                return redirect(url_for('billing'))
+                return redirect(url_for('billing.billing'))
             return f(*args, **kwargs)
         return wrapped
     return decorator

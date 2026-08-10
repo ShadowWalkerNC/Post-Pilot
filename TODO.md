@@ -1,9 +1,17 @@
 # Post-Pilot — Task List
-*Last updated: 2026-08-08 — Plan docs rebased to live stack; phases aligned with PLANNING.md*
+*Last updated: 2026-08-10 — Security audit doc merged; remediations in #12*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
 
 **Phase source of truth:** `PLANNING.md` · **Checkbox tracker:** `ROADMAP.md`
+
+---
+
+## 🔴 CRITICAL — Security audit findings
+
+Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
+
+C1–C6 remediations are implemented on `cursor/security-fixes-c1-c6-2720` (PR #12). Remaining high follow-ups from the audit: rate limits (H1), SSRF allowlist (H2), embed.js XSS (H3).
 
 ---
 

@@ -123,10 +123,11 @@ def row_to_dict(row) -> dict:
 
 def adapt_schema(sql: str) -> str:
     """
-    Translate SQLite-flavoured DDL to PostgreSQL-compatible DDL.
+    Translate SQL dialects between SQLite (dev) and PostgreSQL (prod).
     """
     if not USE_POSTGRES:
-        return sql
+        # Strip Postgres-only casts used by user_manager queries
+        return sql.replace('::uuid', '')
     sql = sql.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
     sql = sql.replace("DEFAULT (strftime('%s','now'))",
                       'DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT)')

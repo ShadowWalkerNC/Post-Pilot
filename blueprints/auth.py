@@ -162,11 +162,14 @@ def auth_confirm():
     email        = sb_user.email
     uid          = str(sb_user.id)
     display_name = session.pop('pending_display_name', '')
-    plan         = session.pop('pending_plan', 'free')
+    # Checkout intent only — never assign a paid plan without Stripe
+    plan_intent  = (session.pop('pending_plan', '') or '').strip().lower()
+    if plan_intent not in ('starter', 'pro', 'agency'):
+        plan_intent = ''
 
     user = UserManager.get_user(uid)
     if not user:
-        user = UserManager.upsert_user(uid, email, full_name=display_name, plan=plan)
+        user = UserManager.upsert_user(uid, email, full_name=display_name, plan='free')
 
     if not user:
         flash('Account setup failed. Please contact support.')
@@ -175,8 +178,9 @@ def auth_confirm():
     login_user(user, remember=True)
     UserManager.touch_login(uid)
 
-    if plan and plan not in ('', 'free'):
-        return redirect(url_for('billing.billing_checkout', plan=plan))
+    if plan_intent:
+        # Send to Stripe checkout; webhook activates the tier after payment
+        return redirect(url_for('billing.billing_checkout', plan=f'{plan_intent}_monthly'))
     return redirect(url_for('pages.onboarding') if display_name else url_for('pages.home'))
 
 

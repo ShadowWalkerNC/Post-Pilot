@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — PostPilot Pro</title>
+  <title>Sign In — Post-Pilot</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -25,7 +25,11 @@
       box-shadow: 0 20px 60px rgba(0,0,0,.5);
     }
     .logo { text-align: center; margin-bottom: 2rem; }
-    .logo-icon { font-size: 2.4rem; display: block; margin-bottom: .4rem; }
+    .logo-icon {
+      width: 48px; height: 48px; margin: 0 auto .6rem;
+      border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #6366f1, #f97316); font-size: 1.4rem;
+    }
     .logo h1   { font-size: 1.4rem; font-weight: 700; color: #fff; letter-spacing: -.3px; }
     .logo p    { color: #6b7280; font-size: .85rem; margin-top: .25rem; }
     .flash {
@@ -46,7 +50,7 @@
       letter-spacing: .5px;
       margin-bottom: .4rem;
     }
-    input[type=email], input[type=password] {
+    input[type=email] {
       width: 100%;
       padding: .75rem 1rem;
       background: #0f1117;
@@ -59,6 +63,7 @@
       margin-bottom: 1.25rem;
     }
     input:focus { border-color: #6366f1; }
+    .hint { color: #6b7280; font-size: .8rem; margin: -.5rem 0 1.25rem; line-height: 1.4; }
     .btn {
       display: block;
       width: 100%;
@@ -71,7 +76,6 @@
       border-radius: 8px;
       cursor: pointer;
       transition: opacity .15s;
-      margin-top: .25rem;
     }
     .btn:hover { opacity: .88; }
     .divider {
@@ -99,9 +103,9 @@
 <body>
 <div class="card">
   <div class="logo">
-    <span class="logo-icon">🚀</span>
-    <h1>PostPilot Pro</h1>
-    <p>Sign in to your account</p>
+    <div class="logo-icon">✈️</div>
+    <h1>Post-Pilot</h1>
+    <p>Sign in with a magic link — no password</p>
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -115,19 +119,15 @@
 
     <label for="email">Email</label>
     <input type="email" id="email" name="email"
-           placeholder="you@example.com"
+           placeholder="you@yourtruck.com"
            value="{{ request.form.get('email', '') }}"
-           required>
+           required autofocus>
+    <p class="hint">We’ll email you a one-time link. Click it to sign in — nothing to remember.</p>
 
-    <label for="password">Password</label>
-    <input type="password" id="password" name="password"
-           placeholder="Your password"
-           required>
-
-    <button type="submit" class="btn">Sign In →</button>
+    <button type="submit" class="btn">Email me a sign-in link →</button>
   </form>
 
-  <div class="divider">don't have an account?</div>
+  <div class="divider">new here?</div>
   <p class="footer-link"><a href="/register">Create a free account →</a></p>
 </div>
 </body>

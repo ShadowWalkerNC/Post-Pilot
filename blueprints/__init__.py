@@ -14,6 +14,7 @@ def register_blueprints(app, csrf):
     from .specials import specials_bp
     from .events   import events_bp
     from .hours    import hours_bp
+    from .embed_api import embed_bp
     from modules.api_manager import v1 as v1_blueprint
 
     app.register_blueprint(auth_bp)
@@ -26,10 +27,12 @@ def register_blueprints(app, csrf):
     app.register_blueprint(specials_bp)
     app.register_blueprint(events_bp)
     app.register_blueprint(hours_bp)
+    app.register_blueprint(embed_bp)
     app.register_blueprint(v1_blueprint)
 
     # Exempt API and webhook blueprints from CSRF
     # cron_bp is authenticated via CRON_SECRET (HMAC), not browser sessions
+    # embed_bp is a public unauthenticated JSON endpoint
     csrf.exempt(v1_blueprint)
     csrf.exempt(stripe_webhook_bp)
     csrf.exempt(cron_bp)
@@ -37,3 +40,4 @@ def register_blueprints(app, csrf):
     csrf.exempt(specials_bp)
     csrf.exempt(events_bp)
     csrf.exempt(hours_bp)
+    csrf.exempt(embed_bp)

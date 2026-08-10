@@ -67,7 +67,7 @@ The app runs at `http://localhost:5000`.
 | `DATABASE_URL` | Supabase → Settings → Database → Connection string (pooler) | Use `postgresql+psycopg2://` prefix. Omit for SQLite local dev — app defaults to `postpilot.db` |
 | `FLASK_SECRET_KEY` | Generate: `python -c "import secrets; print(secrets.token_hex(32))"` | Keep secret. Rotate if exposed. |
 | `TOKEN_ENCRYPTION_KEY` | Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` | Fernet key. Rotate if exposed. |
-| `ANTHROPIC_API_KEY` | console.anthropic.com → API Keys | |
+| `OPENAI_API_KEY` | platform.openai.com → API Keys | Required for caption generation (`ai_generator.py`) |
 | `META_APP_ID` | developers.facebook.com → Your App → Settings | |
 | `META_APP_SECRET` | developers.facebook.com → Your App → Settings → Show | |
 | `STRIPE_SECRET_KEY` | dashboard.stripe.com → Developers → API Keys | Use test key for dev |

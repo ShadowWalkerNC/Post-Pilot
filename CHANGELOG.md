@@ -7,6 +7,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Docs
+- Rebased `PLANNING.md`, `ROADMAP.md`, `PRICING.md`, `TODO.md`, `DEPLOY.md`, `AGENTS.md`, `ARCHITECTURE.md`, and `README.md` to the live stack (Vercel, OpenAI, magic-link, Free/Starter/Pro/Agency).
+- Removed obsolete Growth-tier / Render / Claude plan claims that conflicted with code.
+- Added `docs/PRODUCT_AUDIT.md` — full architect/UX/security audit + sellable-product execution waves.
+
+### Fixed
+- Registered `embed_bp` in `blueprints/__init__.py` (public embed was implemented but not wired).
+- Dropped orphan Growth Stripe price map entries from `billing_manager.py` / `user_manager.py`.
+- Aligned `.env.example` Stripe price var names with monthly/annual Starter/Pro/Agency.
+- **Wave A (contracts):** `User.is_active` crash, Stripe `update_subscription` kwargs, `log_post`→`post_history`, `save_business_profile`, cron GET, `get_db` rewire, prod Fernet hard-fail, plan privilege escalation, `past_due` gates, post limits, disable `/api/setup_tokens`.
+- **Wave B (honesty):** magic-link login/register UI, magic-link sent page, landing pricing $0/$19/$49/$99, legal footer URLs, standalone schedule page.
+
 ---
 
 ## [0.4.0] — 2026-06-22

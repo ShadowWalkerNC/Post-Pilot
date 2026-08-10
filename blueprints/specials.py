@@ -67,7 +67,7 @@ def schedule_page():
 def api_list_specials():
     uid = _uid()
     try:
-        from app import get_db
+        from modules.database import get_db
         db   = get_db()
         rows = db.execute(
             'SELECT id, item_name, description, post_date, post_time, '
@@ -134,7 +134,7 @@ def api_create_special():
 
     now_ts = int(time.time())
     try:
-        from app import get_db
+        from modules.database import get_db
         db  = get_db()
         cur = db.execute(
             'INSERT INTO specials '
@@ -162,7 +162,7 @@ def api_update_special(special_id):
     uid  = _uid()
     data = request.json or {}
     try:
-        from app import get_db
+        from modules.database import get_db
         db  = get_db()
         row = db.execute(
             'SELECT status FROM specials WHERE id = ? AND user_id = ?', (special_id, uid)
@@ -215,7 +215,7 @@ def api_update_special(special_id):
 def api_delete_special(special_id):
     uid = _uid()
     try:
-        from app import get_db
+        from modules.database import get_db
         db = get_db()
         db.execute('DELETE FROM specials WHERE id = ? AND user_id = ?', (special_id, uid))
         db.commit()
@@ -234,7 +234,7 @@ def api_delete_special(special_id):
 def api_cancel_special(special_id):
     uid = _uid()
     try:
-        from app import get_db
+        from modules.database import get_db
         db = get_db()
         db.execute(
             'UPDATE specials SET status = ?, updated_at = ? WHERE id = ? AND user_id = ?',

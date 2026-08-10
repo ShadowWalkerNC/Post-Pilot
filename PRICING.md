@@ -1,119 +1,91 @@
-# PostPilot Pro — Pricing Logic
+# Post-Pilot — Pricing Logic
+
+> **Canonical with:** `templates/billing.html`, `modules/plan_guard.py`, `PLANNING.md`  
+> Hierarchy: `free < starter < pro < agency`  
+> **No Growth tier** in product UI or plan enforcement.
 
 ---
 
-## Cost Floor (What You Pay Monthly)
+## Cost floor (approximate monthly)
 
 | Service | Cost | Notes |
 |---------|------|-------|
-| Render hosting | $7/mo | Scales to all users |
-| PostgreSQL (Render) | $7/mo | User data, tokens, post history |
-| OpenAI GPT-4o-mini | $5–20/mo | ~$0.002/caption, scales with usage |
-| Cloudflare | Free | CDN, CORS, domain proxy |
-| Stripe | 2.9% + $0.30/txn | Only pay when you earn |
-| Domain (postpilotpro.com) | $1/mo | ~$12/yr |
-| **Total fixed floor** | **~$25/mo** | Before any users |
+| Vercel | Hobby/Pro plan | Serverless + Cron |
+| Supabase Postgres | Free → Pro | User data, tokens, post history |
+| Upstash Redis | Free → paid | Rate limiting across instances |
+| OpenAI GPT-4o-mini | Usage-based | ~$0.002/caption, scales with usage |
+| Stripe | 2.9% + $0.30/txn | Only when you earn |
+| Sentry | Free → Team | Error monitoring |
+| Domain | ~$1/mo | Optional custom domain |
 
 ---
 
-## Tier Definitions
+## Tier definitions
 
 ### Free — $0
-**Purpose:** Hook. Lead generation. Conversion pipeline.
-- Platforms: Facebook + Website only
-- AI captions: 5/mo
-- Scheduled posts: 3 max
-- Users: 1
-- Analytics: None
-- API: None
-- Locked (visible but greyed): TikTok, Instagram, Google Business, YouTube, Calendar, Weekly Planner, Analytics, API
+**Purpose:** Hook / lead gen.
+- 1 location
+- 5 posts / month
+- 3 platforms max
+- Manual publish only
+- Locked: AutomationAgent, Inbox, Website embed
 
-### Starter — $15/mo | $150/yr
-**Purpose:** Solo operator. Core tool.
-- Platforms: All 6 (FB, IG, TikTok, YouTube, Google Business, Website)
-- AI captions: 30/mo
-- Scheduled posts: Unlimited
-- Users: 1
-- Analytics: Basic (last 30 days)
-- API: None
-- Locked: Weekly Planner, Review Alerts, API, White-label, Multi-seat
+### Starter — $19/mo | $15/mo annual ($180/yr)
+**Purpose:** Solo owner.
+- 1 location
+- 30 posts / month
+- 5 platforms
+- AutomationAgent
+- Inbox (read-only)
+- Website embed (specials)
+- Basic analytics (30 days)
+- Locked: AI reply drafts, multiple locations
 
-### Growth — $35/mo | $350/yr
-**Purpose:** Restaurant / cafe with one social media helper.
-- Platforms: All 6
-- AI captions: 150/mo
-- Scheduled posts: Unlimited
-- Users: 1
-- Analytics: Full (90 days + insights)
-- API: Yes (1,000 calls/day)
-- Weekly Planner: Yes
-- Review Alerts: Yes
-- Locked: White-label website, Multi-seat, Agency dashboard
+### Pro — $49/mo | $39/mo annual ($468/yr)
+**Purpose:** Full command center.
+- 1 location
+- Unlimited posts
+- All 8 platforms
+- Full AutomationAgent
+- Inbox + AI reply drafts + owner approval
+- Full website embed
+- Advanced analytics (90 days)
+- API access
+- Locked: multiple locations
 
-### Pro — $69/mo | $690/yr
-**Purpose:** Multi-location operator or busy single location.
-- Platforms: All 6
-- AI captions: Unlimited
-- Scheduled posts: Unlimited
-- Users: 3 seats
-- Analytics: Full + cross-account
-- API: Yes (10,000 calls/day)
-- White-label hosted website: Yes
-- Custom domain: Yes
-- Review Alerts: Yes
-- Weekly Planner: Yes
-
-### Agency — $249/mo | $2,490/yr
-**Purpose:** Marketing agencies reselling to local food clients.
-- All Pro features
-- 25 client accounts
-- Reseller dashboard (add/remove clients)
-- White-label branding (no PostPilot Pro visible to clients)
-- Bulk posting across all clients
-- Priority support (24hr response)
-- API: Unlimited
+### Agency — $99/mo | $79/mo annual ($948/yr)
+**Purpose:** Multi-location operators / small agencies.
+- Up to 5 locations
+- Everything in Pro per location
+- Priority support
+- White-label (roadmap — gate already in `plan_guard`)
 
 ---
 
-## Conversion Strategy
+## Conversion moments
 
-### The Upgrade Moments
-1. **Day 5–7:** Free user hits 5 AI caption limit
-   → Banner: "You've used all 5 AI captions this month. Upgrade to Starter for 30/mo."
+1. **Free hits 5 posts/mo** → upgrade to Starter  
+2. **Free tries AutomationAgent / embed** → Starter gate  
+3. **Starter wants AI inbox replies / full embed / API** → Pro gate  
+4. **Pro needs a second location** → Agency gate  
 
-2. **Day 10:** Free user tries to post to Instagram
-   → Lock screen: "Instagram posting is a Starter feature. Upgrade for $15/mo."
-
-3. **Day 14:** Free user opens Calendar tab
-   → Lock screen: "Schedule unlimited posts with Starter."
-
-4. **Day 30:** Free user sees Monthly Recap teaser
-   → "Your Growth tier unlocks full analytics. See exactly what's working."
-
-### Annual Conversion
-- Show annual option prominently on upgrade screen
-- "Save $30 — pay $150/yr instead of $180/yr"
-- Highlight: "Most food truck owners choose annual"
-- Annual customers churn at roughly half the rate of monthly
+Annual: show “2 months free” toggle (already in `billing.html`).
 
 ---
 
-## Stripe Implementation Notes
+## Stripe implementation
 
 ```python
-# Price IDs to create in Stripe Dashboard
+# Env vars to set in Vercel (real Stripe Price IDs)
 STRIPE_PRICES = {
-    'starter_monthly':  'price_XXXXXX',  # $15/mo
-    'starter_annual':   'price_XXXXXX',  # $150/yr
-    'growth_monthly':   'price_XXXXXX',  # $35/mo
-    'growth_annual':    'price_XXXXXX',  # $350/yr
-    'pro_monthly':      'price_XXXXXX',  # $69/mo
-    'pro_annual':       'price_XXXXXX',  # $690/yr
-    'agency_monthly':   'price_XXXXXX',  # $249/mo
-    'agency_annual':    'price_XXXXXX',  # $2,490/yr
+    'starter_monthly':  os.environ['STRIPE_PRICE_STARTER_MONTHLY'],  # $19
+    'starter_annual':   os.environ['STRIPE_PRICE_STARTER_ANNUAL'],   # $180/yr
+    'pro_monthly':      os.environ['STRIPE_PRICE_PRO_MONTHLY'],      # $49
+    'pro_annual':       os.environ['STRIPE_PRICE_PRO_ANNUAL'],       # $468/yr
+    'agency_monthly':   os.environ['STRIPE_PRICE_AGENCY_MONTHLY'],   # $99
+    'agency_annual':    os.environ['STRIPE_PRICE_AGENCY_ANNUAL'],    # $948/yr
 }
 
-# Webhook events to handle
 WEBHOOK_EVENTS = [
     'customer.subscription.created',
     'customer.subscription.updated',
@@ -121,8 +93,6 @@ WEBHOOK_EVENTS = [
     'invoice.payment_failed',
     'invoice.payment_succeeded',
 ]
-
-# On payment failure: downgrade to Free, lock features, email user
-# On cancellation: keep data for 30 days, then archive
-# Never delete user data on cancellation — they may come back
 ```
+
+Graceful downgrade: never delete data on cancel/payment failure; lock paid features; allow resubscribe.

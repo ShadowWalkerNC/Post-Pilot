@@ -1,17 +1,16 @@
 """
-blueprintsicron.py
+blueprints/cron.py
 Vercel Cron Job endpoints for Post-Pilot.
 
 Endpoints:
-  POST /api/cron/publish   -- runs every minute; publishes due scheduled posts
-  POST /api/cron/generate  -- runs every hour; generates and schedules new posts
-  GET  /api/cron/health    -- liveness check (no auth required)
+  GET|POST /api/cron/publish   -- every minute; publishes due scheduled posts
+  GET|POST /api/cron/generate  -- every hour; generates and schedules new posts
+  GET      /api/cron/health    -- liveness check (no auth required)
 
 Security:
-  All POST requests must carry:
+  publish/generate must carry:
     Authorization: Bearer <CRON_SECRET>
-  Vercel automatically injects this header on cron invocations.
-  Unauthenticated requests receive 401.
+  Vercel Cron invokes GET and injects this header automatically.
 
 Reference:
   https://vercel.com/docs/cron-jobs
@@ -45,11 +44,10 @@ def _verify_cron_secret() -> bool:
 
 
 # ---------------------------------------------------------------------------
-# POST /api/cron/publish
-# Runs every minute (vercel.json). Publishes all due scheduled posts.
+# /api/cron/publish — Vercel Cron uses GET; POST kept for manual ops
 # ---------------------------------------------------------------------------
 
-@cron_bp.route('/publish', methods=['POST'])
+@cron_bp.route('/publish', methods=['GET', 'POST'])
 def publish_due_posts():
     if not _verify_cron_secret():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
@@ -60,16 +58,14 @@ def publish_due_posts():
         return jsonify({'success': True}), 200
     except Exception as e:
         logger.error('cron/publish: failed: %s', e)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'publish failed'}), 500
 
 
 # ---------------------------------------------------------------------------
-# POST /api/cron/generate
-# Runs every hour (vercel.json). Generates and schedules new posts for all
-# users whose business profiles are complete.
+# /api/cron/generate
 # ---------------------------------------------------------------------------
 
-@cron_bp.route('/generate', methods=['POST'])
+@cron_bp.route('/generate', methods=['GET', 'POST'])
 def generate_scheduled_posts():
     if not _verify_cron_secret():
         return jsonify({'success': False, 'error': 'Unauthorized'}), 401
@@ -80,12 +76,11 @@ def generate_scheduled_posts():
         return jsonify({'success': True, 'summary': summary}), 200
     except Exception as e:
         logger.error('cron/generate: failed: %s', e)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'generate failed'}), 500
 
 
 # ---------------------------------------------------------------------------
 # GET /api/cron/health
-# Lightweight liveness check (no auth required).
 # ---------------------------------------------------------------------------
 
 @cron_bp.route('/health', methods=['GET'])
@@ -93,7 +88,7 @@ def cron_health():
     return jsonify({
         'status':    'ok',
         'endpoints': {
-            'publish':  '/api/cron/publish  (POST, every minute)',
-            'generate': '/api/cron/generate (POST, every hour)',
+            'publish':  '/api/cron/publish  (GET|POST, every minute)',
+            'generate': '/api/cron/generate (GET|POST, every hour)',
         },
     }), 200

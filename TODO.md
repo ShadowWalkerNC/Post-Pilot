@@ -1,5 +1,5 @@
 # Post-Pilot — Task List
-*Last updated: 2026-08-09 — Merged main Wave A/B + C1–C6 security fixes*
+*Last updated: 2026-08-10 — Security audit doc on main; C1–C6 remediations in #12*
 
 Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 Low
 
@@ -9,7 +9,7 @@ Priority levels: 🔴 Critical (stop-ship) · 🟠 High · 🟡 Medium · 🟢 L
 
 ## 🔴 CRITICAL — Security (code fixes)
 
-See also `docs/SECURITY_AUDIT.md` (audit PR) for full write-up.
+Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
 
 - [x] **C1** CSRF re-enabled on session APIs; `static/js/csrf.js` + template meta
 - [x] **C2** `/v1` IDOR — user API keys bound to key owner (`_resolve_scoped_user_id`)

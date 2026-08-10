@@ -13,7 +13,8 @@ jobs:
 
     env:
       DATABASE_URL: ''
-      DATABASE_PATH: ':memory:'
+      # File-backed SQLite — :memory: breaks across connections (auth_manager vs get_db).
+      DATABASE_PATH: test_postpilot.db
       FLASK_SECRET_KEY: ci-test-secret-key
       # TOKEN_ENCRYPTION_KEY is injected from the GitHub Actions secret below.
       # Add it at: Settings → Secrets and variables → Actions → CI_TOKEN_ENCRYPTION_KEY

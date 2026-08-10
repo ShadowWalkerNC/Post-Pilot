@@ -22,7 +22,6 @@ APP_VERSION = '1.0.0'
 
 def _get_api_key_row(token: str):
     """Look up an API key row by its token value."""
-    import hashlib
     key_hash = hashlib.sha256(token.encode()).hexdigest()
     db = get_db()
     return db.execute(
@@ -415,7 +414,6 @@ def create_api_key():
         token      = 'pp_live_' + secrets.token_urlsafe(32)
         expires_at = int(time.time()) + ttl * 86400 if ttl else None
 
-        import hashlib
         key_hash = hashlib.sha256(token.encode()).hexdigest()
         preview  = token[:12] + '...'
 

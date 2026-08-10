@@ -8,9 +8,11 @@ Disables CSRF so form posts work in tests (unless a test re-enables it).
 import os
 from unittest.mock import MagicMock, patch
 
-# Set env before any app imports
-os.environ.setdefault('DATABASE_URL', '')
-os.environ.setdefault('DATABASE_PATH', 'test_postpilot.db')
+# Set env before any app imports.
+# Force a file-backed SQLite DB — CI previously set DATABASE_PATH=:memory:, which
+# gives each connection a separate empty DB and breaks platform_tokens init.
+os.environ['DATABASE_URL'] = ''
+os.environ['DATABASE_PATH'] = 'test_postpilot.db'
 try:
     if os.path.exists('test_postpilot.db'):
         os.remove('test_postpilot.db')

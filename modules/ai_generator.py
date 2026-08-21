@@ -146,30 +146,31 @@ def _generate_openai(
 # ---------------------------------------------------------------------------
 TEMPLATES = {
     'daily_special': {
-        'facebook':  "\ud83c\udf7d\ufe0f Today's special at {name}: {special}! Come in and try it \u2014 you won't be disappointed. {location_tag}",
-        'instagram': "\u2728 TODAY'S SPECIAL \u2728\n\n{special} \u2014 made fresh and ready for you at {name}.\n\nCome find us {location_tag} and treat yourself! \ud83d\ude4c\n\n#{hashtag1} #{hashtag2} #foodie #localfood #dailyspecial",
-        'tiktok':    "{special} just dropped at {name} \ud83d\udd25 Don't miss it #{hashtag1} #foodtruck #todaysspecial",
+        'facebook':  "\U0001F37D\uFE0F Today's special at {name}: {special}! Come in and try it \u2014 you won't be disappointed. {location_tag}",
+        'instagram': "\u2728 TODAY'S SPECIAL \u2728\n\n{special} \u2014 made fresh and ready for you at {name}.\n\nCome find us {location_tag} and treat yourself! \U0001F64C\n\n#{hashtag1} #{hashtag2} #foodie #localfood #dailyspecial",
+        'tiktok':    "{special} just dropped at {name} \U0001F525 Don't miss it #{hashtag1} #foodtruck #todaysspecial",
         'google':    "Today's special: {special}. Visit {name} at {location} to enjoy it today.",
         'website':   "Today's Special: {special} \u2014 available now!",
         'youtube':   "Today at {name} we're serving up {special}. Come find us at {location} \u2014 here's everything you need to know!",
     },
     'location': {
-        'facebook':  "\ud83d\udccd We're set up at {location} today! Come find us \u2014 open until {hours}. {name} is ready for you!",
-        'instagram': "\ud83d\udccd FIND US TODAY\n\nWe're at {location} and ready to serve!\nOpen until {hours}.\n\nTag a friend who needs to know \ud83d\udc47\n\n#{hashtag1} #foodtruck #localeats #{hashtag2}",
-        'tiktok':    "We're at {location} right now \ud83d\udccd Open until {hours}! #{hashtag1} #foodtruck",
+        'facebook':  "\U0001F4CD We're set up at {location} today! Come find us \u2014 open until {hours}. {name} is ready for you!",
+        'instagram': "\U0001F4CD FIND US TODAY\n\nWe're at {location} and ready to serve!\nOpen until {hours}.\n\nTag a friend who needs to know \U0001F447\n\n#{hashtag1} #foodtruck #localeats #{hashtag2}",
+        'tiktok':    "We're at {location} right now \U0001F4CD Open until {hours}! #{hashtag1} #foodtruck",
         'google':    "We are at {location} today, open until {hours}. Come visit {name}!",
-        'website':   "\ud83d\udccd Today's Location: {location} | Open until {hours}",
+        'website':   "\U0001F4CD Today's Location: {location} | Open until {hours}",
         'youtube':   "We're parked at {location} today until {hours}! Here's how to find us at {name}.",
     },
     'general': {
         'facebook':  "Come visit {name}! We'd love to see you. {location_tag}",
-        'instagram': "Fresh eats. Good vibes. {name} \ud83d\ude4c\n\n#{hashtag1} #{hashtag2} #localfood #supportlocal",
-        'tiktok':    "{name} bringing the good stuff \ud83d\udd25 #{hashtag1} #foodie",
+        'instagram': "Fresh eats. Good vibes. {name} \U0001F64C\n\n#{hashtag1} #{hashtag2} #localfood #supportlocal",
+        'tiktok':    "{name} bringing the good stuff \U0001F525 #{hashtag1} #foodie",
         'google':    "Visit {name} for great food and friendly service. We look forward to seeing you!",
         'website':   "Welcome to {name} \u2014 great food, great vibes.",
         'youtube':   "Welcome to {name}! Here's what we've been up to lately.",
     },
 }
+
 
 
 def _generate_template(business_info: dict, content_type: str, platform: str) -> str:
@@ -322,7 +323,111 @@ def generate_all_platforms(
     out = {'master': master}
     for short, text in adapted.items():
         out[short] = text
-        if short in key_aliases:
-            out[key_aliases[short]] = text   # backwards-compat alias
-
     return out
+
+
+# ---------------------------------------------------------------------------
+# Engagement & Hook Predictor (Sprout/Hootsuite Pattern)
+# ---------------------------------------------------------------------------
+def calculate_engagement_score(
+    caption: str,
+    platform: str = 'instagram',
+    content_type: str = 'general'
+) -> dict:
+    """
+    Calculate an AI engagement score (0-100) and actionable tips for a caption.
+    Analyzes readability, hook presence, CTA, emoji ratio, and hashtag density.
+    """
+    if not caption or not caption.strip():
+        return {
+            'score': 0,
+            'tier': 'poor',
+            'feedback': ['Caption is empty.'],
+            'hook_score': 0,
+            'readability': 'poor',
+        }
+
+    text = caption.strip()
+    score = 50  # baseline
+    feedback = []
+
+    # 1. Hook Analysis (first sentence/line)
+    first_line = text.split('\n')[0].strip()
+    hook_score = 50
+    if len(first_line) > 0 and len(first_line) <= 120:
+        hook_score += 25
+        score += 15
+    elif len(first_line) > 120:
+        feedback.append('Shorten your opening hook (aim under 100 characters).')
+        hook_score -= 15
+        score -= 5
+
+    # Check for question or curiosity trigger in hook
+    if '?' in first_line or any(w in first_line.lower() for w in ['how', 'why', 'what', 'top', 'secret', 'special', 'free', 'new', 'alert']):
+        hook_score += 25
+        score += 10
+
+    # 2. Call to Action (CTA) Detection
+    cta_words = ['comment', 'link in bio', 'order', 'visit', 'tag', 'save', 'share', 'dm', 'click', 'try', 'join', 'call']
+    has_cta = any(w in text.lower() for w in cta_words)
+    if has_cta:
+        score += 15
+    else:
+        feedback.append('Add a clear Call-To-Action (e.g., "Tap link in bio", "Tag a friend").')
+
+    # 3. Hashtag Density Optimization
+    import re
+    hashtags = re.findall(r'#\w+', text)
+    tag_count = len(hashtags)
+
+    p = platform.lower()
+    if p in ('instagram', 'ig'):
+        if 3 <= tag_count <= 10:
+            score += 10
+        elif tag_count == 0:
+            feedback.append('Add 3-5 relevant hashtags to boost Instagram reach.')
+        elif tag_count > 15:
+            score -= 10
+            feedback.append('Too many hashtags; keep between 3-8 to avoid shadowban filters.')
+    elif p in ('google', 'gb'):
+        if tag_count > 0:
+            score -= 10
+            feedback.append('Remove hashtags for Google Business posts (Google ignores them).')
+        else:
+            score += 5
+    elif p in ('tiktok', 'tt'):
+        if 2 <= tag_count <= 6:
+            score += 10
+
+    # 4. Emoji & Whitespace Readability
+    has_emoji = bool(re.search(r'[\U00010000-\U0010ffff]', text))
+    if has_emoji:
+        score += 10
+    else:
+        feedback.append('Add 1-2 emojis to improve visual scannability.')
+
+    if '\n' in text and len(text) > 150:
+        score += 10  # Good spacing
+    elif len(text) > 250 and '\n' not in text:
+        score -= 10
+        feedback.append('Break up long text blocks with line breaks.')
+
+    final_score = max(10, min(100, score))
+    final_hook_score = max(10, min(100, hook_score))
+
+    if final_score >= 80:
+        tier = 'strong'
+    elif final_score >= 60:
+        tier = 'moderate'
+    else:
+        tier = 'needs_improvement'
+
+    return {
+        'score': final_score,
+        'tier': tier,
+        'hook_score': final_hook_score,
+        'hashtag_count': tag_count,
+        'has_cta': has_cta,
+        'feedback': feedback if feedback else ['Great engagement structure!']
+    }
+

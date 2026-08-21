@@ -180,11 +180,39 @@ class UniversalPublisher:
         except Exception as e:
             return {'success': False, 'error': str(e)}
 
+    def _request_with_retry(self, method: str, url: str, max_retries: int = 3, **kwargs) -> requests.Response:
+        """
+        Execute an HTTP request with exponential backoff retry for transient network & 429/5xx errors.
+        """
+        import time
+        import random
+        attempt = 0
+        backoff = 1.0
+
+        while attempt < max_retries:
+            attempt += 1
+            try:
+                r = requests.request(method, url, **kwargs)
+                if r.status_code in (429, 500, 502, 503, 504) and attempt < max_retries:
+                    sleep_sec = backoff + random.uniform(0, 0.5)
+                    time.sleep(sleep_sec)
+                    backoff *= 2.0
+                    continue
+                return r
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt >= max_retries:
+                    raise e
+                sleep_sec = backoff + random.uniform(0, 0.5)
+                time.sleep(sleep_sec)
+                backoff *= 2.0
+
+        return requests.request(method, url, **kwargs)
+
     # ------------------------------------------------------------------
     # Instagram
     # ------------------------------------------------------------------
 
-    def _publish_instagram(self, caption, media_url, schedule_time=None):
+    def _publish_instagram(self, caption, media_url, schedule_time=None, first_comment=None):
         token = self.tokens.get('instagram_token')
         ig_id = self.tokens.get('instagram_id')
         if not token or not ig_id:
@@ -197,27 +225,47 @@ class UniversalPublisher:
                 params['video_url']  = media_url
             else:
                 params['image_url'] = media_url
-            c = requests.post(
+            c = self._request_with_retry(
+                'POST',
                 f'https://graph.facebook.com/v19.0/{ig_id}/media',
                 params=params, timeout=15,
             )
             if c.status_code != 200:
                 return {'success': False, 'error': 'Failed to create media container', 'detail': c.json()}
-            p = requests.post(
+            p = self._request_with_retry(
+                'POST',
                 f'https://graph.facebook.com/v19.0/{ig_id}/media_publish',
                 params={'creation_id': c.json().get('id'), 'access_token': token},
                 timeout=15,
             )
             d     = p.json()
+            post_id = d.get('id')
             label = 'Reel published' if is_video else 'Photo published'
+
+            # Later-style First Comment injection
+            comment_res = None
+            if p.status_code == 200 and post_id and first_comment and first_comment.strip():
+                try:
+                    c_resp = self._request_with_retry(
+                        'POST',
+                        f'https://graph.facebook.com/v19.0/{post_id}/comments',
+                        params={'message': first_comment.strip(), 'access_token': token},
+                        timeout=10,
+                    )
+                    comment_res = c_resp.json()
+                except Exception:
+                    pass
+
             return {
                 'success': p.status_code == 200,
-                'post_id': d.get('id'),
+                'post_id': post_id,
                 'message': label,
+                'first_comment': comment_res,
                 'error':   d.get('error', {}).get('message') if p.status_code != 200 else None,
             }
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
 
     # ------------------------------------------------------------------
     # YouTube
@@ -454,3 +502,49 @@ class UniversalPublisher:
             return {'success': True, 'message': 'Website banner updated in DB'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+
+class Publisher:
+    """Publisher service for V1 API layer."""
+
+    def __init__(self, user_id: str):
+        self.user_id = user_id
+        from blueprints.utils import _get_tokens
+        self.tokens = _get_tokens(user_id)
+        self.univ = UniversalPublisher(self.tokens, user_id=user_id)
+
+    def publish(
+        self,
+        caption: str,
+        platforms: list = None,
+        image_url: str = None,
+        video_url: str = None,
+        scheduled_at: int = None,
+    ) -> dict:
+        import uuid
+        from modules.user_manager import UserManager
+        post_id = f"ph_{uuid.uuid4().hex[:8]}"
+        platforms = platforms or ['facebook', 'instagram']
+        results = self.univ.push_all(
+            caption=caption,
+            platforms=platforms,
+            image_url=image_url,
+            video_url=video_url,
+            schedule_time=scheduled_at,
+        )
+        UserManager.log_post(
+            user_id=self.user_id,
+            caption=caption,
+            content_type='video' if video_url else ('image' if image_url else 'text'),
+            image_url=image_url,
+            video_url=video_url,
+            platforms=platforms,
+            results=results,
+            scheduled_at=scheduled_at,
+            status='scheduled' if scheduled_at else 'published',
+        )
+        return {
+            'post_id': post_id,
+            'results': results,
+        }
+

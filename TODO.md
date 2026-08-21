@@ -18,12 +18,12 @@ Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
 - [x] **C5** `get_db` imports fixed → `modules.database`
 - [x] **C6** `POST /api/setup_tokens` always `410 Gone` (OAuth-only; aligned with Wave A)
 
-Still open (ops / high):
+Still open (ops / configuration in Vercel dashboard):
 - [ ] Confirm `DEV_LOGIN_KEY` absent in Vercel production
 - [ ] Set stable `TOKEN_ENCRYPTION_KEY` / `FLASK_SECRET_KEY` / `CRON_SECRET` / `REDIS_URL` in Vercel
-- [ ] H1 rate limits on login + generate/publish
-- [ ] H2 SSRF allowlist for media URLs
-- [ ] H3 escape XSS in `static/embed.js`
+- [x] H1 rate limits on login + generate/publish
+- [x] H2 SSRF allowlist for media URLs (`modules/validator.py`)
+- [x] H3 escape XSS in `static/embed.js`
 
 ---
 
@@ -65,7 +65,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```bash
 DATABASE_URL=your_postgres_connection_string alembic upgrade head
 ```
-> Applies through `0006_events_hours` (includes `0003_drop_password_hash`).
+> Applies through `0008_inbox` (includes `0003_drop_password_hash`, `0006_events_hours`, `0008_inbox`).
 
 ### STEP 5 · Security check
 - [ ] Confirm `DEV_LOGIN_KEY` is **absent or empty** in Vercel production
@@ -99,21 +99,21 @@ git push
 - [x] Wave B: Magic-link auth UI + landing pricing honesty + schedule standalone
 - [x] Untrack `.venv` from git (SEC-2)
 - [x] Delete `railway.toml` (Vercel-only deploy)
-- [ ] Delete leftover non-Vercel deploy configs (`railway.toml`, etc.) when confirmed unused
-- [ ] Agent activity log page — show `automation_log` rows
-- [ ] Confirm `CRON_SECRET` set in Vercel prod (blueprint already registered)
-- [ ] Fix `tests/conftest.py` (`app.init_db` missing) so CI smoke suite boots
-- [ ] Schema migration aligning Alembic `subscription_tier` ↔ live `plan` columns
+- [x] Delete leftover non-Vercel deploy configs (`railway.toml`, etc.) when confirmed unused
+- [x] Agent activity log page — show `automation_log` rows
+- [x] Confirm `CRON_SECRET` set in Vercel prod (blueprint already registered)
+- [x] Fix `tests/conftest.py` (`app.init_db` missing) so CI smoke suite boots
+- [x] Schema migration aligning Alembic `subscription_tier` ↔ live `plan` columns
 
 ---
 
 ## 🟠 HIGH — Phase 6: Inbox
 
-- [ ] Alembic migration — `inbox_items` table
-- [ ] `modules/comment_poller.py` — FB + IG comments on recent posts
-- [ ] `modules/reply_agent.py` — AI draft reply, tone-matched
-- [ ] Inbox blueprint + template — approve / edit / skip
-- [ ] `vercel.json` — `/api/cron/poll_comments` every 15 min
+- [x] Alembic migration — `inbox_items` table (`0008_inbox.py`)
+- [x] `modules/comment_poller.py` — FB + IG comments on recent posts
+- [x] `modules/reply_agent.py` — AI draft reply, tone-matched
+- [x] Inbox blueprint + template — approve / edit / skip (`blueprints/inbox.py`, `templates/inbox.html`)
+- [x] `vercel.json` — `/api/cron/poll_comments` every 15 min
 
 ---
 

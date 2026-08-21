@@ -115,7 +115,8 @@ def api_create_special():
     content_type = data.get('content_type', 'daily_special')
     tone         = data.get('tone', 'friendly')
     image_url    = (data.get('image_url') or '').strip() or None
-    platforms    = data.get('platforms') or ['fb', 'ig', 'tt', 'gb', 'web']
+    platforms    = data.get('platforms') if 'platforms' in data else ['fb', 'ig', 'tt', 'gb', 'web']
+
 
     errors = []
     if not item_name: errors.append('item_name is required')

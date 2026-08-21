@@ -90,7 +90,8 @@ def api_create_hours():
     message       = (data.get('message') or '').strip() or None
     override_type = data.get('override_type', 'closure')
     tone          = data.get('tone', 'friendly')
-    platforms     = data.get('platforms') or DEFAULT_PLATFORMS
+    platforms     = data.get('platforms') if 'platforms' in data else DEFAULT_PLATFORMS
+
 
     errors = []
     if not title:     errors.append('title is required')

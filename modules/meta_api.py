@@ -99,3 +99,100 @@ class MetaAPI:
             }
         )
         return res.json()
+
+    # ------------------------------------------------------------------
+    # Social Comment Inbox & Moderation (M3)
+    # ------------------------------------------------------------------
+
+    def get_facebook_comments(self, post_id: str, limit: int = 25) -> Dict:
+        """Fetch comments on a Facebook post"""
+        res = requests.get(
+            f"{self.BASE}/{post_id}/comments",
+            params={
+                'fields': 'id,message,created_time,from,like_count,comment_count',
+                'limit': limit,
+                'access_token': self.token,
+            }
+        )
+        return res.json()
+
+    def get_instagram_comments(self, media_id: str, limit: int = 25) -> Dict:
+        """Fetch comments on an Instagram media post"""
+        res = requests.get(
+            f"{self.BASE}/{media_id}/comments",
+            params={
+                'fields': 'id,text,timestamp,username,like_count,hidden',
+                'limit': limit,
+                'access_token': self.token,
+            }
+        )
+        return res.json()
+
+    def fetch_comments(self, platform: str, object_id: str, limit: int = 25) -> Dict:
+        """Universal comment fetch router"""
+        plat = (platform or '').lower()
+        if plat in ('fb', 'facebook'):
+            return self.get_facebook_comments(object_id, limit=limit)
+        if plat in ('ig', 'instagram'):
+            return self.get_instagram_comments(object_id, limit=limit)
+        return {'error': f'Unsupported platform for comment fetching: {platform}'}
+
+    def reply_to_facebook_comment(self, comment_id: str, message: str) -> Dict:
+        """Post a reply to a Facebook comment"""
+        res = requests.post(
+            f"{self.BASE}/{comment_id}/comments",
+            params={'message': message, 'access_token': self.token}
+        )
+        return res.json()
+
+    def reply_to_instagram_comment(self, comment_id: str, message: str) -> Dict:
+        """Post a reply to an Instagram comment"""
+        res = requests.post(
+            f"{self.BASE}/{comment_id}/replies",
+            params={'message': message, 'access_token': self.token}
+        )
+        return res.json()
+
+    def reply_to_comment(self, platform: str, comment_id: str, message: str) -> Dict:
+        """Universal comment reply router"""
+        plat = (platform or '').lower()
+        if plat in ('fb', 'facebook'):
+            return self.reply_to_facebook_comment(comment_id, message)
+        if plat in ('ig', 'instagram'):
+            return self.reply_to_instagram_comment(comment_id, message)
+        return {'error': f'Unsupported platform for comment replying: {platform}'}
+
+    def hide_facebook_comment(self, comment_id: str, is_hidden: bool = True) -> Dict:
+        """Hide or unhide a Facebook comment"""
+        res = requests.post(
+            f"{self.BASE}/{comment_id}",
+            params={'is_hidden': is_hidden, 'access_token': self.token}
+        )
+        return res.json()
+
+    def hide_instagram_comment(self, comment_id: str, hide: bool = True) -> Dict:
+        """Hide or unhide an Instagram comment"""
+        res = requests.post(
+            f"{self.BASE}/{comment_id}",
+            params={'hide': hide, 'access_token': self.token}
+        )
+        return res.json()
+
+    def hide_comment(self, platform: str, comment_id: str, hide: bool = True) -> Dict:
+        """Universal comment hide router"""
+        plat = (platform or '').lower()
+        if plat in ('fb', 'facebook'):
+            return self.hide_facebook_comment(comment_id, is_hidden=hide)
+        if plat in ('ig', 'instagram'):
+            return self.hide_instagram_comment(comment_id, hide=hide)
+        return {'error': f'Unsupported platform for comment hiding: {platform}'}
+
+    def post_instagram_comment(self, media_id: str, message: str) -> Dict:
+        """Post a top-level comment to an Instagram media post (e.g. First Comment hashtags)."""
+        res = requests.post(
+            f"{self.BASE}/{media_id}/comments",
+            params={'message': message, 'access_token': self.token}
+        )
+        return res.json()
+
+

@@ -69,6 +69,16 @@
     `;
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function renderPosts(posts, el) {
     if (!posts || !posts.length) {
       el.innerHTML += '<p style="color:#94a3b8;font-size:.85rem">No posts yet.</p>';
@@ -77,9 +87,10 @@
     posts.slice(0, 6).forEach(function (p) {
       const d = document.createElement('div');
       d.className = 'pp-post';
-      const img = p.image_url ? `<img src="${p.image_url}" alt="" loading="lazy">` : '';
-      const cap = (p.caption || '').slice(0, 160) + ((p.caption || '').length > 160 ? '\u2026' : '');
-      const dt  = p.created_at ? `<p class="pp-post-date">${p.created_at}</p>` : '';
+      const img = p.image_url ? `<img src="${encodeURI(p.image_url)}" alt="" loading="lazy">` : '';
+      const rawCap = p.caption || '';
+      const cap = escapeHtml(rawCap.slice(0, 160) + (rawCap.length > 160 ? '\u2026' : ''));
+      const dt  = p.created_at ? `<p class="pp-post-date">${escapeHtml(p.created_at)}</p>` : '';
       d.innerHTML = img + `<div class="pp-post-body"><p class="pp-post-caption">${cap}</p>${dt}</div>`;
       el.appendChild(d);
     });
@@ -95,7 +106,7 @@
     Object.entries(hours).forEach(function (kv) {
       const row = document.createElement('div');
       row.className = 'pp-hours-row';
-      row.innerHTML = `<span class="pp-hours-label">${kv[0]}</span><span>${kv[1]}</span>`;
+      row.innerHTML = `<span class="pp-hours-label">${escapeHtml(kv[0])}</span><span>${escapeHtml(kv[1])}</span>`;
       tbl.appendChild(row);
     });
     el.appendChild(tbl);
@@ -109,13 +120,14 @@
     services.forEach(function (s) {
       const d = document.createElement('div');
       d.className = 'pp-service';
-      const icon  = s.icon  ? `<span style="font-size:1.4rem;margin-right:6px">${s.icon}</span>` : '';
-      const desc  = s.description ? `<p class="pp-service-desc">${s.description}</p>` : '';
-      const price = s.price ? `<p class="pp-service-price">${s.price}</p>` : '';
-      d.innerHTML = `<p class="pp-service-name">${icon}${s.name || ''}</p>${desc}${price}`;
+      const icon  = s.icon  ? `<span style="font-size:1.4rem;margin-right:6px">${escapeHtml(s.icon)}</span>` : '';
+      const desc  = s.description ? `<p class="pp-service-desc">${escapeHtml(s.description)}</p>` : '';
+      const price = s.price ? `<p class="pp-service-price">${escapeHtml(s.price)}</p>` : '';
+      d.innerHTML = `<p class="pp-service-name">${icon}${escapeHtml(s.name || '')}</p>${desc}${price}`;
       el.appendChild(d);
     });
   }
+
 
   function buildWidget(container, data) {
     const themeKey = (container.dataset.postpilotTheme || 'light').toLowerCase();

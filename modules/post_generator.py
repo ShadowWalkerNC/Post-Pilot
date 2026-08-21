@@ -191,3 +191,39 @@ class SocialMediaPostGenerator:
                 else {'success': False, 'error': data.get('error', {}).get('message')}
         except Exception as e:
             return {'success': False, 'error': str(e)}
+
+
+class PostGenerator:
+    """Post generator service for V1 API layer."""
+
+    def __init__(self, user_id: str = None):
+        self.user_id = user_id
+
+    def generate(self, topic: str, platform: str = 'instagram', tone: str = 'engaging') -> dict:
+        from modules.ai_generator import generate_caption
+        business_info = {
+            'name': 'Post-Pilot',
+            'type': 'restaurant',
+            'special': topic,
+        }
+        if self.user_id:
+            try:
+                from modules.user_manager import UserManager
+                u = UserManager.get_user(self.user_id)
+                if u and getattr(u, 'business_name', None):
+                    business_info['name'] = u.business_name
+            except Exception:
+                pass
+        caption = generate_caption(
+            business_info=business_info,
+            content_type='general',
+            tone=tone,
+            keywords=[topic],
+            platform=platform,
+        )
+        hashtags = [w for w in caption.split() if w.startswith('#')]
+        return {
+            'caption': caption,
+            'hashtags': hashtags,
+        }
+

@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post-Pilot — AI Social Comment Inbox</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            brand:  { 300:'#a5b4fc', 400:'#818cf8', 500:'#6366f1', 600:'#4f46e5', 700:'#4338ca' },
+            flame:  { 300:'#fdba74', 400:'#fb923c', 500:'#f97316', 600:'#ea580c' },
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html, body { height:100%; overflow:hidden; }
+    body { background:#07071a; color:#f1f5f9; font-family:'Outfit', ui-sans-serif, system-ui, sans-serif; }
+
+    ::-webkit-scrollbar { width:4px; height:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:rgba(255,255,255,.08); border-radius:99px; }
+
+    /* ---- SIDEBAR ---- */
+    #sidebar {
+      transition: width .25s cubic-bezier(.4,0,.2,1);
+      background: radial-gradient(ellipse 160% 40% at 50% 0%, rgba(99,102,241,.18) 0%, transparent 70%), #07071a;
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+
+    #sidebar-logo {
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      background: linear-gradient(180deg, rgba(99,102,241,.05) 0%, transparent 100%);
+    }
+
+    #business-badge {
+      background: rgba(99,102,241,.07);
+      border: 1px solid rgba(99,102,241,.18);
+      border-radius: .875rem;
+    }
+
+    .nav-item {
+      display:flex; align-items:center; gap:.7rem;
+      padding:.55rem .75rem; border-radius:.75rem;
+      font-size:.8rem; font-weight:500; color:#64748b;
+      cursor:pointer; transition:background .15s, color .15s;
+      white-space:nowrap; overflow:hidden;
+    }
+    .nav-item:hover { background:rgba(255,255,255,.04); color:#cbd5e1; }
+    .nav-item.active {
+      background: rgba(99,102,241,.12);
+      color: #818cf8;
+      box-shadow: inset 3px 0 0 #6366f1;
+    }
+    .nav-item.active .nav-icon { color:#818cf8; }
+    .nav-icon { flex-shrink:0; width:1rem; height:1rem; color:#475569; transition:color .15s; }
+    .nav-item:hover .nav-icon { color:#94a3b8; }
+
+    .nav-section {
+      padding:.75rem .75rem .35rem;
+      font-size:.65rem; font-weight:700;
+      text-transform:uppercase; letter-spacing:.08em;
+      color:rgba(255,255,255,.18);
+    }
+
+    /* ---- CARDS & UI ---- */
+    .stat-card {
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius:.75rem;
+      padding:.85rem 1rem;
+    }
+
+    .inbox-card {
+      background: rgba(255,255,255,.025);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 1rem;
+      transition: border-color .15s, background .15s;
+    }
+    .inbox-card:hover {
+      border-color: rgba(99,102,241,.3);
+      background: rgba(255,255,255,.035);
+    }
+
+    .pill-tab {
+      padding: .45rem .9rem;
+      border-radius: .65rem;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      color: #94a3b8;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .pill-tab:hover {
+      color: #f1f5f9;
+      background: rgba(255,255,255,.06);
+    }
+    .pill-tab.active {
+      background: rgba(99,102,241,.18);
+      color: #818cf8;
+      border-color: rgba(99,102,241,.4);
+    }
+
+    .tone-btn {
+      padding: .25rem .55rem;
+      border-radius: .5rem;
+      font-size: .72rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      color: #94a3b8;
+      transition: all .15s;
+    }
+    .tone-btn:hover {
+      color: #fff;
+      background: rgba(99,102,241,.2);
+      border-color: rgba(99,102,241,.35);
+    }
+
+    .pp-textarea {
+      width:100%;
+      background:rgba(0,0,0,.25);
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:.65rem;
+      padding:.6rem .8rem;
+      color:#f1f5f9;
+      font-size:.85rem;
+      outline:none;
+      transition:border-color .15s;
+      resize:vertical;
+    }
+    .pp-textarea:focus { border-color:rgba(99,102,241,.6); }
+
+    .btn-send {
+      background: linear-gradient(135deg,#6366f1,#4f46e5);
+      box-shadow: 0 4px 12px rgba(99,102,241,.35);
+      color:#fff; font-weight:700; font-size:.8rem;
+      border-radius:.65rem; padding:.5rem 1rem;
+      cursor:pointer; border:none; transition:opacity .15s;
+    }
+    .btn-send:hover { opacity:.9; }
+
+    .btn-action {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.1);
+      color: #cbd5e1; font-weight: 600; font-size: .78rem;
+      border-radius: .65rem; padding: .5rem .85rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-action:hover { background: rgba(255,255,255,.1); }
+
+    .btn-danger-ghost {
+      background: rgba(239,68,68,.08);
+      border: 1px solid rgba(239,68,68,.2);
+      color: #f87171; font-weight: 600; font-size: .78rem;
+      border-radius: .65rem; padding: .5rem .85rem;
+      cursor: pointer; transition: all .15s;
+    }
+    .btn-danger-ghost:hover { background: rgba(239,68,68,.18); }
+
+    #toastContainer { position:fixed; bottom:1.5rem; right:1.5rem; z-index:999; display:flex; flex-direction:column; gap:.5rem; }
+    .toast { padding:.7rem 1.1rem; border-radius:.75rem; font-size:.82rem; font-weight:600; animation:slideIn .3s ease; min-width:220px; }
+    .toast-ok   { background:#16a34a; color:#fff; }
+    .toast-err  { background:#dc2626; color:#fff; }
+    .toast-info { background:#6366f1; color:#fff; }
+    @keyframes slideIn { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+  </style>
+  {% include "_csrf.html" %}
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside id="sidebar" class="flex flex-col flex-shrink-0 overflow-hidden" style="width:224px">
+
+  <!-- Logo -->
+  <div id="sidebar-logo" class="flex items-center gap-2.5 px-4 py-4">
+    <div class="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0 shadow-lg"
+         style="background:linear-gradient(135deg,#6366f1,#f97316);box-shadow:0 4px 12px rgba(99,102,241,.35)">
+      <svg viewBox="0 0 24 24" fill="white" class="w-4 h-4">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+      </svg>
+    </div>
+    <div>
+      <div class="font-black text-sm tracking-tight leading-none">
+        Post<span class="text-brand-400">-</span>Pilot
+      </div>
+      <div class="text-xs text-gray-600 leading-none mt-0.5">Content Hub</div>
+    </div>
+  </div>
+
+  <!-- Business badge -->
+  <div id="business-badge" class="mx-3 mt-3 mb-1 px-3 py-2.5">
+    <div class="flex items-center justify-between mb-0.5">
+      <span class="text-xs text-gray-600">Active business</span>
+      <span class="flex items-center gap-1 text-xs text-flame-400 font-semibold">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400" style="box-shadow:0 0 5px #4ade80"></span>
+        Live
+      </span>
+    </div>
+    <div class="text-sm font-bold text-white truncate">{{ business_name or 'Your Business' }}</div>
+    <span class="inline-flex items-center mt-1 text-xs px-2 py-0.5 rounded-full font-bold"
+          style="background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.25)">
+      {{ tier_label or 'Starter Plan' }}
+    </span>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 overflow-y-auto px-2 pt-3 pb-1">
+    <div class="nav-item" onclick="window.location.href='/dashboard'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+      </svg>
+      Dashboard
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='/calendar'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      Calendar
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='/analytics'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      Analytics
+    </div>
+
+    <!-- Active Inbox Nav Item -->
+    <div class="nav-item active" onclick="window.location.href='/inbox'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+      </svg>
+      Inbox
+      {% if stats.pending > 0 %}
+        <span class="ml-auto px-1.5 py-0.2 rounded-full text-xs font-bold bg-indigo-600 text-white">{{ stats.pending }}</span>
+      {% endif %}
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='/website_hub'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"/>
+      </svg>
+      Website Hub
+    </div>
+
+    <div class="nav-section">Account</div>
+
+    <div class="nav-item" onclick="window.location.href='/billing'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+      </svg>
+      Billing
+    </div>
+
+    <div class="nav-item" onclick="window.location.href='/setup'">
+      <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      Settings
+    </div>
+  </nav>
+</aside>
+
+<!-- ===================== MAIN CONTENT ===================== -->
+<main class="flex-1 flex flex-col overflow-hidden bg-[#07071a]">
+
+  <!-- Top Header -->
+  <header class="px-8 py-5 flex items-center justify-between border-b border-white/5 bg-[#07071a]/80 backdrop-blur">
+    <div>
+      <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+        <span>AI Social Comment Inbox</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">M3 Live</span>
+      </h1>
+      <p class="text-xs text-gray-400 mt-0.5">Automated comment ingestion, sentiment analysis & 1-click tone-matched replies.</p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button id="pollBtn" onclick="pollCommentsNow()" class="btn-action flex items-center gap-2">
+        <svg id="pollIcon" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        <span id="pollText">Sync / Poll Comments</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Content Container (Scrollable) -->
+  <div class="flex-1 overflow-y-auto px-8 py-6 space-y-6">
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="stat-card">
+        <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Pending Review</div>
+        <div class="text-2xl font-bold text-amber-400 mt-1">{{ stats.pending }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Replied</div>
+        <div class="text-2xl font-bold text-green-400 mt-1">{{ stats.replied }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Positive Vibes</div>
+        <div class="text-2xl font-bold text-indigo-400 mt-1">{{ stats.sentiment.positive }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Questions Asked</div>
+        <div class="text-2xl font-bold text-blue-400 mt-1">{{ stats.sentiment.question }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="text-xs text-gray-500 font-semibold uppercase tracking-wider">Spam / Hidden</div>
+        <div class="text-2xl font-bold text-red-400 mt-1">{{ stats.hidden + stats.sentiment.spam }}</div>
+      </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
+      <!-- Status Tabs -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button onclick="setFilter('status', 'pending')" class="pill-tab {% if selected_status == 'pending' %}active{% endif %}">Pending ({{ stats.pending }})</button>
+        <button onclick="setFilter('status', 'replied')" class="pill-tab {% if selected_status == 'replied' %}active{% endif %}">Replied ({{ stats.replied }})</button>
+        <button onclick="setFilter('status', 'hidden')" class="pill-tab {% if selected_status == 'hidden' %}active{% endif %}">Hidden ({{ stats.hidden }})</button>
+        <button onclick="setFilter('status', 'skipped')" class="pill-tab {% if selected_status == 'skipped' %}active{% endif %}">Skipped ({{ stats.skipped }})</button>
+        <button onclick="setFilter('status', 'all')" class="pill-tab {% if selected_status == 'all' %}active{% endif %}">All ({{ stats.total }})</button>
+      </div>
+
+      <!-- Sentiment & Platform Filters -->
+      <div class="flex items-center gap-2">
+        <select onchange="setFilter('sentiment', this.value)" class="bg-black/30 text-gray-300 border border-white/10 rounded-lg px-3 py-1.5 text-xs outline-none">
+          <option value="">All Sentiments</option>
+          <option value="positive" {% if selected_sentiment == 'positive' %}selected{% endif %}>Positive 🔥</option>
+          <option value="question" {% if selected_sentiment == 'question' %}selected{% endif %}>Question ❓</option>
+          <option value="negative" {% if selected_sentiment == 'negative' %}selected{% endif %}>Negative ⚠️</option>
+          <option value="neutral" {% if selected_sentiment == 'neutral' %}selected{% endif %}>Neutral 💬</option>
+          <option value="spam" {% if selected_sentiment == 'spam' %}selected{% endif %}>Spam 🚫</option>
+        </select>
+
+        <select onchange="setFilter('platform', this.value)" class="bg-black/30 text-gray-300 border border-white/10 rounded-lg px-3 py-1.5 text-xs outline-none">
+          <option value="">All Platforms</option>
+          <option value="fb" {% if selected_platform == 'fb' %}selected{% endif %}>Facebook</option>
+          <option value="ig" {% if selected_platform == 'ig' %}selected{% endif %}>Instagram</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Items List -->
+    {% if items %}
+      <div class="space-y-4">
+        {% for item in items %}
+          <div class="inbox-card p-5" id="card-{{ item.id }}">
+
+            <!-- Card Header: Platform, Author, Timestamp, Status & Sentiment Pills -->
+            <div class="flex items-center justify-between gap-2 mb-3">
+              <div class="flex items-center gap-2.5">
+                {% if item.platform in ['fb', 'facebook'] %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                    Facebook
+                  </span>
+                {% else %}
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-500/20 text-pink-400 border border-pink-500/30">
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                    Instagram
+                  </span>
+                {% endif %}
+                <span class="font-bold text-sm text-white">{{ item.author_name or 'User' }}</span>
+                <span class="text-xs text-gray-500">{{ item.comment_time or 'Recently' }}</span>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <!-- Sentiment Pill -->
+                {% if item.sentiment == 'positive' %}
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-green-500/20 text-green-400 border border-green-500/30">Positive 🔥</span>
+                {% elif item.sentiment == 'question' %}
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30">Question ❓</span>
+                {% elif item.sentiment == 'negative' %}
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30">Negative ⚠️</span>
+                {% elif item.sentiment == 'spam' %}
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">Spam 🚫</span>
+                {% else %}
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-500/20 text-gray-400 border border-gray-500/30">Neutral 💬</span>
+                {% endif %}
+
+                <!-- Status Pill -->
+                <span class="px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/5 text-gray-300 border border-white/10">
+                  {{ item.status }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Post Context Banner -->
+            {% if item.post_context %}
+              <div class="text-xs text-gray-400 bg-white/[0.03] px-3 py-2 rounded-lg mb-2.5 border border-white/5 flex items-start gap-1.5">
+                <span class="text-gray-500 font-semibold flex-shrink-0">On Post:</span>
+                <span class="italic text-gray-300 line-clamp-1">"{{ item.post_context }}"</span>
+              </div>
+            {% endif %}
+
+            <!-- Comment Text -->
+            <div class="text-white text-sm font-medium mb-3.5 pl-1 leading-relaxed">
+              "{{ item.comment_text }}"
+            </div>
+
+            <!-- AI Draft & Reply Workflow -->
+            {% if item.status == 'pending' %}
+              <div class="bg-black/30 p-3.5 rounded-xl border border-white/5 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-indigo-400 flex items-center gap-1">
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                      AI Draft Reply:
+                    </span>
+                  </div>
+                  <!-- Quick Tone Selector -->
+                  <div class="flex items-center gap-1">
+                    <span class="text-[11px] text-gray-500 mr-1 font-semibold">Tone:</span>
+                    {% for t in tones %}
+                      <button onclick="regenerateDraft({{ item.id }}, '{{ t }}')" class="tone-btn">{{ t|title }}</button>
+                    {% endfor %}
+                  </div>
+                </div>
+
+                <textarea id="reply-input-{{ item.id }}" rows="2" class="pp-textarea" placeholder="Edit or type reply...">{{ item.ai_draft_reply or '' }}</textarea>
+
+                <div class="flex items-center justify-between pt-1">
+                  <div class="flex items-center gap-2">
+                    <button onclick="hideComment({{ item.id }})" class="btn-danger-ghost" title="Hide comment on platform">Hide / Spam</button>
+                    <button onclick="skipComment({{ item.id }})" class="btn-action" title="Archive without replying">Skip</button>
+                  </div>
+                  <button onclick="sendReply({{ item.id }})" class="btn-send flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    Send Reply
+                  </button>
+                </div>
+              </div>
+            {% elif item.status in ['approved', 'auto_replied'] %}
+              <div class="bg-green-500/10 border border-green-500/20 p-3 rounded-xl text-xs text-green-300">
+                <div class="font-bold flex items-center gap-1 mb-1">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                  Replied:
+                </div>
+                <div>"{{ item.final_reply or item.ai_draft_reply }}"</div>
+              </div>
+            {% elif item.status == 'hidden' %}
+              <div class="bg-red-500/10 border border-red-500/20 p-2.5 rounded-xl text-xs text-red-300 font-semibold flex items-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/></svg>
+                This comment was hidden from the social post.
+              </div>
+            {% elif item.status == 'skipped' %}
+              <div class="bg-white/5 border border-white/10 p-2.5 rounded-xl text-xs text-gray-400 font-medium">
+                Skipped / Archived without replying.
+              </div>
+            {% endif %}
+
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-12 text-center rounded-2xl border border-dashed border-white/10 bg-white/[0.01]">
+        <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-indigo-500/10 text-indigo-400 mb-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+        </div>
+        <div class="text-sm font-bold text-white">No comments found</div>
+        <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">There are no comments matching your current filters. Click "Sync / Poll Comments" to fetch the latest activity from Facebook & Instagram.</p>
+      </div>
+    {% endif %}
+
+  </div>
+</main>
+
+<div id="toastContainer"></div>
+
+<script>
+  function showToast(msg, type='ok') {
+    const cont = document.getElementById('toastContainer');
+    const t = document.createElement('div');
+    t.className = 'toast toast-' + (type === 'err' ? 'err' : (type === 'info' ? 'info' : 'ok'));
+    t.innerText = msg;
+    cont.appendChild(t);
+    setTimeout(() => { t.remove(); }, 3500);
+  }
+
+  function setFilter(key, val) {
+    const url = new URL(window.location.href);
+    if (val) {
+      url.searchParams.set(key, val);
+    } else {
+      url.searchParams.delete(key);
+    }
+    window.location.href = url.toString();
+  }
+
+  async function pollCommentsNow() {
+    const btn = document.getElementById('pollBtn');
+    const icon = document.getElementById('pollIcon');
+    const text = document.getElementById('pollText');
+    btn.disabled = true;
+    icon.classList.add('animate-spin');
+    text.innerText = 'Syncing...';
+
+    try {
+      const res = await fetch('/api/inbox/poll_now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(`Synced! ${data.result?.new || 0} new comment(s) ingested.`, 'ok');
+        setTimeout(() => { window.location.reload(); }, 1000);
+      } else {
+        showToast(data.error?.message || 'Polling failed', 'err');
+      }
+    } catch (e) {
+      showToast('Network error while polling', 'err');
+    } finally {
+      btn.disabled = false;
+      icon.classList.remove('animate-spin');
+      text.innerText = 'Sync / Poll Comments';
+    }
+  }
+
+  async function sendReply(itemId) {
+    const input = document.getElementById('reply-input-' + itemId);
+    const replyText = input ? input.value.trim() : '';
+    if (!replyText) {
+      showToast('Reply text cannot be empty', 'err');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/inbox/${itemId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reply_text: replyText })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Reply sent successfully!', 'ok');
+        setTimeout(() => { window.location.reload(); }, 800);
+      } else {
+        showToast(data.error?.message || data.error || 'Failed to send reply', 'err');
+      }
+    } catch (e) {
+      showToast('Error sending reply', 'err');
+    }
+  }
+
+  async function regenerateDraft(itemId, tone) {
+    try {
+      showToast(`Generating ${tone} draft...`, 'info');
+      const res = await fetch(`/api/inbox/${itemId}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tone: tone })
+      });
+      const data = await res.json();
+      if (data.success && data.ai_draft_reply) {
+        const input = document.getElementById('reply-input-' + itemId);
+        if (input) input.value = data.ai_draft_reply;
+        showToast('Draft updated!', 'ok');
+      } else {
+        showToast(data.error?.message || 'Failed to regenerate draft', 'err');
+      }
+    } catch (e) {
+      showToast('Error regenerating draft', 'err');
+    }
+  }
+
+  async function hideComment(itemId) {
+    if (!confirm('Are you sure you want to hide this comment on the social media post?')) return;
+    try {
+      const res = await fetch(`/api/inbox/${itemId}/hide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Comment hidden successfully', 'ok');
+        setTimeout(() => { window.location.reload(); }, 800);
+      } else {
+        showToast(data.error?.message || data.error || 'Failed to hide comment', 'err');
+      }
+    } catch (e) {
+      showToast('Error hiding comment', 'err');
+    }
+  }
+
+  async function skipComment(itemId) {
+    try {
+      const res = await fetch(`/api/inbox/${itemId}/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Comment archived', 'ok');
+        setTimeout(() => { window.location.reload(); }, 800);
+      } else {
+        showToast(data.error?.message || data.error || 'Failed to skip comment', 'err');
+      }
+    } catch (e) {
+      showToast('Error skipping comment', 'err');
+    }
+  }
+</script>
+
+</body>
+</html>

@@ -94,7 +94,8 @@ def api_create_event():
     tone         = data.get('tone', 'hype')
     image_url    = (data.get('image_url') or '').strip() or None
     ticket_url   = (data.get('ticket_url') or '').strip() or None
-    platforms    = data.get('platforms') or DEFAULT_PLATFORMS
+    platforms    = data.get('platforms') if 'platforms' in data else DEFAULT_PLATFORMS
+
 
     errors = []
     if not title:     errors.append('title is required')

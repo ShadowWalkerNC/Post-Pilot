@@ -30,13 +30,38 @@ IMAGE_REQUIRED  = {'ig'}
 VIDEO_ONLY      = {'yt', 'tt'}
 
 
+import ipaddress
+import socket
+
 def _is_valid_url(url: str) -> bool:
-    """Return True if url is an absolute http/https URL."""
+    """
+    Return True if url is an absolute http/https URL with a public hostname or IP.
+    Blocks private IP addresses, loopback, link-local, and cloud metadata (SSRF guard).
+    """
     try:
         p = urlparse(url)
-        return p.scheme in ('http', 'https') and bool(p.netloc)
+        if p.scheme not in ('http', 'https') or not p.netloc:
+            return False
+        hostname = p.hostname
+        if not hostname:
+            return False
+        
+        # Check if hostname is localhost or obvious private names
+        if hostname.lower() in ('localhost', '127.0.0.1', '::1', '0.0.0.0'):
+            return False
+        
+        # Try parsing as IP address directly
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved or ip.is_multicast:
+                return False
+        except ValueError:
+            pass  # It's a domain name, not a raw IP
+            
+        return True
     except Exception:
         return False
+
 
 
 def validate_post_input(

@@ -146,12 +146,20 @@ class UserManager:
     # -- Read ---------------------------------------------------------------
     @staticmethod
     def get_user(user_id: str) -> Optional[User]:
+        if not user_id:
+            return None
         try:
             conn = _get_conn()
-            cur  = conn.execute(
-                'SELECT * FROM users WHERE id = ?::uuid',
-                (str(user_id),),
-            )
+            try:
+                cur = conn.execute(
+                    'SELECT * FROM users WHERE id = ?',
+                    (str(user_id),),
+                )
+            except Exception:
+                cur = conn.execute(
+                    'SELECT * FROM users WHERE id = ?::uuid',
+                    (str(user_id),),
+                )
             row = cur.fetchone()
             return User(dict(row)) if row else None
         except Exception as exc:

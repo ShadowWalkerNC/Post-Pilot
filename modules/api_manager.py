@@ -108,7 +108,7 @@ def require_api_key(f):
 
 
 def _ok(data=None, **kwargs):
-    payload = {'success': True}
+    payload = {'success': True, 'status': 'success'}
     if data is not None:
         payload['data'] = data
     payload.update(kwargs)

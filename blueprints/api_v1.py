@@ -484,7 +484,6 @@ def generate_post():
         platforms = ['fb', 'ig']
 
     tone = body.get('tone', 'friendly')
-    content_type = body.get('content_type', 'general')
     keywords = body.get('keywords', [])
     if isinstance(keywords, str):
         keywords = [k.strip() for k in keywords.split(',') if k.strip()]

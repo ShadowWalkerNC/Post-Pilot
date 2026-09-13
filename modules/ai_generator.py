@@ -311,15 +311,6 @@ def generate_all_platforms(
     master   = result['master']
     adapted  = result['adapted']
 
-    # Legacy long-name aliases so old callers don't break
-    key_aliases = {
-        'fb':  'facebook',
-        'ig':  'instagram',
-        'tt':  'tiktok',
-        'yt':  'youtube',
-        'gb':  'google',
-        'web': 'website',
-    }
     out = {'master': master}
     for short, text in adapted.items():
         out[short] = text

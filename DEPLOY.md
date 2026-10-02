@@ -1,12 +1,22 @@
 # Deploying Post-Pilot
 
-Post-Pilot is a Python/Flask app deployed on **Vercel** (serverless) with **Supabase** (Postgres + Auth) and **Vercel Cron** for scheduled generate/publish.
-
-> Older Railway/Render runbooks are obsolete. Do not deploy this app as a long-lived APScheduler worker.
+Post-Pilot is a Python/Flask app supporting deployment on **Railway** (persistent container with integrated APScheduler background worker) as well as **Vercel** (serverless) with **Supabase** (Postgres + Auth).
 
 ---
 
-## 1. Link the Vercel project
+## 1. Deploying on Railway (Recommended)
+
+1. Connect your repository on [Railway](https://railway.app).
+2. Railway detects `railway.toml` / `Procfile` and builds using `NIXPACKS` or Python.
+3. In Railway dashboard variables, set:
+   - `ENABLE_BACKGROUND_SCHEDULER=true` (runs APScheduler background publishing, comment polling, and generation within the container).
+   - Set all production environment variables listed below.
+4. Railway automatically manages port binding via `$PORT` and continuous uptime.
+
+---
+
+## 2. Link the Vercel project (Serverless alternative)
+
 
 1. Import `ShadowWalkerNC/Post-Pilot` in the Vercel dashboard (or `vercel link` locally).
 2. Framework preset: Other / Python. Entry is `app.py` (see `vercel.json`).

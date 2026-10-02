@@ -281,8 +281,49 @@ def init_scheduler():
         replace_existing   = True,
         misfire_grace_time = 60,
     )
+    # Background generation (hourly)
+    try:
+        from modules.automation_agent import run_for_all_users
+        _scheduler.add_job(
+            run_for_all_users,
+            trigger  = IntervalTrigger(hours=1),
+            id       = 'generate_scheduled',
+            replace_existing   = True,
+            misfire_grace_time = 300,
+        )
+    except Exception as _e:
+        logger.warning('Could not register generate_scheduled job: %s', _e)
+
+    # Social comments poller (every 15 min)
+    try:
+        from modules.comment_poller import poll_all_active_users
+        _scheduler.add_job(
+            poll_all_active_users,
+            trigger  = IntervalTrigger(minutes=15),
+            id       = 'poll_comments',
+            replace_existing   = True,
+            misfire_grace_time = 180,
+        )
+    except Exception as _e:
+        logger.warning('Could not register poll_comments job: %s', _e)
+
+    # Morning daily prompt (daily at 7:00 AM)
+    try:
+        from modules.notification_service import send_morning_prompts_to_due_users
+        from apscheduler.triggers.cron import CronTrigger
+        _scheduler.add_job(
+            send_morning_prompts_to_due_users,
+            trigger  = CronTrigger(hour=7, minute=0),
+            id       = 'morning_prompts',
+            replace_existing   = True,
+            misfire_grace_time = 600,
+        )
+    except Exception as _e:
+        logger.warning('Could not register morning_prompts job: %s', _e)
+
     _scheduler.start()
-    logger.info('scheduler_worker: APScheduler started (1-min poll interval)')
+    logger.info('scheduler_worker: APScheduler started (publish, generate, poll, morning prompts)')
+
 
 
 def shutdown_scheduler():

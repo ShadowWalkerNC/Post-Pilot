@@ -176,6 +176,18 @@ from blueprints import register_blueprints  # noqa: E402
 register_blueprints(app, csrf)
 
 # ---------------------------------------------------------------------------
+# Background Scheduler (APScheduler for persistent hosting like Railway)
+# ---------------------------------------------------------------------------
+_enable_bg_scheduler = os.getenv('ENABLE_BACKGROUND_SCHEDULER', '').lower() in ('true', '1', 'yes')
+if _enable_bg_scheduler or os.getenv('RAILWAY_ENVIRONMENT'):
+    try:
+        from modules.scheduler_worker import init_scheduler
+        init_scheduler()
+    except Exception as _e:
+        app.logger.warning('Failed to initialize background scheduler: %s', _e)
+
+
+# ---------------------------------------------------------------------------
 # Teardown
 # ---------------------------------------------------------------------------
 @app.teardown_appcontext

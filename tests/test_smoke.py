@@ -6,6 +6,9 @@ HTTP status code. Establishes the CI test baseline.
 """
 
 
+import os
+
+
 class TestPublicRoutes:
     def test_index(self, client):
         resp = client.get('/')
@@ -89,3 +92,15 @@ class TestPlanGuard:
         # 403 = plan gate working; 200/400 = gate not yet wired (acceptable for now)
         assert resp.status_code in (200, 400, 403)
         assert resp.status_code != 500
+
+
+class TestTemplateLoading:
+    def test_jinja_searchpath_has_no_extended_prefix(self, app):
+        """Windows extended-length prefixes break Jinja's posixpath join.
+
+        app.py strips the \\?\ prefix at startup (every page 404s without
+        it); this guards the normalization. Vacuous on platforms that
+        never emit extended paths.
+        """
+        for entry in app.jinja_loader.searchpath:
+            assert not os.fspath(entry).startswith('\\\\?\\'), entry

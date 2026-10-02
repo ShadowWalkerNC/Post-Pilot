@@ -4,11 +4,11 @@ modules/platform_adapter.py
 Auto-adapts a master caption for every enabled social platform.
 
 Design:
-  - One OpenAI call per platform, run in parallel via ThreadPoolExecutor.
+  - One gateway call per platform, run in parallel via ThreadPoolExecutor.
   - Each platform has a PLATFORM_RULES entry defining tone, length,
     hashtag count, and any hard constraints (e.g. Twitter 280-char limit).
   - adapt_all() returns a dict {platform_key: adapted_text}.
-  - Falls back to the master caption if OpenAI is unavailable or a
+  - Falls back to the master caption if no provider is available or a
     single platform call fails -- publishing always continues.
 
 Usage:
@@ -24,7 +24,6 @@ Usage:
     # adapted == {'fb': '...', 'ig': '...', 'tt': '...', 'li': '...'}
 """
 
-import os
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional
@@ -163,9 +162,9 @@ class PlatformAdapter:
     """
     Adapts a single master caption into platform-specific versions.
 
-    Each platform gets its own OpenAI call with tailored rules.
+    Each platform gets its own gateway call with tailored rules.
     All calls run in parallel via ThreadPoolExecutor.
-    Falls back to master caption if OpenAI is unavailable.
+    Falls back to master caption if no provider is available.
     """
 
     def __init__(self, model: str = 'gpt-4o-mini', max_workers: int = 8):
@@ -174,14 +173,18 @@ class PlatformAdapter:
         self._client     = None
 
     def _get_client(self):
-        """Lazy-load OpenAI client (avoids import error if key not set)."""
+        """Lazy-load the LLM gateway (None when no provider is available)."""
         if self._client is None:
             try:
-                from openai import OpenAI
-                self._client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
-            except ImportError:
-                logger.error('platform_adapter: openai package not installed')
+                from ai.gateway import build_gateway
+                gateway = build_gateway()
+            except Exception as exc:
+                logger.error('platform_adapter: gateway unavailable: %s', exc)
                 return None
+            if not gateway.router.candidates():
+                logger.warning('platform_adapter: no LLM provider available')
+                return None
+            self._client = gateway
         return self._client
 
     # ------------------------------------------------------------------
@@ -211,7 +214,7 @@ class PlatformAdapter:
         """
         client = self._get_client()
         if client is None:
-            logger.warning('platform_adapter: OpenAI unavailable -- returning master caption for all platforms')
+            logger.warning('platform_adapter: no provider available -- returning master caption for all platforms')
             return {p: master for p in platforms}
 
         results: Dict[str, str] = {}
@@ -291,16 +294,17 @@ class PlatformAdapter:
             f'\nReturn ONLY the adapted {rules["name"]} caption:'
         )
 
-        response = client.chat.completions.create(
-            model       = self.model,
-            messages    = [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user',   'content': user_prompt},
-            ],
-            max_tokens  = max(256, max_chars // 2),
-            temperature = 0.7,
+        from ai.context import TaskRequirements
+
+        response = client.generate(
+            user_prompt,
+            system       = system_prompt,
+            requirements = TaskRequirements(task_type='content'),
+            model        = self.model,
+            max_tokens   = max(256, max_chars // 2),
+            temperature  = 0.7,
         )
-        adapted = response.choices[0].message.content.strip()
+        adapted = response.text.strip()
 
         # Hard-enforce character limit for platforms where it matters (tw)
         if platform == 'tw' and len(adapted) > 280:

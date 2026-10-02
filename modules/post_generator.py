@@ -1,6 +1,11 @@
 """
 PostPilot Pro — Post Generator
 Generates high-engagement posts for 5 business types using 5 proven templates.
+
+Canonical home of the deterministic template engine (generate_post,
+generate_weekly_schedule), also fronted by core.content.pipeline.run_template.
+(Removed 2026-10-02: publish_to_facebook/instagram duplicated
+modules/publisher.py; use UniversalPublisher for all publishing.)
 """
 
 from datetime import datetime
@@ -152,45 +157,6 @@ class SocialMediaPostGenerator:
             'food_company': f'#{self.city.lower()}food #organicfood #foodie #cooking #homemade',
         }
         return defaults.get(self.business_type, '#food #foodie #foodporn')
-
-    # ─── Publishing ──────────────────────────────────────────────────────────
-
-    def publish_to_facebook(self, post: Dict, image_url: str = None) -> Dict:
-        if not self.facebook_token or not self.facebook_page_id:
-            return {'success': False, 'error': 'Facebook token not configured'}
-        try:
-            if image_url:
-                endpoint = f'https://graph.facebook.com/v19.0/{self.facebook_page_id}/photos'
-                params   = {'url': image_url, 'caption': post['caption'], 'access_token': self.facebook_token}
-            else:
-                endpoint = f'https://graph.facebook.com/v19.0/{self.facebook_page_id}/feed'
-                params   = {'message': post['caption'], 'access_token': self.facebook_token}
-            res  = requests.post(endpoint, params=params)
-            data = res.json()
-            return {'success': True, 'post_id': data.get('id')} if res.status_code == 200 \
-                else {'success': False, 'error': data.get('error', {}).get('message')}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
-
-    def publish_to_instagram(self, post: Dict, image_url: str) -> Dict:
-        if not self.instagram_token or not self.instagram_id:
-            return {'success': False, 'error': 'Instagram token not configured'}
-        try:
-            c = requests.post(
-                f'https://graph.facebook.com/v19.0/{self.instagram_id}/media',
-                params={'image_url': image_url, 'caption': post['caption'], 'access_token': self.instagram_token}
-            )
-            if c.status_code != 200:
-                return {'success': False, 'error': 'Failed to create media container'}
-            p = requests.post(
-                f'https://graph.facebook.com/v19.0/{self.instagram_id}/media_publish',
-                params={'creation_id': c.json().get('id'), 'access_token': self.instagram_token}
-            )
-            data = p.json()
-            return {'success': True, 'post_id': data.get('id')} if p.status_code == 200 \
-                else {'success': False, 'error': data.get('error', {}).get('message')}
-        except Exception as e:
-            return {'success': False, 'error': str(e)}
 
 
 class PostGenerator:

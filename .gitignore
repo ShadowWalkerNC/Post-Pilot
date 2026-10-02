@@ -47,7 +47,9 @@ node_modules/
 .coverage
 htmlcov/
 .pytest_cache/
+pytest-of-*/
 .tox/
 
 # === Vercel ===
 .vercel/
+

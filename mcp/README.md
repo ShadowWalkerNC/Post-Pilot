@@ -20,6 +20,27 @@ the same codebase** — running one does not affect the other.
 | `create_issue` | Create a GitHub issue from an audit finding |
 | `list_recent_commits` | Verify fix commits landed on any branch |
 
+### Post-Pilot product tools (registered by the same server)
+
+| Tool | Permission | What it does |
+|---|---|---|
+| `business_get_tool` | read | Business profile for a user |
+| `menu_get_tool` | read | Website menu section |
+| `specials_list_tool` | read | Daily specials, optional status filter |
+| `events_list_tool` | read | Events, optional status filter |
+| `content_generate_tool` | write | Master + per-platform captions (plan quota) |
+| `content_schedule_tool` | write | Schedule a post via PostScheduler |
+| `post_publish_tool` | publish | Publish NOW to connected platforms |
+| `analytics_get_tool` | read | Combined FB+IG analytics summary |
+| `inbox_reply_tool` | write | Draft a reply (DRAFT ONLY, never auto-posts) |
+
+Auth model: every tool takes an explicit `user_id` and is scoped to that
+user (owner/team only); secrets are never returned. Each tool's SPEC dict
+in `mcp/tools/` documents its permission and auth notes. Because the PyPI
+`mcp` SDK shadows the local `mcp/` directory, importers must call
+`modules.mcp_bootstrap.ensure_local_mcp_tools()` before `mcp.tools.*`
+imports (server.py already does this).
+
 ---
 
 ## Setup
@@ -130,10 +151,14 @@ Set `GITHUB_TOKEN` as a Railway environment variable (never in code).
 ```
 Post-Pilot/
 ├── app.py              ← Flask GUI (unchanged)
-├── modules/            ← shared business logic (unchanged)
+├── modules/            ← shared business logic (+ mcp_bootstrap.py)
+├── skills/             ← provider-agnostic prompt packs + loader.py
+├── integrations/culinaryos/ ← adapter-only CulinaryOS client + contract
 ├── mcp/
-│   ├── server.py       ← MCP server
+│   ├── server.py       ← MCP server (audit + product tools)
+│   ├── tools/          ← product tools (business, specials, events,
+│   │                     content, publish, analytics, inbox)
 │   └── README.md       ← you are here
-├── tests/              ← pytest suite
-└── requirements.txt    ← add: mcp, PyGithub
+├── tests/              ← pytest suite (+ test_skills_loader, test_mcp_tools)
+└── requirements.txt    ← includes: mcp, PyGithub
 ```

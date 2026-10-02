@@ -5,12 +5,10 @@ AI Reply Agent & Sentiment Classifier for Social Media Comments.
 Provides:
 - 5-class sentiment analysis: positive, neutral, negative, question, spam
 - Tone-matched AI draft generation: friendly, hype, urgent, funny, community
-- OpenAI & Claude LLM integration with graceful deterministic fallback matrix
+- LLM gateway drafting (task_type="content") with graceful deterministic fallback matrix
 """
 
-import os
 import re
-import json
 import logging
 from typing import Optional, Dict, Any
 
@@ -144,7 +142,44 @@ def _get_fallback_reply(
             return f"Thanks for commenting and checking out {biz}! Hope to see you soon! 😊"
 
 
-def _call_openai_llm(
+DRAFT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'sentiment': {'type': 'string'},
+        'reply': {'type': 'string'},
+    },
+    'required': ['sentiment', 'reply'],
+}
+
+
+def _build_draft_messages(
+    comment_text: str,
+    tone: str,
+    business_name: str,
+    business_type: str,
+    location: str,
+    post_context: Optional[str] = None,
+) -> tuple:
+    """Build (system_prompt, user_content) for reply drafting.
+
+    Byte-identical to the legacy per-provider prompt construction; the
+    gateway forwards these verbatim to whichever provider serves the request.
+    """
+    system_prompt = (
+        f"You are the social media community manager for {business_name}, a {business_type}"
+        f"{f' in {location}' if location else ''}.\n"
+        f"Tone style: {tone}.\n"
+        f"Analyze the user comment, verify or refine its sentiment ('positive', 'neutral', 'negative', 'question', 'spam'), "
+        f"and write a concise, authentic, on-brand social media response (1-2 sentences). If spam, reply should be empty string.\n"
+        f"Output valid JSON strictly formatted as: {{\"sentiment\": \"...\", \"reply\": \"...\"}}"
+    )
+    user_content = f"Comment: \"{comment_text}\""
+    if post_context:
+        user_content = f"Original Post Context: \"{post_context}\"\n" + user_content
+    return system_prompt, user_content
+
+
+def _call_gateway_llm(
     comment_text: str,
     sentiment: str,
     tone: str,
@@ -153,92 +188,31 @@ def _call_openai_llm(
     location: str,
     post_context: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """Attempt OpenAI LLM analysis & drafting."""
-    api_key = os.getenv('OPENAI_API_KEY', '')
-    if not api_key or api_key in ('dummy', 'test', 'unset', ''):
-        return None
-
+    """Attempt LLM analysis & drafting via the gateway. Returns None on failure."""
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        from ai.context import TaskRequirements
+        from ai.gateway import build_gateway
 
-        system_prompt = (
-            f"You are the social media community manager for {business_name}, a {business_type}"
-            f"{f' in {location}' if location else ''}.\n"
-            f"Tone style: {tone}.\n"
-            f"Analyze the user comment, verify or refine its sentiment ('positive', 'neutral', 'negative', 'question', 'spam'), "
-            f"and write a concise, authentic, on-brand social media response (1-2 sentences). If spam, reply should be empty string.\n"
-            f"Output valid JSON strictly formatted as: {{\"sentiment\": \"...\", \"reply\": \"...\"}}"
+        system_prompt, user_content = _build_draft_messages(
+            comment_text, tone, business_name, business_type, location, post_context
         )
-
-        user_content = f"Comment: \"{comment_text}\""
-        if post_context:
-            user_content = f"Original Post Context: \"{post_context}\"\n" + user_content
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-            response_format={"type": "json_object"},
+        data = build_gateway().structured_output(
+            user_content,
+            DRAFT_SCHEMA,
+            system=system_prompt,
+            requirements=TaskRequirements(task_type='content'),
             max_tokens=150,
             temperature=0.7,
         )
-        content = response.choices[0].message.content
-        data = json.loads(content)
+        if not isinstance(data, dict):
+            return None
+        refined = data.get('sentiment', sentiment)
         return {
-            'sentiment': data.get('sentiment', sentiment),
-            'reply': data.get('reply', ''),
+            'sentiment': refined if refined in SENTIMENTS else sentiment,
+            'reply': data.get('reply', '') or '',
         }
     except Exception as e:
-        logger.debug("OpenAI drafting unavailable or failed: %s", e)
-        return None
-
-
-def _call_claude_llm(
-    comment_text: str,
-    sentiment: str,
-    tone: str,
-    business_name: str,
-    business_type: str,
-    location: str,
-    post_context: Optional[str] = None,
-) -> Optional[Dict[str, Any]]:
-    """Attempt Anthropic Claude LLM analysis & drafting."""
-    api_key = os.getenv('ANTHROPIC_API_KEY', '')
-    if not api_key or api_key in ('dummy', 'test', 'unset', ''):
-        return None
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        system_prompt = (
-            f"You are the social media community manager for {business_name}, a {business_type}"
-            f"{f' in {location}' if location else ''}.\n"
-            f"Tone style: {tone}.\n"
-            f"Analyze the user comment, verify or refine its sentiment ('positive', 'neutral', 'negative', 'question', 'spam'), "
-            f"and write a concise, authentic, on-brand social media response (1-2 sentences). If spam, reply should be empty string.\n"
-            f"Output valid JSON strictly formatted as: {{\"sentiment\": \"...\", \"reply\": \"...\"}}"
-        )
-        user_content = f"Comment: \"{comment_text}\""
-        if post_context:
-            user_content = f"Original Post Context: \"{post_context}\"\n" + user_content
-
-        message = client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=150,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_content}]
-        )
-        content = message.content[0].text
-        data = json.loads(content)
-        return {
-            'sentiment': data.get('sentiment', sentiment),
-            'reply': data.get('reply', ''),
-        }
-    except Exception as e:
-        logger.debug("Claude drafting unavailable or failed: %s", e)
+        logger.debug("Gateway drafting unavailable or failed: %s", e)
         return None
 
 
@@ -261,17 +235,13 @@ def analyze_and_draft(
     # Step 1: Rule-based sentiment analysis
     initial_sentiment = classify_sentiment(comment_text)
 
-    # Step 2: Try LLM (Claude -> OpenAI)
-    llm_result = _call_claude_llm(
+    # Step 2: Try the LLM gateway (task_type="content"); None -> fallback below.
+    # source='gateway' on success: per-provider fallback happens inside the
+    # gateway, so no single provider name is accurate here.
+    llm_result = _call_gateway_llm(
         comment_text, initial_sentiment, tone, business_name, business_type, location, post_context
     )
-    source = 'claude'
-
-    if not llm_result:
-        llm_result = _call_openai_llm(
-            comment_text, initial_sentiment, tone, business_name, business_type, location, post_context
-        )
-        source = 'openai' if llm_result else 'fallback'
+    source = 'gateway' if llm_result else 'fallback'
 
     if llm_result and llm_result.get('reply'):
         final_sentiment = llm_result.get('sentiment', initial_sentiment)

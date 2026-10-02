@@ -2,8 +2,12 @@
 ai_generator.py — AI Caption Generation
 
 Generates platform-optimized captions using:
-  - OpenAI GPT-4o-mini (primary, $0.002/caption)
+  - LLM gateway (primary, task_type="content" — routes to Muse/OpenAI/Gemini/Claude)
   - Template fallback (no API key required)
+
+Migration note: _generate_openai() is now an alias for the gateway-backed
+_generate_llm(). Prompt construction is unchanged; only the transport moved
+to ai/gateway.py.
 
 Flow (Option B — per-platform editable captions):
   1. generate_caption() produces a neutral master caption.
@@ -17,7 +21,7 @@ Backwards-compatible: generate_caption() and the single-platform path
 are unchanged.
 """
 
-import os
+
 import logging
 from typing import Dict, List, Optional
 
@@ -77,69 +81,88 @@ MASTER_STYLE = (
 
 
 # ---------------------------------------------------------------------------
-# Primary: OpenAI GPT-4o-mini
+# Primary: LLM gateway (task_type="content")
 # ---------------------------------------------------------------------------
-def _generate_openai(
+def _build_messages(
+    business_info: dict,
+    content_type: str,
+    tone: str,
+    keywords: list,
+    platform: str,
+) -> tuple:
+    """Build (system_msg, user_msg) for caption generation.
+
+    Byte-identical to the legacy direct-OpenAI prompt construction; the
+    gateway forwards these verbatim to whichever provider serves the request.
+    """
+    business_name = business_info.get('name', 'our business')
+    business_type = business_info.get('type', 'food business')
+    location      = business_info.get('location', '')
+    special       = business_info.get('special', '')
+
+    tone_instruction = TONE_PROMPTS.get(tone, TONE_PROMPTS['friendly'])
+
+    # platform='master' uses neutral prompt; otherwise use per-platform style
+    if platform == 'master':
+        platform_style = MASTER_STYLE
+    else:
+        platform_style = PLATFORM_STYLES.get(platform, '')
+
+    system_msg = (
+        f'{tone_instruction}\n\n'
+        f'You are writing for: {business_name}, a {business_type}.'
+        + (f' Located at: {location}.' if location else '')
+        + f'\n\nPlatform rules: {platform_style}'
+    )
+
+    user_msg = (
+        f'Write a {content_type} post.'
+        + (f" Today's special: {special}." if special else '')
+        + (f" Keywords to include: {', '.join(keywords)}." if keywords else '')
+        + ' Return only the caption text, nothing else.'
+    )
+    return system_msg, user_msg
+
+
+def _generate_llm(
     business_info: dict,
     content_type:  str,
     tone:          str,
     keywords:      list,
     platform:      str,
 ) -> Optional[str]:
-    """Call OpenAI API to generate a caption. Returns None on failure."""
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        return None
+    """Generate a caption via the LLM gateway. Returns None on failure.
 
+    Routes with task_type="content" so content/marketing requests use the
+    configured content providers with fallback. Any gateway failure falls
+    through to None and the caller uses the template fallback.
+    """
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        from ai.context import TaskRequirements
+        from ai.gateway import build_gateway
 
-        business_name = business_info.get('name', 'our business')
-        business_type = business_info.get('type', 'food business')
-        location      = business_info.get('location', '')
-        special       = business_info.get('special', '')
-
-        tone_instruction = TONE_PROMPTS.get(tone, TONE_PROMPTS['friendly'])
-
-        # platform='master' uses neutral prompt; otherwise use per-platform style
-        if platform == 'master':
-            platform_style = MASTER_STYLE
-        else:
-            platform_style = PLATFORM_STYLES.get(platform, '')
-
-        system_msg = (
-            f'{tone_instruction}\n\n'
-            f'You are writing for: {business_name}, a {business_type}.'
-            + (f' Located at: {location}.' if location else '')
-            + f'\n\nPlatform rules: {platform_style}'
+        system_msg, user_msg = _build_messages(
+            business_info, content_type, tone, keywords or [], platform
         )
-
-        user_msg = (
-            f'Write a {content_type} post.'
-            + (f" Today's special: {special}." if special else '')
-            + (f" Keywords to include: {', '.join(keywords)}." if keywords else '')
-            + ' Return only the caption text, nothing else.'
+        response = build_gateway().generate(
+            user_msg,
+            system=system_msg,
+            requirements=TaskRequirements(task_type='content'),
+            max_tokens=300,
+            temperature=0.8,
         )
-
-        response = client.chat.completions.create(
-            model       = 'gpt-4o-mini',
-            messages    = [
-                {'role': 'system', 'content': system_msg},
-                {'role': 'user',   'content': user_msg},
-            ],
-            max_tokens  = 300,
-            temperature = 0.8,
-        )
-
-        caption = response.choices[0].message.content.strip()
-        logger.info('OpenAI caption generated for platform=%s tone=%s', platform, tone)
-        return caption
-
+        caption = (response.text or '').strip()
+        if caption:
+            logger.info('Gateway caption generated for platform=%s tone=%s', platform, tone)
+            return caption
+        return None
     except Exception as e:
-        logger.error('OpenAI generation failed: %s', e)
+        logger.error('Gateway generation failed: %s', e)
         return None
 
+
+#: Backwards-compatible alias (also the patch point used by older tests).
+_generate_openai = _generate_llm
 
 # ---------------------------------------------------------------------------
 # Fallback: Template-based generation

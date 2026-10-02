@@ -34,13 +34,16 @@ from datetime import datetime
 # Ensure repo root is on the path so we can import modules/
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-from mcp.server.fastmcp import FastMCP
+try:  # mcp>=2 renamed FastMCP -> MCPServer
+    from mcp.server.mcpserver import MCPServer as _MCPServerBase
+except ImportError:  # mcp<2
+    from mcp.server.fastmcp import FastMCP as _MCPServerBase
 from github import Github, GithubException
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('postpilot-mcp')
 
-mcp = FastMCP(
+mcp = _MCPServerBase(
     name='post-pilot',
     description='Audit and fix tools for the Post-Pilot social media SaaS repo.',
 )
@@ -239,6 +242,271 @@ def list_recent_commits(owner: str, repo: str, branch: str = 'main', limit: int 
         }
         for c in list(commits)[:limit]
     ]
+
+
+# ---------------------------------------------------------------------------
+# Post-Pilot product tools (delegate to mcp/tools/*, which delegate to modules/)
+# ---------------------------------------------------------------------------
+import modules.mcp_bootstrap  # local mcp/tools is shadowed by the PyPI mcp SDK
+modules.mcp_bootstrap.ensure_local_mcp_tools()
+from mcp.tools.business import (
+    business_get, business_update, menu_get, menu_list, menu_item_get,
+)
+from mcp.tools.specials import specials_list, specials_get
+from mcp.tools.events import events_list, events_get
+from mcp.tools.hours import hours_get
+from mcp.tools.content import (
+    content_generate, content_schedule, content_adapt, content_preview,
+)
+from mcp.tools.publish import post_publish, post_cancel, post_status
+from mcp.tools.analytics import (
+    analytics_get, analytics_top_posts, analytics_performance_summary,
+)
+from mcp.tools.inbox import inbox_reply, inbox_list, inbox_approve_reply, inbox_skip
+from mcp.tools.media import media_list, media_get
+from mcp.tools.brand import brand_get, brand_validate
+from mcp.tools.automation import automation_run, automation_status
+from mcp.tools.provider import provider_list, provider_route, provider_health
+
+
+@mcp.tool()
+def business_get_tool(user_id: str) -> dict:
+    """[read] Get the business profile for a user. Scoped to user_id; owner/team only."""
+    return business_get(user_id)
+
+
+@mcp.tool()
+def menu_get_tool(user_id: str) -> dict:
+    """[read] Get the website menu section for a user. Scoped to user_id; owner/team only."""
+    return menu_get(user_id)
+
+
+@mcp.tool()
+def specials_list_tool(user_id: str, status: str = None, limit: int = 25) -> list:
+    """[read] List daily specials for a user, optionally filtered by status."""
+    return specials_list(user_id, status=status, limit=limit)
+
+
+@mcp.tool()
+def events_list_tool(user_id: str, status: str = None, limit: int = 25) -> list:
+    """[read] List events for a user, optionally filtered by status."""
+    return events_list(user_id, status=status, limit=limit)
+
+
+@mcp.tool()
+def content_generate_tool(
+    user_id: str,
+    content_type: str = 'general',
+    tone: str = 'friendly',
+    keywords: list = None,
+    platforms: list = None,
+    special: str = '',
+) -> dict:
+    """[write] Generate master + per-platform captions. Consumes plan AI quota."""
+    return content_generate(user_id, content_type, tone, keywords, platforms, special)
+
+
+@mcp.tool()
+def content_schedule_tool(
+    user_id: str,
+    caption: str,
+    scheduled_at: str,
+    platforms: list = None,
+    content_type: str = 'general',
+    image_url: str = None,
+) -> dict:
+    """[write] Schedule a post for future publishing. Owner/team only."""
+    return content_schedule(user_id, caption, scheduled_at, platforms, content_type, image_url)
+
+
+@mcp.tool()
+def post_publish_tool(
+    user_id: str,
+    caption: str = None,
+    content_type: str = 'general',
+    platforms: list = None,
+    image_url: str = None,
+    video_url: str = None,
+    link_url: str = None,
+) -> dict:
+    """[publish] Publish NOW to connected platforms. Requires publish rights."""
+    return post_publish(user_id, caption, None, content_type, platforms, image_url, video_url, link_url)
+
+
+@mcp.tool()
+def analytics_get_tool(user_id: str, days: int = 30) -> dict:
+    """[read] Combined FB+IG analytics summary. Tokens stay server-side."""
+    return analytics_get(user_id, days)
+
+
+@mcp.tool()
+def inbox_reply_tool(
+    comment_text: str,
+    user_id: str = None,
+    post_context: str = None,
+    tone: str = 'friendly',
+) -> dict:
+    """[write] Draft an on-brand reply. DRAFT ONLY - never auto-posts."""
+    return inbox_reply(comment_text, user_id, post_context, tone)
+
+
+@mcp.tool()
+def business_update_tool(user_id: str, updates: dict) -> dict:
+    """[write] Update business profile fields. Owner/team only."""
+    return business_update(user_id, updates)
+
+
+@mcp.tool()
+def menu_list_tool(user_id: str, search: str = None, limit: int = 25) -> list:
+    """[read] List menu items, optionally filtered by search text."""
+    return menu_list(user_id, search=search, limit=limit)
+
+
+@mcp.tool()
+def menu_item_get_tool(user_id: str, item: str) -> dict:
+    """[read] Get one menu item by id or name."""
+    return menu_item_get(user_id, item)
+
+
+@mcp.tool()
+def specials_get_tool(user_id: str, special_id: int) -> dict:
+    """[read] Get one special by id."""
+    return specials_get(user_id, special_id)
+
+
+@mcp.tool()
+def events_get_tool(user_id: str, event_id: int) -> dict:
+    """[read] Get one event by id."""
+    return events_get(user_id, event_id)
+
+
+@mcp.tool()
+def hours_get_tool(user_id: str, status: str = None, limit: int = 25) -> list:
+    """[read] List hours overrides / closures, upcoming first."""
+    return hours_get(user_id, status=status, limit=limit)
+
+
+@mcp.tool()
+def content_adapt_tool(
+    user_id: str, master: str, platforms: list, tone: str = 'friendly'
+) -> dict:
+    """[write] Adapt a master caption for platforms. Consumes plan AI quota."""
+    return content_adapt(user_id, master, platforms, tone)
+
+
+@mcp.tool()
+def content_preview_tool(
+    user_id: str, master: str, platforms: list,
+    tone: str = 'friendly', image_url: str = None,
+) -> dict:
+    """[read] Preview adapted captions with char counts and media warnings."""
+    return content_preview(user_id, master, platforms, tone, image_url)
+
+
+@mcp.tool()
+def post_cancel_tool(user_id: str, job_id: str) -> dict:
+    """[write] Cancel a scheduled job by id."""
+    return post_cancel(user_id, job_id)
+
+
+@mcp.tool()
+def post_status_tool(user_id: str, job_id: str) -> dict:
+    """[read] Check whether a scheduled job id is still pending."""
+    return post_status(user_id, job_id)
+
+
+@mcp.tool()
+def analytics_top_posts_tool(
+    user_id: str, days: int = 30, limit: int = 5, metric: str = 'engaged'
+) -> dict:
+    """[read] Top posts ranked by engaged, reach, or likes."""
+    return analytics_top_posts(user_id, days=days, limit=limit, metric=metric)
+
+
+@mcp.tool()
+def analytics_performance_summary_tool(user_id: str, days: int = 30) -> dict:
+    """[read] Compact KPI summary for a user."""
+    return analytics_performance_summary(user_id, days=days)
+
+
+@mcp.tool()
+def inbox_list_tool(
+    user_id: str, status: str = None, sentiment: str = None,
+    platform: str = None, limit: int = 50,
+) -> dict:
+    """[read] List ingested social comments with optional filters."""
+    return inbox_list(user_id, status=status, sentiment=sentiment,
+                      platform=platform, limit=limit)
+
+
+@mcp.tool()
+def inbox_approve_reply_tool(
+    user_id: str, item_id: int, reply_text: str = None
+) -> dict:
+    """[publish] Approve and POST a reply (defaults to AI draft). Publishes live."""
+    return inbox_approve_reply(user_id, item_id, reply_text)
+
+
+@mcp.tool()
+def inbox_skip_tool(user_id: str, item_id: int) -> dict:
+    """[write] Mark an inbox item skipped (no reply posted)."""
+    return inbox_skip(user_id, item_id)
+
+
+@mcp.tool()
+def media_list_tool(user_id: str, limit: int = 25) -> list:
+    """[read] List media attachments from post history."""
+    return media_list(user_id, limit=limit)
+
+
+@mcp.tool()
+def media_get_tool(user_id: str, media_id: int) -> dict:
+    """[read] Get one post-history media row by id."""
+    return media_get(user_id, media_id)
+
+
+@mcp.tool()
+def brand_get_tool(user_id: str) -> dict:
+    """[read] Get brand voice fields for a user."""
+    return brand_get(user_id)
+
+
+@mcp.tool()
+def brand_validate_tool(user_id: str, text: str) -> dict:
+    """[read] Deterministic brand check on a text (v1, no LLM)."""
+    return brand_validate(user_id, text)
+
+
+@mcp.tool()
+def automation_run_tool(user_id: str) -> dict:
+    """[write] Run the content automation agent now for one user."""
+    return automation_run(user_id)
+
+
+@mcp.tool()
+def automation_status_tool(user_id: str, limit: int = 25) -> list:
+    """[read] Recent automation audit rows for a user."""
+    return automation_status(user_id, limit=limit)
+
+
+@mcp.tool()
+def provider_list_tool() -> dict:
+    """[read] List LLM providers with availability and capabilities. No keys."""
+    return provider_list()
+
+
+@mcp.tool()
+def provider_route_tool(
+    task_type: str = None, preferred_provider: str = None, capabilities: list = None
+) -> dict:
+    """[read] Preview which provider would serve a request (no generation)."""
+    return provider_route(task_type, preferred_provider, capabilities)
+
+
+@mcp.tool()
+def provider_health_tool(name: str = None) -> dict:
+    """[read] Health snapshot for one provider, or all when omitted. No keys."""
+    return provider_health(name)
 
 
 # ---------------------------------------------------------------------------

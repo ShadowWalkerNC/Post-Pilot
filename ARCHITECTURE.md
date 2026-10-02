@@ -2,7 +2,7 @@
 
 > **Purpose:** Complete technical reference for the Post-Pilot system. Read this before making any change to modules, database schema, environment variables, or integrations.
 > **Maintained by:** Every agent session that changes behavior must update this file.
-> **Last updated:** 2026-08-08
+> **Last updated:** 2026-10-02
 
 ---
 
@@ -16,7 +16,7 @@ User (browser)
 Vercel (serverless Flask)
     ├── Auth (magic link email)
     ├── Dashboard / Post Queue
-    ├── AI Generation (→ OpenAI)
+    ├── AI Generation (→ LLM gateway: Muse/OpenAI/Gemini/Claude)
     ├── Publish (→ Meta Graph API)
     ├── Scheduling (→ Vercel Cron)
     ├── Billing (→ Stripe)
@@ -68,13 +68,119 @@ Shared utilities. No Flask routes here. Called by blueprints.
 | DB | `database.py` / `db.py` | Connection helpers — treat as foundation |
 | Auth tokens | `auth_manager.py` | Encrypted platform token store (Fernet) |
 | Users | `user_manager.py` | User records for magic-link era |
-| AI | `ai_generator.py` | OpenAI caption generation + adaptations |
-| Adapter | `platform_adapter.py` | Per-platform caption shaping |
+| AI | `ai_generator.py` | Caption generation via LLM gateway + template fallback |
+| Adapter | `platform_adapter.py` | Per-platform caption shaping (via LLM gateway) |
 | Publisher | `publisher.py` | Publish router across platforms |
 | Meta API | `meta_api.py` / `meta_client.py` | Meta Graph API client |
 | Billing | `billing_manager.py` | Stripe lifecycle + webhooks |
 | Plan gates | `plan_guard.py` | `@require_plan`, post/platform/location limits |
 | Automation | `automation_agent.py` | Specials/events/hours → generated posts |
+
+---
+
+### AI gateway (`ai/`) — provider-agnostic LLM layer
+
+One `LLMProvider` contract (`generate`/`stream`/`structured_output`/
+`tool_call`/`capabilities`/`is_available`) with four transport-only adapters —
+no business logic, lazy SDK imports only. See `docs/LLM_GATEWAY.md`.
+
+| File | Responsibility |
+|---|---|
+| `ai/gateway.py` | `AIGateway` facade: router-ordered fallback, `health()`, `explain()` |
+| `ai/router.py` | `AIRouter`: preferred → task route → default → fallback order |
+| `ai/context.py` | `TaskRequirements`, `GatewayConfig.from_env()`, default task routes |
+| `ai/providers/muse.py` | `MuseProvider`: local HTTP endpoint (stdlib only) |
+| `ai/providers/openai.py` | `OpenAIProvider`: OpenAI SDK, also serves `codex` alias |
+| `ai/providers/gemini.py` | `GeminiProvider`: `google-genai` SDK (optional dep) |
+| `ai/providers/anthropic.py` | `ClaudeProvider`: `anthropic` SDK (optional dep), `Claude` alias |
+
+Default task routes: content/marketing → Muse, anthropic; structured/analysis
+→ gemini; coding/dev/admin → openai. Env: `AI_DEFAULT_PROVIDER`,
+`AI_FALLBACK_ORDER`, `AI_TASK_ROUTES`, per-provider keys/models. No provider is
+ever required — any available subset serves traffic.
+
+---
+
+### Core (`core/`) — canonical content + business context
+
+| File | Responsibility |
+|---|---|
+| `core/content/pipeline.py` | Canonical content pipeline delegating to legacy generators |
+| `core/business_brain/models.py` | Structured business context model |
+| `core/business_brain/service.py` | `load_context()`: single source for brand/menu/hours/specials/events/media/posts/performance/rules |
+
+---
+
+### Skills (`skills/`) — provider-agnostic prompt packs
+
+| Skill dir | Purpose |
+|---|---|
+| `skills/loader.py` | stdlib-only loader: discover, parse frontmatter, render `{{placeholders}}`. NEVER imports an LLM SDK. |
+| `skills/special_post/` | Daily-special caption (caption + hook prompts, price/urgency rules) |
+| `skills/event_campaign/` | 3-post event series (announce / reminder / last-call) |
+| `skills/weekly_plan/` | 7-day content calendar in parseable `DAY | TYPE | ...` lines |
+| `skills/review_reply/` | Sentiment-matched review replies (pairs with `reply_agent`) |
+| `skills/brand_guard/` | Pre-publish audit pass (PASS/FAIL verdict + fix) |
+
+Each skill = `SKILL.md` (frontmatter + docs) + `prompts/*.md` + `rules/*.md`.
+Rendered text is sent to any provider by the caller (OpenAI, Anthropic, template fallback).
+
+---
+
+### MCP product tools (`mcp/tools/`) — data/actions for MCP clients
+
+Thin wrappers that delegate to existing `modules/` services. No new business logic.
+
+| Tool | Module | Delegates to | Permission |
+|---|---|---|---|
+| `business.get` | `mcp/tools/business.py` | `UserManager.get_business_profile` | read |
+| `menu.get` | `mcp/tools/business.py` | `websites.section_data` via `modules/db.py` | read |
+| `specials.list` | `mcp/tools/specials.py` | `specials` table via `modules/db.py` | read |
+| `events.list` | `mcp/tools/events.py` | `events` table via `modules/db.py` | read |
+| `content.generate` | `mcp/tools/content.py` | `ai_generator.generate_with_adaptations` | write (plan quota) |
+| `content.schedule` | `mcp/tools/content.py` | `scheduler_worker.PostScheduler.schedule` | write |
+| `post.publish` | `mcp/tools/publish.py` | `publisher.UniversalPublisher.push_all` | publish |
+| `analytics.get` | `mcp/tools/analytics.py` | `analytics_client.Analytics` | read |
+| `inbox.reply` | `mcp/tools/inbox.py` | `reply_agent.analyze_and_draft` (draft-only) | write |
+| `business.update` | `mcp/tools/business.py` | `UserManager.save_business_profile` (merged) | write |
+| `menu.list` / `menu.item_get` | `mcp/tools/business.py` | `menu.get` projection | read |
+| `specials.get` | `mcp/tools/specials.py` | `specials` row by id | read |
+| `events.get` | `mcp/tools/events.py` | `events` row by id | read |
+| `hours.get` | `mcp/tools/hours.py` | `hours_overrides` table | read |
+| `content.adapt` | `mcp/tools/content.py` | `PlatformAdapter.adapt_all` | write (plan quota) |
+| `content.preview` | `mcp/tools/content.py` | adapt + counts/warnings | read |
+| `post.cancel` / `post.status` | `mcp/tools/publish.py` | `PostScheduler` jobs | write / read |
+| `analytics.top_posts` | `mcp/tools/analytics.py` | summary ranked by metric | read |
+| `analytics.performance_summary` | `mcp/tools/analytics.py` | summary KPIs | read |
+| `inbox.list` | `mcp/tools/inbox.py` | `InboxItem.list_by_user` | read |
+| `inbox.approve_reply` | `mcp/tools/inbox.py` | Meta API + `mark_replied` | publish |
+| `inbox.skip` | `mcp/tools/inbox.py` | `mark_skipped` | write |
+| `media.list` / `media.get` | `mcp/tools/media.py` | `post_history` attachments | read |
+| `brand.get` / `brand.validate` | `mcp/tools/brand.py` | profile + deterministic checks | read |
+| `automation.run` | `mcp/tools/automation.py` | `automation_agent` per-user | write |
+| `automation.status` | `mcp/tools/automation.py` | `automation_log` | read |
+| `provider.list` / `provider.route` / `provider.health` | `mcp/tools/provider.py` | `ai/` gateway (no network) | read |
+
+Full 33-tool reference: `docs/MCP_TOOLS.md`. Gateway reference: `docs/LLM_GATEWAY.md`.
+
+Auth model: explicit `user_id` scope on every tool, owner/team only, secrets
+never returned. Each tool module carries a `SPEC_*` dict with permission + auth
+notes; `mcp/tools/__init__.py` exposes the `TOOL_SPECS` registry.
+Import note: the PyPI `mcp` SDK shadows local `mcp/`; call
+`modules/mcp_bootstrap.py::ensure_local_mcp_tools()` before importing
+`mcp.tools.*` (see `mcp/server.py`). The pre-existing GitHub audit tools in
+`mcp/server.py` are unchanged.
+
+---
+
+### Integrations (`integrations/`) — external adapters (no marketing logic)
+
+| Package | Contents |
+|---|---|
+| `integrations/culinaryos/` | `client.py` (REST pull + webhook verify/parse), `contract.md` (ownership, transports, security, failure modes) |
+
+Rule: adapters normalize external data into Post-Pilot shapes only.
+Generation, scheduling, publishing, and analytics stay in `modules/` and skills.
 
 ---
 

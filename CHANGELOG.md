@@ -7,6 +7,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+- Provider-agnostic LLM gateway (`ai/`): one `LLMProvider` contract with Muse/OpenAI/Gemini/Claude adapters, task routing (`content`→Muse/anthropic, `structured`→gemini, `coding`→openai), fallback, env config. See `docs/LLM_GATEWAY.md`.
+- Migrated `ai_generator`, `reply_agent`, `platform_adapter` to the gateway; prompts and deterministic fallbacks unchanged.
+- Canonical content pipeline (`core/content`) + Business Brain (`core/business_brain`); provider-agnostic skills (`skills/`); CulinaryOS adapter stub (`integrations/culinaryos`).
+- MCP expanded to 33 product tools. See `docs/MCP_TOOLS.md`.
+
+### Removed
+- `modules/generator.py` (was an unimported duplicate of `post_generator`; deprecated, verified unused, then deleted).
+- `SocialMediaPostGenerator.publish_to_facebook/instagram` (duplicate Meta HTTP; use `modules.publisher.UniversalPublisher`).
+
 ### Docs
 - Rebased `PLANNING.md`, `ROADMAP.md`, `PRICING.md`, `TODO.md`, `DEPLOY.md`, `AGENTS.md`, `ARCHITECTURE.md`, and `README.md` to the live stack (Vercel, OpenAI, magic-link, Free/Starter/Pro/Agency).
 - Removed obsolete Growth-tier / Render / Claude plan claims that conflicted with code.

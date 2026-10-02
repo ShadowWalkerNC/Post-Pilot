@@ -22,8 +22,8 @@ Token storage note:
 Module architecture note:
   modules/database.py  -- thin proxy; routes get_db() through Flask g to db.py
   modules/db.py        -- real connection layer (PostgreSQL via Supabase pooler)
-  modules/generator.py        -- static template-based post generator (no AI)
-  modules/ai_generator.py     -- OpenAI-powered caption generator
+  (removed 2026-10-02: modules/generator.py dead duplicate, publish_to_* dup methods)
+  modules/ai_generator.py     -- LLM-gateway caption generator + template fallback
   modules/post_generator.py   -- orchestrator: decides template vs AI path
   modules/analytics.py        -- tombstone shim; re-exports from analytics_client
   modules/analytics_client.py -- full analytics implementation
@@ -79,6 +79,21 @@ if not _secret:
 # App
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
+
+# Windows extended-length (\\?\) paths break Jinja2 template loading:
+# FileSystemLoader joins with posixpath (forward slashes), which is illegal
+# after a \\?\ prefix, so os.path.isfile() fails and every template 404s.
+# Strip the prefix from the loader searchpath once, here.
+if os.name == 'nt' and getattr(app, 'jinja_loader', None) is not None:
+    _cleaned_searchpath = []
+    for _entry in getattr(app.jinja_loader, 'searchpath', []) or []:
+        _entry = os.fspath(_entry)
+        if _entry.startswith('\\\\?\\'):
+            _entry = _entry[4:]
+        _cleaned_searchpath.append(_entry)
+    if _cleaned_searchpath:
+        app.jinja_loader.searchpath = _cleaned_searchpath
+    del _cleaned_searchpath
 app.config['SECRET_KEY']          = _secret
 app.config['WTF_CSRF_TIME_LIMIT'] = 7200
 

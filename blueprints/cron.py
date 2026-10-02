@@ -99,6 +99,24 @@ def poll_social_comments():
 
 
 # ---------------------------------------------------------------------------
+# /api/cron/daily_prompt (Retention Habit Loop)
+# ---------------------------------------------------------------------------
+
+@cron_bp.route('/daily_prompt', methods=['GET', 'POST'])
+def daily_morning_prompt():
+    if not _verify_cron_secret():
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    try:
+        from modules.notification_service import send_morning_prompts_to_due_users
+        summary = send_morning_prompts_to_due_users()
+        logger.info('cron/daily_prompt: %s', summary)
+        return jsonify({'success': True, 'summary': summary}), 200
+    except Exception as e:
+        logger.error('cron/daily_prompt: failed: %s', e)
+        return jsonify({'success': False, 'error': 'Internal error'}), 500
+
+
+# ---------------------------------------------------------------------------
 # GET /api/cron/health
 # ---------------------------------------------------------------------------
 
@@ -110,5 +128,7 @@ def cron_health():
             'publish':       '/api/cron/publish (GET|POST, every minute)',
             'generate':      '/api/cron/generate (GET|POST, every hour)',
             'poll_comments': '/api/cron/poll_comments (GET|POST, periodic poller)',
+            'daily_prompt':  '/api/cron/daily_prompt (GET|POST, morning prompt)',
         },
     }), 200
+

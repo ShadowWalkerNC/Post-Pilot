@@ -119,8 +119,8 @@ git push
 
 ## 🟠 HIGH — Phase 6: Retention
 
-- [ ] Morning daily prompt (email at user-set time)
-- [ ] Location one-tap post
+- [x] Morning daily prompt (email at user-set time + `/api/cron/daily_prompt` + `vercel.json`)
+- [x] Location one-tap post (`POST /api/location/one_tap` + `modules/location_service.py`)
 - [ ] Embed slug choose/confirm in onboarding + dashboard preview/copy UX
   - Note: `embed_api.py` + `static/embed.js` already ship; polish slug UX remains
 

@@ -542,3 +542,94 @@ def api_analytics():
             logger.exception('api_analytics Google/YT failed for user %s', uid)
 
     return jsonify({**fb_result, 'google': google_result})
+
+
+# ---------------------------------------------------------------------------
+# POST /api/location/one_tap — Food truck one-tap location post
+# ---------------------------------------------------------------------------
+
+@api_bp.route('/api/location/one_tap', methods=['POST'])
+@login_required
+def api_one_tap_location():
+
+    """
+    Accepts GPS coordinates ({ lat, lng }) or address string ({ address }).
+    Generates location-aware captions across platforms, updates website banner,
+    and optionally publishes immediately to connected networks.
+    """
+    uid  = _uid()
+    tier = getattr(current_user, 'plan', 'free')
+    data = request.get_json(silent=True) or {}
+
+    loc_input = {}
+    if 'lat' in data and 'lng' in data:
+        try:
+            loc_input['lat'] = float(data['lat'])
+            loc_input['lng'] = float(data['lng'])
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': 'Invalid latitude or longitude'}), 400
+    elif 'address' in data and str(data['address']).strip():
+        loc_input['address'] = str(data['address']).strip()
+    else:
+        return jsonify({'success': False, 'error': 'Must provide lat/lng or address'}), 400
+
+    from modules.location_service import one_tap_location_post
+    biz = UserManager.get_business_profile(uid) or {}
+    business_info = {
+        'name':    biz.get('business_name') or getattr(current_user, 'business_name', 'Our Business'),
+        'hours':   biz.get('hours') or 'today',
+        'special': data.get('special') or biz.get('special') or '',
+        'type':    biz.get('business_type') or 'food truck',
+    }
+
+    try:
+        post_payload = one_tap_location_post(business_info, loc_input)
+        if not post_payload.get('ready'):
+            return jsonify({'success': False, 'error': post_payload.get('error') or 'Failed to prepare post'}), 400
+
+        # Optional immediate publish if requested
+        should_publish = bool(data.get('publish_now', False))
+        publish_results = {}
+        if should_publish:
+            tokens = _get_tokens(uid)
+            platforms = data.get('platforms') or ['facebook', 'instagram']
+            ok, err_resp = _enforce_platform_limit(tier, platforms)
+            if not ok:
+                return err_resp
+
+            ok, err_resp = _enforce_post_limit(uid, tier)
+            if not ok:
+                return err_resp
+
+            publisher = UniversalPublisher(tokens=tokens)
+            captions = post_payload.get('captions', {})
+            publish_results = publisher.publish_to_all(
+                text=captions.get('facebook') or captions.get('website', ''),
+                adapted_captions=captions,
+                platforms=platforms,
+            )
+            # Log to post history
+            try:
+                for plat, p_res in publish_results.items():
+                    if p_res.get('success'):
+                        UserManager.log_post(
+                            user_id=uid,
+                            platform=plat,
+                            content=captions.get(plat, ''),
+                            status='published',
+                            post_id=p_res.get('id') or p_res.get('post_id'),
+                        )
+            except Exception as log_err:
+                logger.warning('Failed to log published location post: %s', log_err)
+
+        return jsonify({
+            'success': True,
+            'payload': post_payload,
+            'published': should_publish,
+            'publish_results': publish_results,
+        }), 200
+
+    except Exception as e:
+        logger.exception('one_tap_location failed for user %s: %s', uid, e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+

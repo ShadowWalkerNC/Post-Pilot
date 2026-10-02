@@ -18,7 +18,12 @@
     {
       "path": "/api/cron/poll_comments",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/daily_prompt",
+      "schedule": "0 11 * * *"
     }
   ]
 }
+
 

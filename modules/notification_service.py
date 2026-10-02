@@ -37,11 +37,22 @@ def load_notification_settings(user_id: str = 'default') -> dict:
         'prompt_message': 'Good morning! Where are you today? What\'s the special?',
         'last_sent':      None,
     }
+    # If a real user_id is provided, look up user's email if not already specified
+    try:
+        from modules.user_manager import UserManager
+        u = UserManager.get_user_by_id(user_id) if user_id != 'default' else None
+        if u and getattr(u, 'email', None):
+            defaults['email'] = u.email
+            if getattr(u, 'full_name', None) or getattr(u, 'business_name', None):
+                defaults['name'] = u.full_name or u.business_name
+    except Exception as e:
+        logger.debug('Could not lookup user email from DB: %s', e)
+
     try:
         if NOTIF_SETTINGS_PATH.exists():
             with open(NOTIF_SETTINGS_PATH) as f:
                 stored = json.load(f)
-            return {**defaults, **stored.get(user_id, {})}
+            return {**defaults, **stored.get(str(user_id), {})}
     except Exception as e:
         logger.error('Failed to load notification settings: %s', e)
     return defaults
@@ -54,7 +65,7 @@ def save_notification_settings(settings: dict, user_id: str = 'default'):
         if NOTIF_SETTINGS_PATH.exists():
             with open(NOTIF_SETTINGS_PATH) as f:
                 all_settings = json.load(f)
-        all_settings[user_id] = settings
+        all_settings[str(user_id)] = settings
         with open(NOTIF_SETTINGS_PATH, 'w') as f:
             json.dump(all_settings, f, indent=2)
         logger.info('Notification settings saved for user=%s', user_id)
@@ -62,6 +73,76 @@ def save_notification_settings(settings: dict, user_id: str = 'default'):
     except Exception as e:
         logger.error('Failed to save notification settings: %s', e)
         return False
+
+
+def send_morning_prompts_to_due_users() -> dict:
+    """
+    Cron-callable entry point to send morning prompts to users.
+    Collects active users and dispatches prompts for users with notifications enabled.
+    """
+    sent_count = 0
+    skipped_count = 0
+    errors = []
+
+    # Find candidate users from database
+    user_ids = []
+    try:
+        from modules.database import get_db
+        db = get_db()
+        rows = db.execute("SELECT id FROM users WHERE is_active = 1").fetchall()
+        for r in rows:
+            uid = r['id'] if isinstance(r, dict) else r[0]
+            if uid:
+                user_ids.append(str(uid))
+    except Exception as e:
+        logger.warning("Could not query active users for morning prompts: %s", e)
+
+    # Also check any user configurations in NOTIF_SETTINGS_PATH
+    if NOTIF_SETTINGS_PATH.exists():
+        try:
+            with open(NOTIF_SETTINGS_PATH) as f:
+                stored = json.load(f)
+            for uid in stored.keys():
+                if uid != 'default' and uid not in user_ids:
+                    user_ids.append(uid)
+        except Exception:
+            pass
+
+    for uid in user_ids:
+        try:
+            settings = load_notification_settings(uid)
+            if not settings.get('enabled') or not settings.get('email'):
+                skipped_count += 1
+                continue
+            
+            # Check if already sent today
+            last_sent = settings.get('last_sent')
+            if last_sent:
+                try:
+                    last_dt = datetime.fromisoformat(last_sent)
+                    if last_dt.date() == datetime.utcnow().date():
+                        skipped_count += 1
+                        continue
+                except Exception:
+                    pass
+
+            sent = send_morning_prompt(uid)
+            if sent:
+                sent_count += 1
+            else:
+                skipped_count += 1
+        except Exception as e:
+            err = f"Failed to send morning prompt for user {uid}: {e}"
+            logger.error(err)
+            errors.append(err)
+
+    return {
+        'success': True,
+        'sent': sent_count,
+        'skipped': skipped_count,
+        'errors': errors,
+    }
+
 
 
 # ---------------------------------------------------------------------------

@@ -209,7 +209,7 @@ def _publish_scheduled_posts():
     try:
         cur = conn.cursor()
         cur.execute(
-            f'SELECT id, user_id, caption, content_type, image_url, video_url, platforms '
+            f'SELECT id, user_id, caption, content_type, image_url, video_url, platforms, results '
             f'FROM post_history '
             f'WHERE status = {p} AND scheduled_at <= {p} AND scheduled_at IS NOT NULL',
             ('scheduled', now_ts)
@@ -227,17 +227,29 @@ def _publish_scheduled_posts():
             caption, content_type  = row['caption'],      row['content_type']
             image_url, video_url   = row['image_url'],    row['video_url']
             platforms              = row['platforms']
+            raw_results            = row.get('results')
         else:
             post_id, user_id, caption, content_type, image_url, video_url, platforms = (
                 row[0], row[1], row[2], row[3], row[4], row[5], row[6]
             )
+            raw_results = row[7] if len(row) > 7 else None
 
         try:
             platform_list = json.loads(platforms or '[]')
+            adapted_captions = None
+            if raw_results:
+                try:
+                    res_data = json.loads(raw_results) if isinstance(raw_results, str) else raw_results
+                    if isinstance(res_data, dict) and 'captions' in res_data:
+                        adapted_captions = res_data['captions']
+                except Exception:
+                    pass
+
             tokens        = _get_tokens_for_user(user_id)
             publisher     = UniversalPublisher(tokens, user_id=user_id)
             results       = publisher.push_all(
                 caption      = caption or '',
+                captions     = adapted_captions,
                 content_type = content_type or 'text',
                 image_url    = image_url,
                 video_url    = video_url,
@@ -248,6 +260,7 @@ def _publish_scheduled_posts():
                 for v in (results.values() if isinstance(results, dict) else [])
             )
             new_status = 'published' if any_ok else 'failed'
+
             cur.execute(
                 f'UPDATE post_history SET status={p}, results={p} WHERE id={p}',
                 (new_status, json.dumps(results), post_id)

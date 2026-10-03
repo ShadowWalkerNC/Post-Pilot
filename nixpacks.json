@@ -1,0 +1,18 @@
+{
+  "providers": ["python", "node"],
+  "phases": {
+    "setup": {
+      "nixPkgs": ["python311", "nodejs_18"]
+    },
+    "install": {
+      "cmds": [
+        "python3 -m pip install -r requirements.txt",
+        "npm i",
+        "npm run build:css"
+      ]
+    }
+  },
+  "start": {
+    "cmd": "gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+  }
+}

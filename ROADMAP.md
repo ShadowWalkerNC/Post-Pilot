@@ -40,14 +40,15 @@
 
 ## 📋 Phase 6 — Retention & depth
 
-- [ ] Morning daily prompt (email first)
-- [ ] Location one-tap post
-- [ ] Inbox: poll comments + AI draft replies + approve/edit/skip
+- [x] Morning daily prompt (email first via notification_service + cron)
+- [x] Location one-tap post (`/api/location/one_tap` + GPS reverse geocode)
+- [x] Inbox: poll comments + AI draft replies + approve/edit/skip (`blueprints/inbox.py`)
 - [ ] Embed slug onboarding + in-dashboard preview/copy UX
-- [ ] Complete Google Business posting (beyond OAuth shell)
-- [ ] Complete TikTok Content Posting API path
-- [ ] Complete YouTube upload path
+- [x] Complete Google Business posting (`integrations/google.py`)
+- [x] Complete TikTok Content Posting API path (`integrations/tiktok.py`)
+- [x] Complete YouTube upload path (`integrations/google.py`)
 - [ ] Weekly planner (set 7, forget)
+
 - [ ] Simple wins / best-performer resurfacing
 - [ ] Review alerts (Google + Facebook)
 

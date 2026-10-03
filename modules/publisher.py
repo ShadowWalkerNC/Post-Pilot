@@ -27,6 +27,7 @@ from typing import Dict, Optional, Union
 
 from modules.google_client import GoogleBusinessClient, YouTubeClient
 from modules.tiktok_client import TikTokClient, TikTokScriptGenerator
+from integrations.meta import MetaAPI
 
 
 # ---------------------------------------------------------------------------

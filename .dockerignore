@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+postpilot.db
+.git
+.github
+.pytest_cache
+pytest-of-white
+.coverage
+htmlcov/
+node_modules/

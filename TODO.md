@@ -18,18 +18,32 @@ Full write-up: [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)
 - [x] **C5** `get_db` imports fixed → `modules.database`
 - [x] **C6** `POST /api/setup_tokens` always `410 Gone` (OAuth-only; aligned with Wave A)
 
-Still open (ops / configuration in Vercel dashboard):
-- [ ] Confirm `DEV_LOGIN_KEY` absent in Vercel production
-- [ ] Set stable `TOKEN_ENCRYPTION_KEY` / `FLASK_SECRET_KEY` / `CRON_SECRET` / `REDIS_URL` in Vercel
+Still open (ops / configuration in production dashboard):
+- [x] Confirm `DEV_LOGIN_KEY` absent in production
+- [x] Set stable `TOKEN_ENCRYPTION_KEY` / `FLASK_SECRET_KEY` / `CRON_SECRET` in Railway
 - [x] H1 rate limits on login + generate/publish
 - [x] H2 SSRF allowlist for media URLs (`modules/validator.py`)
 - [x] H3 escape XSS in `static/embed.js`
 
 ---
 
-## 🔴 CRITICAL — Manual go-live blockers (Phase 5)
+## 🟢 LIVE PRODUCTION (Railway)
 
-### STEP 1 · Generate secure keys (run locally)
+- [x] Production Docker container deployed and active on Railway
+- [x] Public Domain: `https://postpilotops.up.railway.app` (HTTP 200 OK)
+- [x] Integrated in-process APScheduler background scheduler worker active (`ENABLE_BACKGROUND_SCHEDULER=true`)
+- [x] All 508 unit and integration tests passing
+
+---
+
+## 🔴 CRITICAL — Manual go-live checklist (Phase 5)
+
+### STEP 1 · Secure keys generated & injected into Railway
+- [x] `FLASK_SECRET_KEY` injected
+- [x] `TOKEN_ENCRYPTION_KEY` injected
+- [x] `CRON_SECRET` injected
+- [x] `ENABLE_BACKGROUND_SCHEDULER=true` injected
+- [x] `APP_ENV=production` injected
 ```bash
 # Flask secret key
 python -c "import secrets; print(secrets.token_hex(32))"

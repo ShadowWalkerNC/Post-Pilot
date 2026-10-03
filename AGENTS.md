@@ -13,8 +13,8 @@ Project:      Post-Pilot
 Description:  AI-powered social media automation for food trucks, restaurants, hotels,
               cafes, and food companies. Generates high-engagement posts and publishes
               directly to Facebook & Instagram via Meta Graph API.
-Status:       In production (Vercel)
-Phase:        Phase 5 — Harden & go live (keys, Redis, analytics verify, teams design)
+Status:       In production (Railway: https://postpilotops.up.railway.app)
+Phase:        Phase 5 & 6 — Production Live & Retention Features Complete
 Priority:     Active
 ```
 
@@ -26,7 +26,7 @@ Priority:     Active
 Language:     Python 3.11+
 Framework:    Flask 3.x
 Database:     Supabase (PostgreSQL via SQLAlchemy + psycopg2) + SQLite (local dev)
-Hosting:      Vercel (serverless + Vercel Cron)
+Hosting:      Railway (persistent container + APScheduler worker) + Vercel
 Key APIs:     Meta Graph API (Facebook/Instagram), OpenAI, Stripe, Sentry, Supabase Auth
 CI/CD:        GitHub Actions (.github/workflows/ci.yml) — ruff lint + pytest
 Observability: Sentry (via SENTRY_DSN env var)
@@ -112,7 +112,7 @@ Rarely needed:    BUSINESS (load only for pricing/go-to-market work)
 9. Rate limiting uses Flask-Limiter. Redis (Upstash) is the target backend — memory fallback is dev only.
 10. Sentry is activated by the presence of `SENTRY_DSN` — always set this in Vercel production.
 11. Pricing truth is Free / Starter / Pro / Agency only (`plan_guard.py` + `billing.html`). Do not reintroduce a Growth tier.
-12. Deploy target is Vercel only — do not add Render/Railway as primary hosting.
+12. Primary hosting target is Railway (persistent container with integrated APScheduler background worker) with Vercel retained as serverless secondary.
 
 ---
 

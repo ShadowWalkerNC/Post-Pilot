@@ -1,7 +1,7 @@
 # Post-Pilot — Master Plan
 
-> **Status:** In production (Vercel) · Phase 5 hardening  
-> **Last Updated:** 2026-08-08  
+> **Status:** In production (Railway: https://postpilotops.up.railway.app) · Phase 5 & 6 deployed  
+> **Last Updated:** 2026-10-03  
 > **Repo:** github.com/ShadowWalkerNC/Post-Pilot  
 > **Canonical for:** phase status, stack, pricing, next work  
 > **Open tasks:** see `TODO.md` · **Ship steps:** see `TODO.md` §CRITICAL
@@ -12,9 +12,9 @@
 
 Post-Pilot is AI-powered social media automation for food trucks, restaurants, hotels, cafes, and food companies. Operators generate platform-aware captions, publish to connected networks, keep specials/events/hours current, and optionally embed that data on their website.
 
-**Working promise (shipped core):** write once → adapt per platform → publish or schedule via Vercel Cron.
+**Working promise (shipped core):** write once → adapt per platform → publish or schedule via integrated APScheduler worker or Vercel Cron.
 
-**Stretch promise (not fully shipped):** one-tap location posts, morning habit loop, full Google/TikTok/YouTube publish, multi-location agency white-label.
+**Stretch promise (shipped):** one-tap location posts, morning habit loop, Google/TikTok/YouTube publish wrappers, multi-location agency architecture.
 
 ---
 
@@ -34,18 +34,18 @@ Post-Pilot is AI-powered social media automation for food trucks, restaurants, h
 |---|---|
 | Language | Python 3.11+ |
 | App | Flask 3.x, Jinja2, Tailwind |
-| Hosting | **Vercel** (serverless) + Vercel Cron |
+| Hosting | **Railway** (persistent container + APScheduler worker) / Vercel (serverless secondary) |
 | Database | Supabase PostgreSQL (SQLAlchemy + psycopg2); SQLite local |
 | Auth | **Supabase magic link** (no passwords) |
-| AI | **OpenAI** (`OPENAI_API_KEY`, GPT-4o-mini) via `modules/ai_generator.py` |
-| Social | Meta Graph API (FB/IG); Google/TikTok/YouTube clients exist (completeness varies) |
+| AI | Provider-agnostic gateway (`ai/` package: OpenAI, OpenRouter, Anthropic, Ollama) |
+| Social | Meta Graph API (FB/IG); Google Business, TikTok, YouTube (`integrations/`) |
 | Billing | Stripe + `modules/billing_manager.py` + `modules/plan_guard.py` |
 | Rate limits | Flask-Limiter; Redis/Upstash in prod |
 | Observability | Sentry when `SENTRY_DSN` set |
 | Migrations | Alembic (forward-only) |
 | CI | GitHub Actions — ruff + pytest |
 
-**Not the deploy target:** Render, Railway, Heroku, long-lived APScheduler workers. Cron must go through `vercel.json` → `/api/cron/*` + `CRON_SECRET`.
+**Primary deploy target:** Railway (persistent container with integrated APScheduler background worker) + optional Vercel Cron.
 
 ---
 

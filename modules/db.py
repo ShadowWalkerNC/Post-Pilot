@@ -126,8 +126,10 @@ def adapt_schema(sql: str) -> str:
     Translate SQL dialects between SQLite (dev) and PostgreSQL (prod).
     """
     if not USE_POSTGRES:
-        # Strip Postgres-only casts used by user_manager queries
-        return sql.replace('::uuid', '')
+        # Strip Postgres-only casts and functions used by user_manager queries
+        sql = sql.replace('::uuid', '')
+        sql = sql.replace('NOW()', "datetime('now')")
+        return sql
     sql = sql.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
     sql = sql.replace("DEFAULT (strftime('%s','now'))",
                       'DEFAULT (EXTRACT(EPOCH FROM NOW())::BIGINT)')

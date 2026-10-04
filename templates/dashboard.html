@@ -778,9 +778,21 @@ async function autoGenerate() {
   try {
     const res  = await fetch('/api/generate_single', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content_type:currentType,platform:'general'}) });
     const data = await res.json();
-    if (res.ok && data.post) { document.getElementById('mainCaption').value=data.post.caption||data.post; updatePreviews(); showToast('✨ Caption generated!','ok'); addFeedItem('✨ AI caption ready','ok'); }
-    else showToast(data.error||'Generation failed.','err');
-  } catch(e) { showToast('Network error.','err'); }
+    if (res.ok && data.post) {
+      document.getElementById('mainCaption').value = data.post.caption || data.post;
+      updatePreviews();
+      showToast('✨ Caption generated!', 'ok');
+      addFeedItem('✨ AI caption ready', 'ok');
+    } else {
+      const errMsg = (typeof data.error === 'object' && data.error !== null)
+        ? (data.error.message || JSON.stringify(data.error))
+        : (data.error || 'Generation failed.');
+      showToast(errMsg, 'err');
+      addFeedItem('⚠️ ' + errMsg, 'warn');
+    }
+  } catch(e) {
+    showToast('Network error.', 'err');
+  }
 }
 
 function saveDraft() {

@@ -175,6 +175,16 @@ def load_user(user_id: str):
 from blueprints import register_blueprints  # noqa: E402
 register_blueprints(app, csrf)
 
+# Initialize local tables if SQLite
+try:
+    auth_init_db()
+    with app.app_context():
+        _db = get_db()
+        _db.execute(WebsiteManager.create_table_sql())
+        _db.commit()
+except Exception as _init_err:
+    app.logger.warning('Auto-init tables notice: %s', _init_err)
+
 # ---------------------------------------------------------------------------
 # Background Scheduler (APScheduler for persistent hosting like Railway)
 # ---------------------------------------------------------------------------

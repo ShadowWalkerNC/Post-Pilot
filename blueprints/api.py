@@ -363,15 +363,41 @@ def api_generate_weekly():
 @login_required
 @require_plan('starter')
 def api_generate_post():
-    data     = request.json or {}
-    template = data.get('template', 'instagram_location')
-    gen      = SocialMediaPostGenerator()
+    data         = request.json or {}
+    template     = data.get('template')
+    content_type = data.get('content_type', 'general')
+    platform     = data.get('platform', 'facebook')
+    tone         = data.get('tone', 'friendly')
+    keywords     = data.get('keywords', [])
+
+    # If caller specifically asked for an explicit legacy template name
+    if template:
+        gen = SocialMediaPostGenerator()
+        profile = _get_business_profile()
+        if profile:
+            gen.setup_business(profile)
+        try:
+            post = gen.generate_post(template)
+            return jsonify({'success': True, 'post': post})
+        except Exception:
+            logger.exception('generate_post failed for template %s', template)
+            return jsonify({'success': False, 'error': 'Post generation failed'}), 500
+
+    # Otherwise route through real AI generator (LLM gateway with template fallback)
+    from modules.ai_generator import generate_caption
+    profile = _get_business_profile()
     try:
-        post = gen.generate_post(template)
-        return jsonify({'success': True, 'post': post})
+        caption = generate_caption(
+            business_info = profile,
+            content_type  = content_type,
+            tone          = tone,
+            keywords      = keywords,
+            platform      = platform if platform in ('facebook', 'instagram', 'tiktok', 'youtube', 'google', 'website') else 'facebook',
+        )
+        return jsonify({'success': True, 'post': {'caption': caption, 'platform': platform, 'type': content_type}})
     except Exception:
-        logger.exception('generate_post failed for template %s', template)
-        return jsonify({'success': False, 'error': 'Post generation failed'})
+        logger.exception('generate_single failed for user %s', _uid())
+        return jsonify({'success': False, 'error': 'Caption generation failed'}), 500
 
 
 # ---------------------------------------------------------------------------

@@ -36,6 +36,7 @@ def _get_tokens(uid: str = None) -> dict:
         'google':   ['google_token',   'google_location_id'],
         'tiktok':   ['tiktok_token'],
         'youtube':  ['youtube_token'],
+        'twitter':  ['twitter_token'],
     }
     for platform, keys in platform_map.items():
         rec = load_token(platform, uid)
@@ -49,6 +50,8 @@ def _get_tokens(uid: str = None) -> dict:
                 elif platform == 'google':
                     tokens['google_location_id'] = rec['meta'].get('location_id', '')
                     tokens['youtube_token']      = rec['access_token']
+            if platform == 'twitter' and rec.get('meta'):
+                tokens['twitter_username'] = rec['meta'].get('username', '')
     return tokens
 
 

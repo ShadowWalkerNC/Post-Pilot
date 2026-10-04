@@ -94,36 +94,62 @@ class UniversalPublisher:
 
         results = {}
 
+        # In dev or when mock tokens are present, provide realistic mock success
+        def _is_mock(token_val):
+            return str(token_val or '').startswith('mock_')
+
         if platforms.get('fb'):
             cap = self._resolve_caption(captions, caption, 'fb')
-            results['fb'] = self._publish_facebook(cap, image_url, video_url, schedule_time)
+            if _is_mock(self.tokens.get('facebook_token')):
+                label = 'Scheduled' if schedule_time else ('Video posted' if video_url else 'Posted')
+                results['fb'] = {'success': True, 'post_id': f'fb_mock_{int(datetime.utcnow().timestamp())}', 'message': f'{label} (Mock Dev)'}
+            else:
+                results['fb'] = self._publish_facebook(cap, image_url, video_url, schedule_time)
 
         if platforms.get('ig'):
             cap = self._resolve_caption(captions, caption, 'ig')
-            if image_url or video_url:
+            if _is_mock(self.tokens.get('instagram_token')):
+                label = 'Reel published' if video_url else 'Photo published'
+                results['ig'] = {'success': True, 'post_id': f'ig_mock_{int(datetime.utcnow().timestamp())}', 'message': f'{label} (Mock Dev)'}
+            elif image_url or video_url:
                 results['ig'] = self._publish_instagram(cap, image_url or video_url, schedule_time)
             else:
                 results['ig'] = {'success': False, 'error': 'Instagram requires an image or video URL'}
 
         if platforms.get('yt'):
             cap = self._resolve_caption(captions, caption, 'yt')
-            results['yt'] = self._handle_youtube(cap, video_url)
+            if _is_mock(self.tokens.get('youtube_token')):
+                results['yt'] = {'success': True, 'message': 'YouTube video uploaded (Mock Dev)', 'video_id': f'yt_mock_{int(datetime.utcnow().timestamp())}'}
+            else:
+                results['yt'] = self._handle_youtube(cap, video_url)
 
         if platforms.get('yts'):
             cap = self._resolve_caption(captions, caption, 'yts')
-            results['yts'] = self._handle_youtube_shorts(cap, video_url)
+            if _is_mock(self.tokens.get('youtube_token')):
+                results['yts'] = {'success': True, 'message': 'YouTube Short uploaded (Mock Dev)', 'video_id': f'yts_mock_{int(datetime.utcnow().timestamp())}'}
+            else:
+                results['yts'] = self._handle_youtube_shorts(cap, video_url)
 
         if platforms.get('tt'):
             cap = self._resolve_caption(captions, caption, 'tt')
-            results['tt'] = self._handle_tiktok(cap, video_url)
+            if _is_mock(self.tokens.get('tiktok_token')):
+                results['tt'] = {'success': True, 'message': 'TikTok video upload initiated (Mock Dev)', 'publish_id': f'tt_mock_{int(datetime.utcnow().timestamp())}'}
+            else:
+                results['tt'] = self._handle_tiktok(cap, video_url)
 
         if platforms.get('gb'):
             cap = self._resolve_caption(captions, caption, 'gb')
-            results['gb'] = self._publish_google_business(cap, image_url, link_url)
+            if _is_mock(self.tokens.get('google_token')):
+                results['gb'] = {'success': True, 'post_id': f'gb_mock_{int(datetime.utcnow().timestamp())}', 'message': 'Posted to Google Business (Mock Dev)'}
+            else:
+                results['gb'] = self._publish_google_business(cap, image_url, link_url)
 
         if platforms.get('tw'):
             cap = self._resolve_caption(captions, caption, 'tw')
-            results['tw'] = self._publish_twitter(cap, image_url)
+            if _is_mock(self.tokens.get('twitter_token')):
+                results['tw'] = {'success': True, 'message': 'Tweet posted (Mock Dev)', 'tweet_id': f'tw_mock_{int(datetime.utcnow().timestamp())}'}
+            else:
+                results['tw'] = self._publish_twitter(cap, image_url)
 
         if platforms.get('web'):
             cap = self._resolve_caption(captions, caption, 'web')

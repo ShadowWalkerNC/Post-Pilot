@@ -238,6 +238,22 @@ def auth_facebook():
     session['oauth_step']           = request.args.get('step', '2')
     app_id       = os.getenv('FACEBOOK_APP_ID')
     redirect_uri = os.getenv('REDIRECT_URI', 'http://localhost:5000/auth/facebook/callback')
+
+    is_dev = os.getenv('APP_ENV') != 'production' and os.getenv('VERCEL_ENV') != 'production'
+    if not app_id:
+        if is_dev or request.args.get('mock') == '1':
+            save_token(
+                'facebook', 'mock_fb_token_12345',
+                meta={'page_id': 'mock_fb_page_100', 'ig_id': 'mock_ig_biz_200'},
+                user_id=_uid()
+            )
+            flash('Facebook & Instagram connected (Dev Mock mode)!', 'success')
+            next_url = session.pop('oauth_next', '/')
+            step     = session.pop('oauth_step', '2')
+            return redirect(f'/onboarding?connected=facebook&step={step}' if next_url == '/onboarding' else url_for('pages.connect_page'))
+        flash('FACEBOOK_APP_ID is not configured in environment.', 'error')
+        return redirect(url_for('pages.connect_page'))
+
     scopes = (
         'pages_show_list,'
         'pages_read_engagement,'
@@ -309,6 +325,24 @@ def auth_google():
     session['oauth_step']         = request.args.get('step', '3')
     client_id = os.getenv('GOOGLE_CLIENT_ID')
     redir     = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:5000/auth/google/callback')
+
+    is_dev = os.getenv('APP_ENV') != 'production' and os.getenv('VERCEL_ENV') != 'production'
+    if not client_id:
+        if is_dev or request.args.get('mock') == '1':
+            save_token(
+                'google', 'mock_google_token_12345',
+                refresh_token='mock_google_refresh_token',
+                expires_at=datetime.utcnow() + timedelta(days=30),
+                meta={'location_id': 'mock_locations/12345678'},
+                user_id=_uid()
+            )
+            flash('Google Business & YouTube connected (Dev Mock mode)!', 'success')
+            next_url = session.pop('oauth_next', '/')
+            step     = session.pop('oauth_step', '3')
+            return redirect(f'/onboarding?connected=google&step={step}' if next_url == '/onboarding' else url_for('pages.connect_page'))
+        flash('GOOGLE_CLIENT_ID is not configured in environment.', 'error')
+        return redirect(url_for('pages.connect_page'))
+
     scope     = 'https://www.googleapis.com/auth/business.manage https://www.googleapis.com/auth/youtube.upload'
     return redirect(
         f'https://accounts.google.com/o/oauth2/v2/auth'
@@ -378,6 +412,23 @@ def auth_tiktok():
     session['oauth_step']         = request.args.get('step', '4')
     client_key = os.getenv('TIKTOK_CLIENT_KEY')
     redir      = os.getenv('TIKTOK_REDIRECT_URI', 'http://localhost:5000/auth/tiktok/callback')
+
+    is_dev = os.getenv('APP_ENV') != 'production' and os.getenv('VERCEL_ENV') != 'production'
+    if not client_key:
+        if is_dev or request.args.get('mock') == '1':
+            save_token(
+                'tiktok', 'mock_tiktok_token_12345',
+                refresh_token='mock_tiktok_refresh_token',
+                expires_at=datetime.utcnow() + timedelta(days=30),
+                user_id=_uid()
+            )
+            flash('TikTok connected (Dev Mock mode)!', 'success')
+            next_url = session.pop('oauth_next', '/')
+            step     = session.pop('oauth_step', '4')
+            return redirect(f'/onboarding?connected=tiktok&step={step}' if next_url == '/onboarding' else url_for('pages.connect_page'))
+        flash('TIKTOK_CLIENT_KEY is not configured in environment.', 'error')
+        return redirect(url_for('pages.connect_page'))
+
     scope      = 'user.info.basic,video.upload,video.publish'
     return redirect(
         f'https://www.tiktok.com/v2/auth/authorize'
@@ -444,6 +495,24 @@ def auth_twitter():
     session['oauth_step']            = request.args.get('step', '5')
     client_id = os.getenv('TWITTER_CLIENT_ID')
     redir     = os.getenv('TWITTER_REDIRECT_URI', 'http://localhost:5000/auth/twitter/callback')
+
+    is_dev = os.getenv('APP_ENV') != 'production' and os.getenv('VERCEL_ENV') != 'production'
+    if not client_id:
+        if is_dev or request.args.get('mock') == '1':
+            save_token(
+                'twitter', 'mock_twitter_token_12345',
+                refresh_token='mock_twitter_refresh_token',
+                expires_at=datetime.utcnow() + timedelta(days=30),
+                meta={'user_id': 'mock_tw_user_1', 'username': 'PostPilotDev'},
+                user_id=_uid()
+            )
+            flash('Twitter / X connected (Dev Mock mode)!', 'success')
+            next_url = session.pop('oauth_next', '/')
+            step     = session.pop('oauth_step', '5')
+            return redirect(f'/onboarding?connected=twitter&step={step}' if next_url == '/onboarding' else url_for('pages.connect_page'))
+        flash('TWITTER_CLIENT_ID is not configured in environment.', 'error')
+        return redirect(url_for('pages.connect_page'))
+
     scopes    = 'tweet.read%20tweet.write%20users.read%20offline.access'
     return redirect(
         f'https://twitter.com/i/oauth2/authorize'
